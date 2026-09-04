@@ -40,7 +40,7 @@ interface PendingEdit {
 
 interface CardProps {
   c: ComputedStint;
-  displayNumber: number;
+  displayNumber: string;
   isCurrent: boolean;
   drivers: Driver[];
   onSave: (edit: PendingEdit) => void;
@@ -350,7 +350,7 @@ export function PlanPanel() {
           <PlanStintCard
             key={c.id}
             c={c}
-            displayNumber={hidePitStints ? visiblePos + 1 : c.index + 1}
+            displayNumber={c.isPit ? "Box" : String(driveStintNumber(computed, c.index))}
             isCurrent={idx === c.index}
             drivers={state.drivers}
             onSave={setPendingEdit}
