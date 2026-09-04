@@ -19,6 +19,7 @@ import {
 import { DurationField } from "@/components/race/DurationField";
 
 import {
+  applyStintEdit,
   computeStints,
   currentStintIndex,
   ensurePitDriver,
@@ -33,6 +34,8 @@ import {
 } from "@/lib/race/engine";
 import type { ComputedStint, Driver, Stint } from "@/lib/race/types";
 import { useNow, useRace } from "@/lib/race/store";
+import { supabase } from "@/integrations/supabase/client";
+
 
 interface PendingEdit {
   id: string;
