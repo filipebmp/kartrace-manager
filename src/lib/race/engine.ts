@@ -351,8 +351,9 @@ export function rebalanceFrom(
     if (isPitStint(stint)) {
       return { ...stint, duration: config.minPitDuration };
     }
-    const duration = base + (remainder > 0 ? 1 : 0);
-    if (remainder > 0) remainder--;
+    const extra = Math.min(1, Math.max(0, remainder));
+    const duration = base + extra;
+    remainder -= extra;
     return { ...stint, duration };
   });
 }
@@ -400,35 +401,36 @@ export function applyStintEdit(
   state: RaceState,
   id: string,
   patch: Partial<Stint>,
-): { stints: Stint[]; from: number; recalculated: number } {
+): { stints: Stint[]; startedAt: number | null; from: number; recalculated: number } {
   const idx = state.stints.findIndex((st) => st.id === id);
-  if (idx < 0) return { stints: state.stints, from: 0, recalculated: 0 };
-  const before = state.stints[idx];
+  if (idx < 0)
+    return { stints: state.stints, startedAt: state.startedAt, from: 0, recalculated: 0 };
   let next = state.stints.map((st) => (st.id === id ? { ...st, ...patch } : st));
+  let startedAt = state.startedAt;
 
   let from = idx;
   if (state.startedAt !== null) {
-    const computed = computeStints({ ...state, stints: next });
-    const cur = state.liveIndex ?? currentStintIndex(computed, Date.now());
+    const beforeComputed = computeStints(state);
+    const cur = state.liveIndex ?? currentStintIndex(beforeComputed, Date.now());
     if (cur > from) {
       from = cur;
-      let delta = (next[idx]?.duration ?? 0) - (before?.duration ?? 0);
-      if (delta !== 0) {
-        const adjusted = [...next];
-        for (let i = cur - 1; i > idx && delta !== 0; i--) {
-          const st = adjusted[i];
-          if (!st) continue;
-          const take = delta > 0 ? Math.min(delta, st.duration) : delta;
-          adjusted[i] = { ...st, duration: st.duration - take };
-          delta -= take;
-        }
-        next = adjusted;
+
+      // Uma correção histórica descreve o que realmente aconteceu antes do
+      // turno atual. Compensar no instante de partida preserva exatamente o
+      // início, fim, duração e contador do turno em curso, mesmo quando a
+      // diferença é superior à duração das boxes intermédias.
+      const activeBefore = beforeComputed[cur];
+      const activeAfter = computeStints({ ...state, stints: next })[cur];
+      if (activeBefore && activeAfter) {
+        startedAt = state.startedAt + activeBefore.startAt - activeAfter.startAt;
       }
     }
   }
 
+  next = rebalanceFrom(next, state.drivers, state.config, from);
   return {
-    stints: rebalanceFrom(next, state.drivers, state.config, from),
+    stints: next,
+    startedAt,
     from,
     recalculated: Math.max(0, next.length - from),
   };

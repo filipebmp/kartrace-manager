@@ -238,7 +238,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         patch((s) => {
           const res = applyStintEdit(s, id, p);
           recalculated = res.recalculated;
-          return { ...s, stints: res.stints };
+          return { ...s, stints: res.stints, startedAt: res.startedAt };
         });
         return recalculated;
       },
