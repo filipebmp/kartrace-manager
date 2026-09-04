@@ -304,6 +304,11 @@ export function PlanPanel() {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
+  const saveKart = (id: string, kart: string) => {
+    setKart(id, kart);
+    toast.success(kart ? `Kart ${kart} registado no turno.` : "Kart removido do turno.");
+  };
+
   const scrollToActive = () => {
     if (!activeStint) return;
     let target = visibleComputed.find((c) => c.index === activeStint.index);
