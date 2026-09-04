@@ -64,9 +64,15 @@ export function raceStartTs(state: RaceState) {
   return Number.isNaN(t) ? Date.now() : t;
 }
 
+/** offset (min) em que o pitlane fecha: 24:30 para uma prova de 25h */
+export function pitLaneCloseOffset(config: RaceConfig) {
+  return config.raceDuration - config.pitLaneClosesBefore;
+}
+
 export function computeStints(state: RaceState): ComputedStint[] {
   const { config, drivers, stints } = state;
   const start = raceStartTs(state);
+  const closeOffset = pitLaneCloseOffset(config);
   let offset = 0;
 
   return stints.map((stint, i) => {
