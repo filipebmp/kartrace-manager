@@ -54,6 +54,11 @@ function AuthPage() {
     });
     setBusy(false);
     if (error) {
+      if (error.message.toLowerCase().includes("not confirmed")) {
+        setPendingEmail(String(form.get("email") ?? "").trim());
+        toast.error("Email por confirmar", { description: "Confirma o email antes de entrares." });
+        return;
+      }
       toast.error("Não foi possível entrar", { description: error.message });
       return;
     }
