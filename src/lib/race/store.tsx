@@ -142,7 +142,16 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const idx = s.stints.findIndex((st) => st.id === id);
           if (idx < 0) return s;
           const next = s.stints.map((st) => (st.id === id ? { ...st, ...p } : st));
-          return { ...s, stints: rebalanceFrom(next, s.drivers, s.config, idx) };
+          // Só recalcula os turnos que ainda não foram executados: durante a
+          // corrida, os turnos já feitos (e o que está em curso) ficam como
+          // estão e só podem ser alterados manualmente.
+          let from = idx;
+          if (s.startedAt !== null) {
+            const computed = computeStints({ ...s, stints: next });
+            const cur = s.liveIndex ?? currentStintIndex(computed, Date.now());
+            if (cur > from) from = cur;
+          }
+          return { ...s, stints: rebalanceFrom(next, s.drivers, s.config, from) };
         }),
 
       insertStintAfter: (id) =>
