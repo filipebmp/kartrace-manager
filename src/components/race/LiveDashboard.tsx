@@ -264,7 +264,7 @@ export function LiveDashboard() {
         </p>
         <ul className="space-y-2">
           {computed
-            .slice(Math.max(idx, 0), Math.max(idx, 0) + 6)
+            .slice(running ? idx + 1 : 0, (running ? idx + 1 : 0) + 6)
             .map((c) => (
               <li
                 key={c.id}
