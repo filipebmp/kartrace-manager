@@ -550,11 +550,39 @@ export function PlanPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Guardar alterações?</AlertDialogTitle>
             <AlertDialogDescription>
-              As alterações a este turno vão ser aplicadas. Os turnos seguintes que ainda
-              não foram executados serão recalculados automaticamente até ao fim da prova;
-              os turnos já executados mantêm-se como estão.
+              Ao corrigir um turno já passado só se acerta a diferença: o turno em curso
+              mantém a duração e a hora de fim, e os turnos ainda por fazer são recalculados
+              até ao fim da prova.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {preview ? (
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border border-border p-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Pré-visualização · {preview.rows.length} turno(s) afetado(s)
+              </p>
+              {preview.rows.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nada muda nos horários.</p>
+              ) : (
+                preview.rows.slice(0, 12).map((r) => (
+                  <div key={r.old.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{labelFor(r.old)}</span>
+                    <span className="tabular">
+                      {fmtDuration(r.old.duration)} → {fmtDuration(r.next!.duration)}
+                    </span>
+                    <span className="tabular text-muted-foreground">
+                      fim {fmtTimeOfDay(r.old.endAt)} → {fmtTimeOfDay(r.next!.endAt)}
+                    </span>
+                  </div>
+                ))
+              )}
+              {preview.rows.length > 12 ? (
+                <p className="text-[10px] text-muted-foreground">
+                  … e mais {preview.rows.length - 12} turno(s).
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmSave}>Guardar</AlertDialogAction>
