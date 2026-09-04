@@ -18,8 +18,8 @@ export interface Stint {
   /** número do kart utilizado neste turno */
   kart?: string;
   /** avaliação do kart utilizado neste turno */
-  kartRating?: "não sei" | "muito bom" | "bom" | "médio" | "mau" | "muito mau";
-  note?: string;
+  kartRating?: "não sei" | "muito bom" | "bom" | "médio" | "mau" | "muito mau" | undefined;
+  note?: string | undefined;
 }
 
 export interface RaceConfig {
