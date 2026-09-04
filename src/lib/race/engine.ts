@@ -218,7 +218,7 @@ export function totalPlanned(stints: Stint[]) {
 // Valores por omissão: categoria PRO (28 paragens, turno máx. 80 min)
 export function defaultConfig(): RaceConfig {
   return {
-    teamName: "Light Speed",
+    teamName: "KOTM",
     eventName: "25H Karting Palmela",
     raceDuration: 25 * 60,
     minDriverWeight: 85,
