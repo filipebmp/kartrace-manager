@@ -275,6 +275,29 @@ export function LiveDashboard() {
         </ul>
       </div>
 
+      <AlertDialog open={confirmBox} onOpenChange={setConfirmBox}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Turno abaixo do mínimo</AlertDialogTitle>
+            <AlertDialogDescription>
+              O piloto ainda não cumpriu o tempo mínimo de turno ({state.config.minStint} min).
+              Queres mesmo assim mandar o piloto para a box?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                boxNow();
+                setConfirmBox(false);
+              }}
+            >
+              Fazer box
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
         <AlertDialogContent>
           <AlertDialogHeader>
