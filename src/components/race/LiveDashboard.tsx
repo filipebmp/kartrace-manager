@@ -130,7 +130,10 @@ export function LiveDashboard() {
                   onClick={handleBoxClick}
                   disabled={!current}
                 >
-                  <ArrowDownToLine className="size-4" /> Box
+                  <ArrowDownToLine className="size-4" />
+                  {belowMinStint
+                    ? `Box em ${fmtClock(minStintRemainingMs)}`
+                    : "Box"}
                 </Button>
               )}
               <Button variant="destructive" size="sm" onClick={() => setConfirmStop(true)}>
