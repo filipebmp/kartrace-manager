@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Check, Flag, Square, Timer, Weight } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Check, Flag, Info, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -50,11 +50,13 @@ function Stat({
   value,
   hint,
   tone = "default",
+  info,
 }: {
   label: string;
   value: string;
   hint?: string | undefined;
   tone?: "default" | "warning" | "danger" | "success";
+  info?: React.ReactNode;
 }) {
   const toneClass =
     tone === "danger"
@@ -66,12 +68,33 @@ function Stat({
           : "text-foreground";
   return (
     <div className="panel p-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+        {info ? (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Como é calculado: ${label}`}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Info className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[280px] text-xs leading-relaxed">
+                {info}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : null}
+      </div>
       <p className={`tabular mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
+
 
 function actionTooltipContent(
   action: ComputedStint | undefined,
@@ -211,6 +234,61 @@ export function LiveDashboard() {
     ? Math.max(0, (pitCloseAt - now) / MIN - futurePitMinutes)
     : Math.max(0, closeOffset - futurePitMinutes);
   const burnable = burnableStints(state.config, remainingStops, drivingAvailableMin);
+
+  // Margem para cumprir as paragens obrigatórias antes do fecho do pitlane:
+  // (S+1) turnos de condução ao mínimo + as boxes que faltam.
+  const minDrivingNeeded = (remainingStops + 1) * state.config.minStint;
+  const slackMin = drivingAvailableMin - minDrivingNeeded;
+  const feasibility: "ok" | "tight" | "critical" =
+    remainingStops === 0 ? "ok" : slackMin < 0 ? "critical" : slackMin < 30 ? "tight" : "ok";
+
+  // Plano estimado dos turnos rápidos até ao fecho do pitlane
+  const timeline = (() => {
+    if (remainingStops === 0) return [];
+    const slowCount = remainingStops + 1 - burnable;
+    const slowMinutes = Math.max(0, drivingAvailableMin - burnable * state.config.minStint);
+    const slowEach = slowCount > 0 ? slowMinutes / slowCount : 0;
+    const items: {
+      key: string;
+      kind: "drive" | "pit" | "close";
+      label: string;
+      detail: string;
+      at: number;
+    }[] = [];
+    let cursor = running ? now : startTs;
+    for (let i = 0; i < remainingStops + 1; i++) {
+      const fast = i < burnable;
+      const dur = fast ? state.config.minStint : slowEach;
+      items.push({
+        key: `d${i}`,
+        kind: "drive",
+        label: fast ? `Turno rápido ${i + 1}` : `Turno ${i + 1}`,
+        detail: `${fmtDuration(dur)}${fast ? ` · mínimo (${state.config.minStint} min)` : ""}`,
+        at: cursor,
+      });
+      cursor += dur * MIN;
+      if (i < remainingStops) {
+        items.push({
+          key: `p${i}`,
+          kind: "pit",
+          label: `Box ${i + 1} de ${remainingStops}`,
+          detail: `Janela a partir das ${fmtTimeOfDay(cursor)} · ${minPit} min`,
+          at: cursor,
+        });
+        cursor += minPit * MIN;
+      }
+    }
+    items.push({
+      key: "close",
+      kind: "close",
+      label: "Fecho do pitlane",
+      detail: `Sem paragens obrigatórias depois desta hora`,
+      at: pitCloseAt,
+    });
+    return items.slice(0, 13);
+  })();
+
+
 
   return (
     <div className="space-y-4">
@@ -455,6 +533,24 @@ export function LiveDashboard() {
         </div>
       )}
 
+      {running && feasibility !== "ok" && (
+        <div
+          className={
+            feasibility === "critical"
+              ? "flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              : "flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
+          }
+        >
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {feasibility === "critical"
+              ? `Já não há tempo para as ${remainingStops} paragens que faltam antes do fecho do pitlane, mesmo com todos os turnos ao mínimo de ${state.config.minStint} min (faltam ${fmtDuration(Math.abs(slackMin))}).`
+              : `Margem apertada: só sobram ${fmtDuration(slackMin)} para além do mínimo necessário às ${remainingStops} paragens que faltam. Encurta turnos agora.`}
+          </span>
+        </div>
+      )}
+
+
       <div className="grid grid-cols-2 gap-3">
         <Stat
           label="Tempo de corrida"
@@ -518,8 +614,40 @@ export function LiveDashboard() {
               ? "Paragens obrigatórias cumpridas"
               : `Até ${burnable} turno(s) ao mínimo (${state.config.minStint} min) e ainda fazes as ${remainingStops} paragens antes do fecho, sem ultrapassar ${state.config.maxStint} min por piloto`
           }
-          tone={burnable > 0 ? "success" : "default"}
+          tone={
+            feasibility === "critical"
+              ? "danger"
+              : feasibility === "tight"
+                ? "warning"
+                : burnable > 0
+                  ? "success"
+                  : "default"
+          }
+          info={
+            <div className="space-y-1">
+              <p className="font-semibold">Como é calculado</p>
+              <p>
+                Tempo até ao fecho do pitlane:{" "}
+                {running ? fmtDuration(Math.max(0, (pitCloseAt - now) / MIN)) : fmtDuration(closeOffset)}
+              </p>
+              <p>
+                Menos as {remainingStops} boxes que faltam ({minPit} min cada):{" "}
+                {fmtDuration(futurePitMinutes)}
+              </p>
+              <p>Tempo de condução disponível: {fmtDuration(drivingAvailableMin)}</p>
+              <p>
+                Faltam {remainingStops} paragens → {remainingStops + 1} turnos de condução, nenhum
+                acima de {state.config.maxStint} min.
+              </p>
+              <p>
+                Turnos que podem ser feitos ao mínimo de {state.config.minStint} min sem que os
+                restantes ultrapassem o máximo: <strong>{burnable}</strong>.
+              </p>
+              <p>Margem atual: {fmtDuration(slackMin)}</p>
+            </div>
+          }
         />
+
         <Stat
           label="Pitlane fecha"
           value={
@@ -538,6 +666,39 @@ export function LiveDashboard() {
         />
 
       </div>
+
+      {timeline.length > 0 && (
+        <div className="panel p-4">
+          <p className="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <Timer className="size-4" /> Plano estimado até ao fecho do pitlane
+          </p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {burnable} turno(s) ao mínimo de {state.config.minStint} min e {remainingStops} paragens
+            de {minPit} min. Estimativa {running ? "a partir de agora" : "a partir da partida"}.
+          </p>
+          <ol className="space-y-2">
+            {timeline.map((item) => (
+              <li
+                key={item.key}
+                className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${
+                  item.kind === "close"
+                    ? "border border-destructive/40 bg-destructive/10 text-destructive"
+                    : item.kind === "pit"
+                      ? "border border-warning/30 bg-warning/10 text-warning"
+                      : "bg-secondary/60"
+                }`}
+              >
+                <div>
+                  <p className="font-medium">{item.label}</p>
+                  <p className="text-xs opacity-80">{item.detail}</p>
+                </div>
+                <span className="tabular text-xs font-semibold">{fmtTimeOfDay(item.at)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
 
       <div className="panel p-4">
         <p className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
