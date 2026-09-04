@@ -121,9 +121,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
     }
     if (!userId) return;
     const t = setTimeout(() => {
-      void supabase
-        .from("race_states")
-        .upsert({ user_id: userId, state: state as unknown as Json }, { onConflict: "user_id" });
+      void (async () => {
+        const { error } = await supabase
+          .from("race_states")
+          .upsert({ user_id: userId, state: state as unknown as Json }, { onConflict: "user_id" });
+        if (error) console.error("Falha ao guardar na nuvem", error.message);
+      })();
     }, 800);
     return () => clearTimeout(t);
   }, [state, hydrated, userId]);
