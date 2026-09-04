@@ -341,6 +341,10 @@ export function PlanPanel() {
         </p>
       </div>
 
+      {state.startedAt !== null && activeStint && liveNow !== null ? (
+        <ActiveStintIndicator active={activeStint} now={liveNow} onLocate={scrollToActive} />
+      ) : null}
+
       <div className="space-y-2">
         {visibleComputed.map((c, visiblePos) => (
           <PlanStintCard
