@@ -46,19 +46,22 @@ interface CardProps {
   drivers: Driver[];
   onSave: (edit: PendingEdit) => void;
   onDelete: (id: string) => void;
+  onSaveKart: (id: string, kart: string) => void;
 }
 
-function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete }: CardProps) {
+function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete, onSaveKart }: CardProps) {
   const [driverCode, setDriverCode] = useState<number | null>(c.driverCode);
   const [duration, setDuration] = useState<number>(c.duration);
   const [ballast, setBallast] = useState<number>(c.ballast);
+  const [kart, setKart] = useState<string>(c.kart ?? "");
 
   // Quando o turno muda por fora (recálculo do plano), repõe o rascunho.
   useEffect(() => {
     setDriverCode(c.driverCode);
     setDuration(c.duration);
     setBallast(c.ballast);
-  }, [c.id, c.driverCode, c.duration, c.ballast]);
+    setKart(c.kart ?? "");
+  }, [c.id, c.driverCode, c.duration, c.ballast, c.kart]);
 
   const dirty =
     driverCode !== c.driverCode ||
@@ -119,6 +122,29 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete 
           />
         </div>
       </div>
+
+      {!c.isPit && (
+        <div className="mt-2 flex items-end gap-2">
+          <div className="flex-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">Kart utilizado</Label>
+            <Input
+              value={kart}
+              onChange={(e) => setKart(e.target.value)}
+              placeholder="Nº do kart"
+              className="h-9"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-9"
+            onClick={() => onSaveKart(c.id, kart.trim())}
+            disabled={kart.trim() === (c.kart ?? "")}
+          >
+            <Check className="size-4" /> Guardar kart
+          </Button>
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!c.isPit && (
@@ -216,7 +242,8 @@ function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndi
 }
 
 export function PlanPanel() {
-  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
+  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers, setKart } =
+    useRace();
   const now = useNow(15000);
   const liveNow = useNow(1000);
   const [stintLength, setStintLength] = useState(60);
@@ -276,6 +303,11 @@ export function PlanPanel() {
   }, []);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+  const saveKart = (id: string, kart: string) => {
+    setKart(id, kart);
+    toast.success(kart ? `Kart ${kart} registado no turno.` : "Kart removido do turno.");
+  };
 
   const scrollToActive = () => {
     if (!activeStint) return;
@@ -362,6 +394,7 @@ export function PlanPanel() {
             drivers={state.drivers}
             onSave={setPendingEdit}
             onDelete={setConfirmDelete}
+            onSaveKart={saveKart}
           />
         ))}
       </div>

@@ -36,6 +36,8 @@ interface Ctx {
   updateStint: (id: string, patch: Partial<Stint>) => number;
   /** Define o lastro de um turno sem recalcular horários (confirmação via rádio) */
   setBallast: (id: string, kg: number) => void;
+  /** Regista o kart utilizado num turno sem recalcular horários */
+  setKart: (id: string, kart: string) => void;
   insertStintAfter: (id: string | null) => void;
   removeStint: (id: string) => void;
   moveStint: (id: string, dir: -1 | 1) => void;
@@ -164,6 +166,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         patch((s) => ({
           ...s,
           stints: s.stints.map((st) => (st.id === id ? { ...st, ballast: kg } : st)),
+        })),
+
+      setKart: (id, kart) =>
+        patch((s) => ({
+          ...s,
+          stints: s.stints.map((st) => (st.id === id ? { ...st, kart } : st)),
         })),
 
       insertStintAfter: (id) =>
