@@ -154,11 +154,19 @@ function PlanStintCard({
             <select
               className="h-9 w-full rounded-md border border-input bg-secondary px-2 py-1 text-sm"
               value={c.ballastConfirmed ? "sim" : "nao"}
-              onChange={(e) => onSaveBallastConfirmed(c.id, e.target.value === "sim")}
+              onChange={(e) => {
+                const yes = e.target.value === "sim";
+                if (yes && c.suggestedBallast > 0 && ballast < c.suggestedBallast) {
+                  setBallast(c.suggestedBallast);
+                  onSave({ id: c.id, patch: { ballast: c.suggestedBallast } });
+                }
+                onSaveBallastConfirmed(c.id, yes);
+              }}
             >
               <option value="nao">Não</option>
               <option value="sim">Sim</option>
             </select>
+
           </div>
         )}
       </div>
