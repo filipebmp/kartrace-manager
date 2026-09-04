@@ -50,11 +50,13 @@ function Stat({
   value,
   hint,
   tone = "default",
+  info,
 }: {
   label: string;
   value: string;
   hint?: string | undefined;
   tone?: "default" | "warning" | "danger" | "success";
+  info?: React.ReactNode;
 }) {
   const toneClass =
     tone === "danger"
@@ -66,12 +68,33 @@ function Stat({
           : "text-foreground";
   return (
     <div className="panel p-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+        {info ? (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Como é calculado: ${label}`}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Info className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[280px] text-xs leading-relaxed">
+                {info}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : null}
+      </div>
       <p className={`tabular mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
+
 
 function actionTooltipContent(
   action: ComputedStint | undefined,
