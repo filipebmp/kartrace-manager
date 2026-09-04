@@ -59,7 +59,7 @@ function Field({
 
 
 export function SettingsPanel() {
-  const { state, setConfig, setPlannedStart, reset, replaceState } = useRace();
+  const { state, setConfig, reset, replaceState } = useRace();
   const c = state.config;
   const fileRef = useRef<HTMLInputElement>(null);
   const [proOpen, setProOpen] = useState(false);
@@ -98,17 +98,6 @@ export function SettingsPanel() {
           hint="Nome oficial da prova: evento, local e ano. Aparece no dashboard e nas exportações."
           onChange={(v) => setConfig({ eventName: v })}
         />
-        <div>
-          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Data/hora de partida
-          </Label>
-          <Input
-            type="datetime-local"
-            className="h-9"
-            value={state.plannedStart}
-            onChange={(e) => setPlannedStart(e.target.value)}
-          />
-        </div>
       </div>
 
       <div className="panel grid grid-cols-2 gap-3 p-4">

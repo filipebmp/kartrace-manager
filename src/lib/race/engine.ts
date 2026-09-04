@@ -99,9 +99,8 @@ export function ensurePitDriver(drivers: Driver[]): Driver[] {
 }
 
 export function raceStartTs(state: RaceState) {
-  if (state.startedAt) return state.startedAt;
-  const t = new Date(state.plannedStart).getTime();
-  return Number.isNaN(t) ? Date.now() : t;
+  // Antes da partida os horários do plano são indicativos, ancorados ao relógio atual.
+  return state.startedAt ?? Date.now();
 }
 
 /** offset (min) em que o pitlane fecha: 24:30 para uma prova de 25h */
@@ -302,9 +301,6 @@ export function generatePlan(drivers: Driver[], config: RaceConfig): Stint[] {
 export function defaultState(): RaceState {
   const config = defaultConfig();
   const drivers = defaultDrivers();
-  const start = new Date();
-  start.setMinutes(0, 0, 0);
-  start.setHours(start.getHours() + 1);
   return {
     config,
     drivers,
@@ -312,7 +308,6 @@ export function defaultState(): RaceState {
     startedAt: null,
     liveIndex: null,
     planSnapshot: null,
-    plannedStart: toLocalInput(start),
   };
 }
 
