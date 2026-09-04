@@ -142,7 +142,7 @@ function AdminPage() {
                 <Button
                   size="sm"
                   disabled={t.status === "approved"}
-                  onClick={() => setStatus(t.id, "approved")}
+                  onClick={() => setPendingChange({ team: t, status: "approved" })}
                 >
                   Aprovar
                 </Button>
@@ -150,7 +150,7 @@ function AdminPage() {
                   size="sm"
                   variant="outline"
                   disabled={t.status === "rejected"}
-                  onClick={() => setStatus(t.id, "rejected")}
+                  onClick={() => setPendingChange({ team: t, status: "rejected" })}
                 >
                   Recusar
                 </Button>
