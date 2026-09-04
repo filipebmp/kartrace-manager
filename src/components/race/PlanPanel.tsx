@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
 import {
   computeStints,
   currentStintIndex,
@@ -32,11 +34,14 @@ export function PlanPanel() {
   const now = useNow(15000);
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [hidePitStints, setHidePitStints] = useState(false);
   const computed = computeStints(state);
   const idx =
     now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
+  const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
+
 
   const confirmRemove = () => {
     if (confirmDelete) removeStint(confirmDelete);
@@ -69,10 +74,22 @@ export function PlanPanel() {
             <Wand2 className="size-4" /> Gerar plano
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
-          <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
+            <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="hidePitStints"
+              checked={hidePitStints}
+              onCheckedChange={setHidePitStints}
+            />
+            <Label htmlFor="hidePitStints" className="text-xs text-muted-foreground">
+              Ocultar boxes
+            </Label>
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
           Paragens: <span className="tabular">{summary.stops}</span> de{" "}
           <span className="tabular">{summary.requiredStops}</span> obrigatórias
@@ -89,14 +106,16 @@ export function PlanPanel() {
 
       </div>
 
+
       <div className="space-y-2">
-        {computed.map((c) => (
+        {visibleComputed.map((c) => (
           <div
             key={c.id}
             className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
               c.isPit ? "opacity-80" : ""
             }`}
           >
+
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="tabular w-6 text-xs text-muted-foreground">{c.index + 1}</span>
