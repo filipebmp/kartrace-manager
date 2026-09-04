@@ -310,6 +310,7 @@ export function PlanPanel() {
     setDrivers,
     setKart,
     setKartRating,
+    setBallastConfirmed,
   } = useRace();
   const now = useNow(15000);
   const liveNow = useNow(1000);
@@ -379,6 +380,11 @@ export function PlanPanel() {
   const saveKartRating = (id: string, rating: Stint["kartRating"]) => {
     setKartRating(id, rating);
     toast.success(rating ? `Avaliação "${rating}" registada.` : "Avaliação removida.");
+  };
+
+  const saveBallastConfirmed = (id: string, confirmed: boolean) => {
+    setBallastConfirmed(id, confirmed);
+    toast.success(confirmed ? "Lastro confirmado no turno." : "Lastro marcado como não levado.");
   };
 
   const scrollToActive = () => {
