@@ -7,7 +7,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { computeStints, currentStintIndex, defaultState, MIN, uid } from "./engine";
+import {
+  computeStints,
+  currentStintIndex,
+  defaultState,
+  isPitDriver,
+  MIN,
+  normalizeDrivers,
+  uid,
+} from "./engine";
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
 
 const KEY = "kart24h-state-v1";
@@ -50,6 +58,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           ...base,
           ...saved,
           config: { ...base.config, ...(saved.config ?? {}) },
+          drivers: normalizeDrivers(Array.isArray(saved.drivers) ? saved.drivers : base.drivers),
         });
       }
     } catch {
@@ -78,9 +87,9 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       setDrivers: (drivers) => patch((s) => ({ ...s, drivers })),
       addDriver: () =>
         patch((s) => {
-          const codes = s.drivers.filter((d) => !d.isPit).map((d) => d.code);
+          const codes = s.drivers.filter((d) => !isPitDriver(d)).map((d) => d.code);
           const code = (codes.length ? Math.max(...codes) : 0) + 1;
-          const pitIndex = s.drivers.findIndex((d) => d.isPit);
+          const pitIndex = s.drivers.findIndex(isPitDriver);
           const next = [...s.drivers];
           const entry: Driver = { id: uid(), code, name: `Piloto ${code}`, weight: 85 };
           if (pitIndex >= 0) next.splice(pitIndex, 0, entry);
@@ -113,7 +122,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         patch((s) => {
           const entry: Stint = {
             id: uid(),
-            driverCode: s.drivers.find((d) => !d.isPit)?.code ?? null,
+            driverCode: s.drivers.find((d) => !isPitDriver(d))?.code ?? null,
             duration: 60,
             ballast: 0,
           };
@@ -158,7 +167,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const elapsedMin = Math.max(0, (now - cur.startAt) / MIN);
           const stints = [...s.stints];
           stints[idx] = { ...stints[idx]!, duration: elapsedMin };
-          const pitDriver = s.drivers.find((d) => d.isPit);
+          const pitDriver = s.drivers.find(isPitDriver);
           const nextIsPit = pitDriver && stints[idx + 1]?.driverCode === pitDriver.code;
           if (pitDriver) {
             if (nextIsPit) {
@@ -178,7 +187,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           return { ...s, stints };
         }),
       setPlannedStart: (v) => patch((s) => ({ ...s, plannedStart: v })),
-      replaceState: (s) => setState(s),
+      replaceState: (s) => setState({ ...s, drivers: normalizeDrivers(s.drivers) }),
       reset: () => setState(defaultState()),
     }),
     [state, hydrated, patch],
