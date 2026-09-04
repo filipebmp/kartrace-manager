@@ -313,6 +313,12 @@ export function LiveDashboard() {
                               ? "Fora de plano"
                               : "Gere o plano e clica em Partida"}
                         </p>
+                        {nextAction && !nextIsPit && nextAction.suggestedBallast > 0 && (
+                          <p className="mt-1 text-xs text-warning">
+                            Precisa de {nextAction.suggestedBallast} kg de lastro para os{" "}
+                            {state.config.minDriverWeight} kg
+                          </p>
+                        )}
                       </div>
                     </div>
                     {nextAction && (
