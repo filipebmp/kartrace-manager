@@ -1,6 +1,17 @@
-import { AlertTriangle, ArrowDownToLine, Flag, Square, Timer, Weight } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Flag, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ballastInstruction,
   computeStints,
@@ -45,8 +56,9 @@ function Stat({
 }
 
 export function LiveDashboard() {
-  const { state, start, stop, boxNow } = useRace();
+  const { state, start, stop, boxNow, endBoxNow } = useRace();
   const now = useNow();
+  const [confirmStop, setConfirmStop] = useState(false);
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
   const planned = totalPlanned(state.stints);
@@ -87,16 +99,27 @@ export function LiveDashboard() {
           </div>
           {running ? (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-warning/50 text-warning"
-                onClick={boxNow}
-                disabled={!current || current.isPit}
-              >
-                <ArrowDownToLine className="size-4" /> Box
-              </Button>
-              <Button variant="destructive" size="sm" onClick={stop}>
+              {current?.isPit ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-warning/50 text-warning"
+                  onClick={endBoxNow}
+                >
+                  <ArrowUpFromLine className="size-4" /> Terminar box
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-warning/50 text-warning"
+                  onClick={boxNow}
+                  disabled={!current}
+                >
+                  <ArrowDownToLine className="size-4" /> Box
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => setConfirmStop(true)}>
                 <Square className="size-4" /> Parar
               </Button>
             </div>
@@ -241,6 +264,29 @@ export function LiveDashboard() {
             ))}
         </ul>
       </div>
+
+      <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminar a corrida?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A cronometragem é interrompida e o plano volta ao estado anterior à partida. Esta
+              ação não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                stop();
+                setConfirmStop(false);
+              }}
+            >
+              Terminar corrida
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
