@@ -235,6 +235,61 @@ export function LiveDashboard() {
     : Math.max(0, closeOffset - futurePitMinutes);
   const burnable = burnableStints(state.config, remainingStops, drivingAvailableMin);
 
+  // Margem para cumprir as paragens obrigatórias antes do fecho do pitlane:
+  // (S+1) turnos de condução ao mínimo + as boxes que faltam.
+  const minDrivingNeeded = (remainingStops + 1) * state.config.minStint;
+  const slackMin = drivingAvailableMin - minDrivingNeeded;
+  const feasibility: "ok" | "tight" | "critical" =
+    remainingStops === 0 ? "ok" : slackMin < 0 ? "critical" : slackMin < 30 ? "tight" : "ok";
+
+  // Plano estimado dos turnos rápidos até ao fecho do pitlane
+  const timeline = (() => {
+    if (remainingStops === 0) return [];
+    const slowCount = remainingStops + 1 - burnable;
+    const slowMinutes = Math.max(0, drivingAvailableMin - burnable * state.config.minStint);
+    const slowEach = slowCount > 0 ? slowMinutes / slowCount : 0;
+    const items: {
+      key: string;
+      kind: "drive" | "pit" | "close";
+      label: string;
+      detail: string;
+      at: number;
+    }[] = [];
+    let cursor = running ? now : startTs;
+    for (let i = 0; i < remainingStops + 1; i++) {
+      const fast = i < burnable;
+      const dur = fast ? state.config.minStint : slowEach;
+      items.push({
+        key: `d${i}`,
+        kind: "drive",
+        label: fast ? `Turno rápido ${i + 1}` : `Turno ${i + 1}`,
+        detail: `${fmtDuration(dur)}${fast ? ` · mínimo (${state.config.minStint} min)` : ""}`,
+        at: cursor,
+      });
+      cursor += dur * MIN;
+      if (i < remainingStops) {
+        items.push({
+          key: `p${i}`,
+          kind: "pit",
+          label: `Box ${i + 1} de ${remainingStops}`,
+          detail: `Janela a partir das ${fmtTimeOfDay(cursor)} · ${minPit} min`,
+          at: cursor,
+        });
+        cursor += minPit * MIN;
+      }
+    }
+    items.push({
+      key: "close",
+      kind: "close",
+      label: "Fecho do pitlane",
+      detail: `Sem paragens obrigatórias depois desta hora`,
+      at: pitCloseAt,
+    });
+    return items.slice(0, 13);
+  })();
+
+
+
   return (
     <div className="space-y-4">
       <div className="panel overflow-hidden">
