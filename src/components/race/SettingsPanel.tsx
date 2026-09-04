@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { DurationField } from "@/components/race/DurationField";
 import { defaultConfig } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
 import type { RaceState } from "@/lib/race/types";
+
 
 
 function Field({
