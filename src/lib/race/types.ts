@@ -1,4 +1,3 @@
-export type Category = "PRO" | "AM";
 
 export interface Driver {
   id: string;

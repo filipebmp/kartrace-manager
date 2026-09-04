@@ -177,23 +177,18 @@ export function totalPlanned(stints: Stint[]) {
   return stints.reduce((s, x) => s + x.duration, 0);
 }
 
-export const CATEGORY_RULES = {
-  PRO: { maxStint: 80, mandatoryStops: 28 },
-  AM: { maxStint: 60, mandatoryStops: 34 },
-} as const;
-
+// Valores por omissão: categoria PRO (28 paragens, turno máx. 80 min)
 export function defaultConfig(): RaceConfig {
   return {
     teamName: "Light Speed",
     eventName: "25H Karting Palmela",
-    category: "AM",
     raceDuration: 25 * 60,
     minDriverWeight: 85,
     minStint: 10,
-    maxStint: CATEGORY_RULES.AM.maxStint,
+    maxStint: 80,
     minTotalDriving: 120,
     maxTotalDriving: 300,
-    mandatoryStops: CATEGORY_RULES.AM.mandatoryStops,
+    mandatoryStops: 28,
     minPitDuration: 3,
     pitDuration: 3,
     pitLaneClosesBefore: 30,
