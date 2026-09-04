@@ -675,54 +675,6 @@ export function LiveDashboard() {
 
       </div>
 
-      {timeline.length > 0 && (
-        <div className="panel overflow-hidden">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between px-4 py-3 text-left"
-            onClick={() => setTimelineOpen((v) => !v)}
-            aria-expanded={timelineOpen}
-          >
-            <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              <Timer className="size-4" /> Plano estimado até ao fecho do pitlane
-            </span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {timelineOpen ? "Ocultar" : "Ver"}
-              {timelineOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-            </span>
-          </button>
-          {timelineOpen && (
-            <div className="border-t border-border px-4 py-4">
-              <p className="mb-3 text-xs text-muted-foreground">
-                {burnable} turno(s) ao mínimo de {state.config.minStint} min e {remainingStops} paragens
-                de {minPit} min. Estimativa {running ? "a partir de agora" : "a partir da partida"}.
-              </p>
-              <ol className="space-y-2">
-                {timeline.map((item) => (
-                  <li
-                    key={item.key}
-                    className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${
-                      item.kind === "close"
-                        ? "border border-destructive/40 bg-destructive/10 text-destructive"
-                        : item.kind === "pit"
-                          ? "border border-warning/30 bg-warning/10 text-warning"
-                          : "bg-secondary/60"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-xs opacity-80">{item.detail}</p>
-                    </div>
-                    <span className="tabular text-xs font-semibold">{fmtTimeOfDay(item.at)}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
-
-
       <div className="panel p-4">
         <p className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           <Timer className="size-4" /> Próximos turnos
@@ -772,6 +724,53 @@ export function LiveDashboard() {
         </ul>
 
       </div>
+
+      {timeline.length > 0 && (
+        <div className="panel overflow-hidden">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+            onClick={() => setTimelineOpen((v) => !v)}
+            aria-expanded={timelineOpen}
+          >
+            <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Timer className="size-4" /> Plano estimado até ao fecho do pitlane
+            </span>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              {timelineOpen ? "Ocultar" : "Ver"}
+              {timelineOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            </span>
+          </button>
+          {timelineOpen && (
+            <div className="border-t border-border px-4 py-4">
+              <p className="mb-3 text-xs text-muted-foreground">
+                {burnable} turno(s) ao mínimo de {state.config.minStint} min e {remainingStops} paragens
+                de {minPit} min. Estimativa {running ? "a partir de agora" : "a partir da partida"}.
+              </p>
+              <ol className="space-y-2">
+                {timeline.map((item) => (
+                  <li
+                    key={item.key}
+                    className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${
+                      item.kind === "close"
+                        ? "border border-destructive/40 bg-destructive/10 text-destructive"
+                        : item.kind === "pit"
+                          ? "border border-warning/30 bg-warning/10 text-warning"
+                          : "bg-secondary/60"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-medium">{item.label}</p>
+                      <p className="text-xs opacity-80">{item.detail}</p>
+                    </div>
+                    <span className="tabular text-xs font-semibold">{fmtTimeOfDay(item.at)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
 
       <RaceEventLog />
 
