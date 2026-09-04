@@ -1,4 +1,4 @@
-import { Plus, Trash2, Wand2 } from "lucide-react";
+import { Check, Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,20 +26,151 @@ import {
   generatePlan,
   raceSummary,
   totalPlanned,
+  type ComputedStint,
 } from "@/lib/race/engine";
+import type { Driver, Stint } from "@/lib/race/types";
 import { useNow, useRace } from "@/lib/race/store";
 
+interface PendingEdit {
+  id: string;
+  patch: Partial<Stint>;
+}
+
+interface CardProps {
+  c: ComputedStint;
+  displayNumber: number;
+  isCurrent: boolean;
+  drivers: Driver[];
+  onSave: (edit: PendingEdit) => void;
+  onDelete: (id: string) => void;
+}
+
+function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete }: CardProps) {
+  const [driverCode, setDriverCode] = useState<number | null>(c.driverCode);
+  const [duration, setDuration] = useState<number>(c.duration);
+  const [ballast, setBallast] = useState<number>(c.ballast);
+
+  // Quando o turno muda por fora (recálculo do plano), repõe o rascunho.
+  useEffect(() => {
+    setDriverCode(c.driverCode);
+    setDuration(c.duration);
+    setBallast(c.ballast);
+  }, [c.id, c.driverCode, c.duration, c.ballast]);
+
+  const dirty =
+    driverCode !== c.driverCode ||
+    Math.abs(duration - c.duration) > 1e-9 ||
+    ballast !== c.ballast;
+
+  const save = () => {
+    const patch: Partial<Stint> = {};
+    if (driverCode !== c.driverCode) patch.driverCode = driverCode;
+    if (Math.abs(duration - c.duration) > 1e-9) patch.duration = duration;
+    if (ballast !== c.ballast) patch.ballast = ballast;
+    onSave({ id: c.id, patch });
+  };
+
+  return (
+    <div
+      id={`plan-stint-${c.id}`}
+      className={`panel p-3 ${isCurrent ? "ring-2 ring-primary" : ""} ${
+        c.isPit ? "opacity-80" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="tabular w-6 text-xs text-muted-foreground">{displayNumber}</span>
+          <select
+            className="rounded-md border border-input bg-secondary px-2 py-1 text-sm"
+            value={driverCode ?? ""}
+            onChange={(e) =>
+              setDriverCode(e.target.value === "" ? null : Number(e.target.value))
+            }
+          >
+            <option value="">—</option>
+            {drivers.map((d) => (
+              <option key={d.id} value={d.code}>
+                {d.code} · {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <span className="tabular text-xs text-muted-foreground">
+          {fmtTimeOfDay(c.startAt)} → {fmtTimeOfDay(c.endAt)}
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div>
+          <Label className="text-[10px] uppercase text-muted-foreground">Duração</Label>
+          <DurationField label="" value={duration} onChange={setDuration} />
+        </div>
+
+        <div>
+          <Label className="text-[10px] uppercase text-muted-foreground">Lastro (kg)</Label>
+          <Input
+            type="number"
+            value={ballast}
+            onChange={(e) => setBallast(Number(e.target.value) || 0)}
+            className="h-9"
+          />
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {!c.isPit && (
+          <Badge variant="outline" className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}>
+            Balança: {c.weighInWeight.toFixed(1)} kg
+          </Badge>
+        )}
+        {c.suggestedBallast > 0 && c.suggestedBallast !== ballast && !c.isPit && (
+          <button
+            type="button"
+            onClick={() => setBallast(c.suggestedBallast)}
+            className="rounded-md border border-warning/50 px-2 py-0.5 text-xs text-warning"
+          >
+            Sugerir {c.suggestedBallast} kg
+          </button>
+        )}
+
+        <div className="ml-auto flex gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={save}
+            disabled={!dirty}
+            aria-label="Guardar alterações do turno"
+          >
+            <Check className={`size-4 ${dirty ? "text-primary" : "text-muted-foreground"}`} />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onDelete(c.id)}
+            aria-label="Remover turno"
+          >
+            <Trash2 className="size-4 text-destructive" />
+          </Button>
+        </div>
+      </div>
+
+      {c.warnings.length > 0 && (
+        <p className="mt-2 text-xs text-destructive">{c.warnings.join(" · ")}</p>
+      )}
+    </div>
+  );
+}
 
 export function PlanPanel() {
   const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
   const now = useNow(15000);
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
   const [hidePitStints, setHidePitStints] = useState(false);
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
-  const idx =
-    now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
+  const idx = now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
   const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
@@ -68,6 +199,11 @@ export function PlanPanel() {
     setConfirmDelete(null);
   };
 
+  const confirmSave = () => {
+    if (pendingEdit) updateStint(pendingEdit.id, pendingEdit.patch);
+    setPendingEdit(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="panel space-y-3 p-4">
@@ -76,11 +212,7 @@ export function PlanPanel() {
             <Label htmlFor="stintLen" className="text-xs text-muted-foreground">
               Duração base do turno
             </Label>
-            <DurationField
-              label=""
-              value={stintLength}
-              onChange={(v) => setStintLength(v)}
-            />
+            <DurationField label="" value={stintLength} onChange={(v) => setStintLength(v)} />
           </div>
 
           <Button
@@ -123,98 +255,19 @@ export function PlanPanel() {
             </span>
           ) : null}
         </p>
-
       </div>
-
 
       <div className="space-y-2">
         {visibleComputed.map((c, visiblePos) => (
-          <div
+          <PlanStintCard
             key={c.id}
-            id={`plan-stint-${c.id}`}
-            className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
-              c.isPit ? "opacity-80" : ""
-            }`}
-          >
-
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-<span className="tabular w-6 text-xs text-muted-foreground">
-                  {hidePitStints ? visiblePos + 1 : c.index + 1}
-                </span>
-                <select
-                  className="rounded-md border border-input bg-secondary px-2 py-1 text-sm"
-                  value={c.driverCode ?? ""}
-                  onChange={(e) =>
-                    updateStint(c.id, {
-                      driverCode: e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                >
-                  <option value="">—</option>
-                  {state.drivers.map((d) => (
-                    <option key={d.id} value={d.code}>
-                      {d.code} · {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <span className="tabular text-xs text-muted-foreground">
-                {fmtTimeOfDay(c.startAt)} → {fmtTimeOfDay(c.endAt)}
-              </span>
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-[10px] uppercase text-muted-foreground">Duração</Label>
-                <DurationField
-                  label=""
-                  value={c.duration}
-                  onChange={(v) => updateStint(c.id, { duration: v })}
-                />
-              </div>
-
-              <div>
-                <Label className="text-[10px] uppercase text-muted-foreground">Lastro (kg)</Label>
-                <Input
-                  type="number"
-                  value={c.ballast}
-                  onChange={(e) => updateStint(c.id, { ballast: Number(e.target.value) || 0 })}
-                  className="h-9"
-                />
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {!c.isPit && (
-                <Badge
-                  variant="outline"
-                  className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}
-                >
-                  Balança: {c.weighInWeight.toFixed(1)} kg
-                </Badge>
-              )}
-              {c.suggestedBallast > 0 && c.suggestedBallast !== c.ballast && !c.isPit && (
-                <button
-                  type="button"
-                  onClick={() => updateStint(c.id, { ballast: c.suggestedBallast })}
-                  className="rounded-md border border-warning/50 px-2 py-0.5 text-xs text-warning"
-                >
-                  Sugerir {c.suggestedBallast} kg
-                </button>
-              )}
-
-              <div className="ml-auto flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(c.id)}>
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
-              </div>
-            </div>
-
-            {c.warnings.length > 0 && (
-              <p className="mt-2 text-xs text-destructive">{c.warnings.join(" · ")}</p>
-            )}
-          </div>
+            c={c}
+            displayNumber={hidePitStints ? visiblePos + 1 : c.index + 1}
+            isCurrent={idx === c.index}
+            drivers={state.drivers}
+            onSave={setPendingEdit}
+            onDelete={setConfirmDelete}
+          />
         ))}
       </div>
 
@@ -233,6 +286,23 @@ export function PlanPanel() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRemove}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingEdit} onOpenChange={() => setPendingEdit(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Guardar alterações?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As alterações a este turno vão ser aplicadas. Os turnos seguintes que ainda
+              não foram executados serão recalculados automaticamente até ao fim da prova;
+              os turnos já executados mantêm-se como estão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSave}>Guardar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
