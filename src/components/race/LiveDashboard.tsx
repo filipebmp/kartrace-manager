@@ -314,10 +314,36 @@ export function LiveDashboard() {
                               : "Gere o plano e clica em Partida"}
                         </p>
                         {nextAction && !nextIsPit && nextAction.suggestedBallast > 0 && (
-                          <p className="mt-1 text-xs text-warning">
-                            Precisa de {nextAction.suggestedBallast} kg de lastro para os{" "}
-                            {state.config.minDriverWeight} kg
-                          </p>
+                          <>
+                            <p className="mt-1 text-xs text-warning">
+                              Precisa de {nextAction.suggestedBallast} kg de lastro para os{" "}
+                              {state.config.minDriverWeight} kg
+                            </p>
+                            {nextAction.ballast >= nextAction.suggestedBallast ? (
+                              <Badge
+                                variant="outline"
+                                className="mt-2 gap-1 border-success/50 text-success"
+                              >
+                                <Check className="size-3" /> Lastro confirmado ·{" "}
+                                {nextAction.ballast} kg
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="mt-2 h-8 gap-1 border-warning/60 text-warning"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBallast(nextAction.id, nextAction.suggestedBallast);
+                                  toast.success(
+                                    `Lastro confirmado: ${nextAction.suggestedBallast} kg para ${nextAction.driver?.name ?? "o piloto"}`,
+                                  );
+                                }}
+                              >
+                                <Check className="size-4" /> Confirmar lastro
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
