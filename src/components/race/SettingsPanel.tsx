@@ -94,6 +94,8 @@ export function SettingsPanel() {
           label="Prova"
           type="text"
           value={c.eventName}
+          placeholder="Ex.: 24H Karting Braga 2026"
+          hint="Nome oficial da prova: evento, local e ano. Aparece no dashboard e nas exportações."
           onChange={(v) => setConfig({ eventName: v })}
         />
         <div>
