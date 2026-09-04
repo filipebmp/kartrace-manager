@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,10 +25,21 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
 });
 
+const RULES: { label: string; test: (v: string) => boolean }[] = [
+  { label: "Pelo menos 10 caracteres", test: (v) => v.length >= 10 },
+  { label: "Uma letra maiúscula", test: (v) => /[A-ZÀ-Ý]/.test(v) },
+  { label: "Uma letra minúscula", test: (v) => /[a-zà-ÿ]/.test(v) },
+  { label: "Um número", test: (v) => /\d/.test(v) },
+  { label: "Um símbolo (!@#$…)", test: (v) => /[^A-Za-zÀ-ÿ0-9]/.test(v) },
+  { label: "Sem espaços", test: (v) => v.length > 0 && !/\s/.test(v) },
+];
+
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -44,27 +56,49 @@ function ResetPasswordPage() {
     };
   }, []);
 
+  const checks = useMemo(() => RULES.map((r) => ({ ...r, ok: r.test(password) })), [password]);
+  const strongEnough = checks.every((c) => c.ok);
+  const matches = confirm.length > 0 && password === confirm;
+  const score = checks.filter((c) => c.ok).length;
+
   async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const password = String(form.get("password") ?? "");
-    const confirm = String(form.get("confirm") ?? "");
-    if (password.length < 8) {
-      toast.error("A palavra-passe precisa de pelo menos 8 caracteres");
+    if (!strongEnough) {
+      toast.error("Palavra-passe demasiado fraca", {
+        description: "Cumpre todos os requisitos indicados.",
+      });
       return;
     }
-    if (password !== confirm) {
+    if (!matches) {
       toast.error("As palavras-passe não coincidem");
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setBusy(false);
+    const { data: updated, error } = await supabase.auth.updateUser({ password });
     if (error) {
+      setBusy(false);
       toast.error("Não foi possível atualizar", { description: error.message });
       return;
     }
-    toast.success("Palavra-passe atualizada", { description: "Já podes entrar com a nova palavra-passe." });
+
+    // A recuperação não dá acesso: a equipa continua a depender da aprovação do admin.
+    let approved = false;
+    if (updated.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", updated.user.id)
+        .maybeSingle();
+      approved = profile?.status === "approved";
+    }
+    await supabase.auth.signOut();
+    setBusy(false);
+
+    toast.success("Palavra-passe atualizada", {
+      description: approved
+        ? "Já podes entrar com a nova palavra-passe."
+        : "Entra com a nova palavra-passe; o acesso só abre depois da aprovação do administrador.",
+    });
     navigate({ to: "/auth", replace: true });
   }
 
@@ -107,15 +141,63 @@ function ResetPasswordPage() {
           <form className="space-y-4" onSubmit={handleUpdate}>
             <div className="space-y-1.5">
               <Label htmlFor="new-pass">Nova palavra-passe</Label>
-              <Input id="new-pass" name="password" type="password" required minLength={8} autoComplete="new-password" />
+              <Input
+                id="new-pass"
+                name="password"
+                type="password"
+                required
+                minLength={10}
+                maxLength={72}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full transition-all ${
+                    score >= 6 ? "bg-emerald-500" : score >= 4 ? "bg-amber-500" : "bg-destructive"
+                  }`}
+                  style={{ width: `${(score / RULES.length) * 100}%` }}
+                />
+              </div>
+              <ul className="space-y-1 pt-1">
+                {checks.map((c) => (
+                  <li
+                    key={c.label}
+                    className={`flex items-center gap-1.5 text-xs ${
+                      c.ok ? "text-emerald-500" : "text-muted-foreground"
+                    }`}
+                  >
+                    {c.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                    {c.label}
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirm-pass">Confirmar palavra-passe</Label>
-              <Input id="confirm-pass" name="confirm" type="password" required minLength={8} autoComplete="new-password" />
+              <Input
+                id="confirm-pass"
+                name="confirm"
+                type="password"
+                required
+                minLength={10}
+                maxLength={72}
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+              />
+              {confirm.length > 0 && !matches ? (
+                <p className="text-xs text-destructive">As palavras-passe não coincidem.</p>
+              ) : null}
             </div>
-            <Button type="submit" className="w-full" disabled={busy}>
+            <Button type="submit" className="w-full" disabled={busy || !strongEnough || !matches}>
               Guardar nova palavra-passe
             </Button>
+            <p className="text-xs text-muted-foreground">
+              Depois de mudares a palavra-passe, o acesso ao dashboard mantém-se dependente da aprovação do
+              administrador.
+            </p>
           </form>
         </CardContent>
       </Card>
