@@ -256,11 +256,7 @@ export function defaultDrivers(): Driver[] {
 /** Gera um plano rodando os pilotos, com paragem de box entre turnos.
  *  Garante exatamente `mandatoryStops` paragens e `mandatoryStops + 1`
  *  turnos de condução, com o tempo de condução distribuído uniformemente. */
-export function generatePlan(
-  drivers: Driver[],
-  config: RaceConfig,
-  stintLength: number,
-): Stint[] {
+export function generatePlan(drivers: Driver[], config: RaceConfig): Stint[] {
   const racers = drivers.filter((d) => !isPitDriver(d));
   const pit = drivers.find(isPitDriver);
   if (racers.length === 0) return [];
@@ -273,11 +269,8 @@ export function generatePlan(
   }
 
   // Uma prova com N paragens tem sempre exatamente N+1 turnos de condução.
-  // A duração base serve de referência visual; o tempo é redistribuído para
-  // preencher a duração total sem criar paragens adicionais.
   const stops = Math.max(0, Math.floor(config.mandatoryStops));
   const drivingFor = (n: number) => config.raceDuration - n * config.minPitDuration;
-  void stintLength;
 
   const nDrive = stops + 1;
   const totalDriving = drivingFor(stops);
@@ -313,7 +306,7 @@ export function defaultState(): RaceState {
   return {
     config,
     drivers,
-    stints: generatePlan(drivers, config, 60),
+    stints: generatePlan(drivers, config),
     startedAt: null,
     liveIndex: null,
     planSnapshot: null,
