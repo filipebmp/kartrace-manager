@@ -1,12 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession, type TeamProfile } from "@/hooks/use-session";
 import { TeamHeader } from "@/components/race/TeamHeader";
+import { deleteTeam } from "@/lib/admin.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const title = "Administração de equipas — Team Manager 24H Karting";
 const description = "Aprova ou recusa os registos das equipas que pedem acesso à aplicação.";
@@ -36,6 +50,9 @@ function AdminPage() {
   const { data: me } = useProfile(user?.id);
   const isAdmin = me?.isAdmin ?? false;
   const queryClient = useQueryClient();
+  const removeTeam = useServerFn(deleteTeam);
+  const [toDelete, setToDelete] = useState<TeamProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
