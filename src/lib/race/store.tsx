@@ -167,7 +167,17 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       setBallast: (id, kg) =>
         patch((s) => ({
           ...s,
-          stints: s.stints.map((st) => (st.id === id ? { ...st, ballast: kg } : st)),
+          stints: s.stints.map((st) =>
+            st.id === id ? { ...st, ballast: kg, ballastConfirmed: true } : st,
+          ),
+        })),
+
+      setBallastConfirmed: (id, confirmed) =>
+        patch((s) => ({
+          ...s,
+          stints: s.stints.map((st) =>
+            st.id === id ? { ...st, ballastConfirmed: confirmed } : st,
+          ),
         })),
 
       setKart: (id, kart) =>

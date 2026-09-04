@@ -15,6 +15,8 @@ export interface Stint {
   duration: number;
   /** lastro que o piloto leva consigo para a pesagem (kg) */
   ballast: number;
+  /** confirmação de que o piloto levou o lastro neste turno (não afeta cálculos) */
+  ballastConfirmed?: boolean;
   /** número do kart utilizado neste turno */
   kart?: string;
   /** avaliação do kart utilizado neste turno */
