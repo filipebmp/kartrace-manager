@@ -185,9 +185,14 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const cur = computed[idx]!;
           // só atua durante uma paragem
           if (!cur.isPit) return s;
+          // A box conta sempre pelo menos a duração mínima regulamentar,
+          // mesmo que o registo seja feito mais cedo.
           const elapsedMin = Math.max(0, (now - cur.startAt) / MIN);
           const stints = [...s.stints];
-          stints[idx] = { ...stints[idx]!, duration: elapsedMin };
+          stints[idx] = {
+            ...stints[idx]!,
+            duration: Math.max(elapsedMin, s.config.minPitDuration),
+          };
           return { ...s, stints: rebalanceFrom(stints, s.drivers, s.config, idx) };
         }),
       boxNow: () =>
