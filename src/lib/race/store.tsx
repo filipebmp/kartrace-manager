@@ -143,7 +143,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const computed = computeStints(s);
           const idx = currentStintIndex(computed, now);
           if (idx < 0) return s;
-          const cur = computed[idx];
+          const cur = computed[idx]!;
           const elapsedMin = Math.max(1, Math.round(((now - cur.startAt) / MIN) * 10) / 10);
           const stints = [...s.stints];
           if (cur.isPit) {
