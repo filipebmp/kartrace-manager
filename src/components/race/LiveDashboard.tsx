@@ -388,7 +388,7 @@ export function LiveDashboard() {
         />
         <Stat
           label="Falta terminar"
-          value={fmtClock(raceRemaining)}
+          value={running ? fmtClock(raceRemaining) : "--:--:--"}
           hint={`Plano: ${fmtDuration(planned)}`}
         />
         <Stat
