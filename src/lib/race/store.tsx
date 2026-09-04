@@ -160,6 +160,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         return recalculated;
       },
 
+      setBallast: (id, kg) =>
+        patch((s) => ({
+          ...s,
+          stints: s.stints.map((st) => (st.id === id ? { ...st, ballast: kg } : st)),
+        })),
+
       insertStintAfter: (id) =>
         patch((s) => {
           const entry: Stint = {
