@@ -85,9 +85,32 @@ export function SettingsPanel() {
       </div>
 
       <div className="panel grid grid-cols-2 gap-3 p-4">
-        <p className="col-span-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Regulamento
-        </p>
+        <div className="col-span-2 flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Regulamento
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+            onClick={() =>
+              setConfig({
+                raceDuration: defaultConfig().raceDuration,
+                minDriverWeight: defaultConfig().minDriverWeight,
+                minStint: defaultConfig().minStint,
+                maxStint: defaultConfig().maxStint,
+                minTotalDriving: defaultConfig().minTotalDriving,
+                maxTotalDriving: defaultConfig().maxTotalDriving,
+                mandatoryStops: defaultConfig().mandatoryStops,
+                minPitDuration: defaultConfig().minPitDuration,
+                pitDuration: defaultConfig().pitDuration,
+                pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
+              })
+            }
+          >
+            <RefreshCcw className="size-3" /> Valores Pro
+          </Button>
+        </div>
         <Field
           label="Duração da prova"
           suffix="min"
