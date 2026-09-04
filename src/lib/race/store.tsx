@@ -26,6 +26,8 @@ interface Ctx {
   setConfig: (patch: Partial<RaceConfig>) => void;
   setDrivers: (drivers: Driver[]) => void;
   addDriver: () => void;
+  /** Cria `count` pilotos novos (Piloto 1..N) com o peso indicado, mantendo a BOX */
+  generateDrivers: (count: number, weight: number) => void;
   updateDriver: (id: string, patch: Partial<Driver>) => void;
   removeDriver: (id: string) => void;
   setStints: (stints: Stint[]) => void;
@@ -85,6 +87,18 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       hydrated,
       setConfig: (p) => patch((s) => ({ ...s, config: { ...s.config, ...p } })),
       setDrivers: (drivers) => patch((s) => ({ ...s, drivers })),
+      generateDrivers: (count, weight) =>
+        patch((s) => {
+          const n = Math.max(0, Math.floor(count));
+          const racers: Driver[] = Array.from({ length: n }, (_, i) => ({
+            id: uid(),
+            code: i + 1,
+            name: `Piloto ${i + 1}`,
+            weight,
+          }));
+          const pit = s.drivers.find(isPitDriver);
+          return { ...s, drivers: pit ? [...racers, pit] : racers };
+        }),
       addDriver: () =>
         patch((s) => {
           const codes = s.drivers.filter((d) => !isPitDriver(d)).map((d) => d.code);
