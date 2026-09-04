@@ -69,6 +69,16 @@ export function normalizeDrivers(drivers: Driver[]) {
   );
 }
 
+/** Garante que existe um piloto BOX; se faltar, cria-o com um código livre. */
+export function ensurePitDriver(drivers: Driver[]): Driver[] {
+  const normalized = normalizeDrivers(drivers);
+  if (normalized.some(isPitDriver)) return normalized;
+  const used = new Set(normalized.map((d) => d.code));
+  let code = 10;
+  while (used.has(code)) code++;
+  return [...normalized, { id: uid(), code, name: "BOX", weight: 0, isPit: true }];
+}
+
 export function raceStartTs(state: RaceState) {
   if (state.startedAt) return state.startedAt;
   const t = new Date(state.plannedStart).getTime();
