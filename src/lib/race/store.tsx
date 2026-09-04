@@ -104,7 +104,6 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             id: uid(),
             driverCode: s.drivers.find((d) => !d.isPit)?.code ?? null,
             duration: 60,
-            refuel: false,
             ballast: 0,
           };
           if (!id) return { ...s, stints: [...s.stints, entry] };
