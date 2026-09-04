@@ -182,15 +182,8 @@ export function raceSummary(state: RaceState, computed: ComputedStint[]): RaceSu
   };
 }
 
-/** Turno atual: o último turno já iniciado. O turno/box não termina sozinho —
- *  fica ativo até o utilizador registar Box / Terminar box (tempo real). */
 export function currentStintIndex(computed: ComputedStint[], now: number) {
-  const idx = computed.findIndex((c) => now >= c.startAt && now < c.endAt);
-  if (idx >= 0) return idx;
-  for (let i = computed.length - 1; i >= 0; i--) {
-    if (now >= computed[i]!.startAt) return i;
-  }
-  return -1;
+  return computed.findIndex((c) => now >= c.startAt && now < c.endAt);
 }
 
 export function ballastInstruction(current?: ComputedStint, next?: ComputedStint) {
@@ -306,6 +299,7 @@ export function defaultState(): RaceState {
     drivers,
     stints: generatePlan(drivers, config, 60),
     startedAt: null,
+    liveIndex: null,
     planSnapshot: null,
     plannedStart: toLocalInput(start),
   };
