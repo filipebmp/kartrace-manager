@@ -123,7 +123,7 @@ export function LiveDashboard() {
                   variant="outline"
                   size="sm"
                   className="border-warning/50 text-warning"
-                  onClick={boxNow}
+                  onClick={handleBoxClick}
                   disabled={!current}
                 >
                   <ArrowDownToLine className="size-4" /> Box
