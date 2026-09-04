@@ -66,7 +66,49 @@ function Stat({
   );
 }
 
+function actionTooltipContent(
+  action: ComputedStint | undefined,
+  state: RaceState,
+  now: number,
+  previousDriver?: ComputedStint,
+) {
+  if (!action) return null;
+  const elapsedMin = Math.max(0, (now - action.startAt) / MIN);
+  const remainingMin = Math.max(0, (action.endAt - now) / MIN);
+  if (action.isPit) {
+    const driverInPit = previousDriver?.driver?.name ?? "—";
+    return (
+      <div className="space-y-1">
+        <p className="font-semibold">Piloto em box: {driverInPit}</p>
+        <p className="text-primary-foreground/80">Motivo: troca de kart (paragem obrigatória)</p>
+        <p className="text-primary-foreground/80">
+          Tempo do regulamento: mín. {state.config.minPitDuration} min
+        </p>
+        <p className="text-primary-foreground/80">
+          Decorrido: {fmtDuration(elapsedMin)} · Restante: {fmtDuration(remainingMin)}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <p className="font-semibold">Piloto: {action.driver?.name ?? "—"}</p>
+      <p className="text-primary-foreground/80">
+        Turno {action.index + 1} de {state.stints.length}
+      </p>
+      <p className="text-primary-foreground/80">
+        Duração: {fmtDuration(action.duration)} · Mínimo: {state.config.minStint} min · Máximo:{" "}
+        {state.config.maxStint} min
+      </p>
+      <p className="text-primary-foreground/80">
+        Decorrido: {fmtDuration(elapsedMin)} · Restante: {fmtDuration(remainingMin)}
+      </p>
+    </div>
+  );
+}
+
 export function LiveDashboard() {
+
   const { state, start, stop, boxNow, endBoxNow } = useRace();
   const now = useNow();
   const [confirmStop, setConfirmStop] = useState(false);
