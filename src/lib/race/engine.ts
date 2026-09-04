@@ -22,11 +22,14 @@ export function driveStintTotal(computed: ComputedStint[]) {
 
 /** Número sequencial do turno de condução na posição `index` (1-based); 0 se for box. */
 export function driveStintNumber(computed: ComputedStint[], index: number) {
+  const target = computed[index];
+  if (!target || target.isPit) return 0;
   let n = 0;
-  for (let i = 0; i <= index && i < computed.length; i++) {
-    if (!computed[i].isPit) n++;
+  for (let i = 0; i <= index; i++) {
+    const c = computed[i];
+    if (c && !c.isPit) n++;
   }
-  return computed[index] && !computed[index].isPit ? n : 0;
+  return n;
 }
 
 /** minutos -> "1:05" ou "0:07" */
