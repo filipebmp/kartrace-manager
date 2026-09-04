@@ -176,13 +176,17 @@ export function LiveDashboard() {
         />
         <Stat
           label="Paragens"
-          value={`${summary.stops} / ${summary.requiredStops}`}
+          value={`${completedStops} / ${summary.requiredStops}`}
           hint={
-            summary.missingStops > 0
-              ? `Faltam ${summary.missingStops} (−${summary.lapPenalty} voltas)`
-              : "Plano cumpre as obrigatórias"
+            running
+              ? completedStops >= summary.requiredStops
+                ? "Obrigatórias cumpridas"
+                : `Faltam ${summary.requiredStops - completedStops}`
+              : `Plano prevê ${summary.stops} paragens`
           }
-          tone={summary.missingStops > 0 ? "warning" : "success"}
+          tone={
+            running && completedStops >= summary.requiredStops ? "success" : "default"
+          }
         />
         <Stat
           label="Pitlane fecha"
