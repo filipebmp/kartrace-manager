@@ -235,12 +235,11 @@ export function defaultConfig(): RaceConfig {
 
 
 const DEFAULT_NAMES = [
-  "António Baptista",
-  "Ricardo Maltinha",
-  "Nuno Paço",
-  "Filipe Paço",
-  "Pedro Costa",
-  "Nuno Pais",
+  "Piloto 1",
+  "Piloto 2",
+  "Piloto 3",
+  "Piloto 4",
+  "Piloto 5",
 ];
 
 export function defaultDrivers(): Driver[] {
