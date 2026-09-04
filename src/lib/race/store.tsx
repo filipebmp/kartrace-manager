@@ -183,7 +183,14 @@ export function RaceProvider({ children }: { children: ReactNode }) {
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
 
+  // Estado da corrida em ref, para validar eventos fora do ciclo de render.
+  const startedAtRef = useRef<number | null>(state.startedAt);
+  useEffect(() => {
+    startedAtRef.current = state.startedAt;
+  }, [state.startedAt]);
+
   // Registo imutável de eventos da corrida (auditoria de timings, ao segundo).
+  // Nada é gravado enquanto a corrida não estiver no estado "em andamento".
   const logEvent = useCallback(
     (
       event: "box_start" | "box_end",
@@ -193,7 +200,9 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       meta: Record<string, unknown>,
     ) => {
       if (!userId) return;
-      const eventKey = `${userId}:${event}:${stintId}`;
+      const raceStart = startedAtRef.current;
+      if (!raceStart) return; // corrida não iniciada (ou já terminada) — não registar
+      const eventKey = `${userId}:${raceStart}:${event}:${stintId}`;
       if (loggedEventKeys.current.has(eventKey)) return;
       loggedEventKeys.current.add(eventKey);
       void supabase
