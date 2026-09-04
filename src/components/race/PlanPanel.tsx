@@ -19,6 +19,7 @@ import {
 import { DurationField } from "@/components/race/DurationField";
 
 import {
+  applyStintEdit,
   computeStints,
   currentStintIndex,
   ensurePitDriver,
@@ -33,6 +34,8 @@ import {
 } from "@/lib/race/engine";
 import type { ComputedStint, Driver, Stint } from "@/lib/race/types";
 import { useNow, useRace } from "@/lib/race/store";
+import { supabase } from "@/integrations/supabase/client";
+
 
 interface PendingEdit {
   id: string;
@@ -350,9 +353,49 @@ export function PlanPanel() {
     setConfirmDelete(null);
   };
 
+  const labelFor = (c: ComputedStint) =>
+    c.isPit ? "Box" : `Turno ${driveStintNumber(computed, c.index)}`;
+
+  const preview = (() => {
+    if (!pendingEdit) return null;
+    const res = applyStintEdit(state, pendingEdit.id, pendingEdit.patch);
+    const after = computeStints({ ...state, stints: res.stints });
+    const rows = computed
+      .map((old, i) => ({ old, next: after[i] }))
+      .filter(
+        (r) => r.next && (r.next.duration !== r.old.duration || r.next.endAt !== r.old.endAt),
+      );
+    const edited = computed.find((c) => c.id === pendingEdit.id) ?? null;
+    return { rows, edited, after, count: res.recalculated };
+  })();
+
+  const logEdit = async (edit: PendingEdit) => {
+    const target = state.stints.find((st) => st.id === edit.id);
+    const computedTarget = computed.find((c) => c.id === edit.id);
+    if (!target) return;
+    const { data } = await supabase.auth.getUser();
+    const uid = data.user?.id;
+    if (!uid) return;
+    const fields = Object.keys(edit.patch) as (keyof Stint)[];
+    const changes = {
+      before: Object.fromEntries(fields.map((f) => [f, target[f] ?? null])),
+      after: Object.fromEntries(fields.map((f) => [f, edit.patch[f] ?? null])),
+      recalculated: preview?.count ?? 0,
+      race_started_at: state.startedAt,
+    };
+    await supabase.from("stint_audit_log").insert({
+      user_id: uid,
+      stint_id: edit.id,
+      stint_label: computedTarget ? labelFor(computedTarget) : "",
+      changes,
+    });
+  };
+
   const confirmSave = () => {
     if (pendingEdit) {
-      const count = updateStint(pendingEdit.id, pendingEdit.patch);
+      const edit = pendingEdit;
+      void logEdit(edit);
+      const count = updateStint(edit.id, edit.patch);
       toast.success(
         count === 1
           ? "Plano guardado. 1 turno recalculado."
@@ -361,6 +404,7 @@ export function PlanPanel() {
     }
     setPendingEdit(null);
   };
+
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 300);
@@ -430,6 +474,12 @@ export function PlanPanel() {
             </Label>
           </div>
         </div>
+        <p className="rounded-md border border-border bg-muted/30 p-2 text-[11px] leading-snug text-muted-foreground">
+          Ao corrigir o tempo de um turno já passado só se acerta a diferença: o turno em curso
+          mantém a duração e a hora de fim, e o tempo restante é redistribuído pelos turnos que
+          ainda faltam. Cada correção manual fica registada com data e utilizador.
+        </p>
+
         <p className="text-xs text-muted-foreground">
           Paragens: <span className="tabular">{summary.stops}</span> de{" "}
           <span className="tabular">{summary.requiredStops}</span> obrigatórias
@@ -506,11 +556,39 @@ export function PlanPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Guardar alterações?</AlertDialogTitle>
             <AlertDialogDescription>
-              As alterações a este turno vão ser aplicadas. Os turnos seguintes que ainda
-              não foram executados serão recalculados automaticamente até ao fim da prova;
-              os turnos já executados mantêm-se como estão.
+              Ao corrigir um turno já passado só se acerta a diferença: o turno em curso
+              mantém a duração e a hora de fim, e os turnos ainda por fazer são recalculados
+              até ao fim da prova.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {preview ? (
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border border-border p-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Pré-visualização · {preview.rows.length} turno(s) afetado(s)
+              </p>
+              {preview.rows.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nada muda nos horários.</p>
+              ) : (
+                preview.rows.slice(0, 12).map((r) => (
+                  <div key={r.old.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{labelFor(r.old)}</span>
+                    <span className="tabular">
+                      {fmtDuration(r.old.duration)} → {fmtDuration(r.next!.duration)}
+                    </span>
+                    <span className="tabular text-muted-foreground">
+                      fim {fmtTimeOfDay(r.old.endAt)} → {fmtTimeOfDay(r.next!.endAt)}
+                    </span>
+                  </div>
+                ))
+              )}
+              {preview.rows.length > 12 ? (
+                <p className="text-[10px] text-muted-foreground">
+                  … e mais {preview.rows.length - 12} turno(s).
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmSave}>Guardar</AlertDialogAction>

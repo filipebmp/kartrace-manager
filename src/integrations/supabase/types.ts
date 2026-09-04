@@ -92,6 +92,33 @@ export type Database = {
         }
         Relationships: []
       }
+      stint_audit_log: {
+        Row: {
+          changes: Json
+          created_at: string
+          id: string
+          stint_id: string
+          stint_label: string
+          user_id: string
+        }
+        Insert: {
+          changes?: Json
+          created_at?: string
+          id?: string
+          stint_id: string
+          stint_label?: string
+          user_id: string
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          id?: string
+          stint_id?: string
+          stint_label?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
