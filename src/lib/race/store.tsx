@@ -22,7 +22,7 @@ import type { Driver, RaceConfig, RaceState, Stint } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
-const KEY = "kart24h-state-v2";
+const KEY = "kart24h-state-v3";
 
 interface Ctx {
   state: RaceState;
