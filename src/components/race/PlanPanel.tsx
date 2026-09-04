@@ -106,7 +106,7 @@ function PlanStintCard({
     <div
       id={`plan-stint-${c.id}`}
       className={`panel p-3 ${isCurrent ? "ring-2 ring-primary" : ""} ${
-        c.isPit ? "opacity-80" : ""
+        c.isPit ? "border-warning/30 bg-warning/10" : ""
       }`}
     >
       <div className="flex items-center justify-between gap-2">
