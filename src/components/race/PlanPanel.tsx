@@ -127,6 +127,7 @@ export function PlanPanel() {
         {visibleComputed.map((c, visiblePos) => (
           <div
             key={c.id}
+            id={`plan-stint-${c.id}`}
             className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
               c.isPit ? "opacity-80" : ""
             }`}
