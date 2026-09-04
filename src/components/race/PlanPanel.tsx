@@ -74,10 +74,22 @@ export function PlanPanel() {
             <Wand2 className="size-4" /> Gerar plano
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
-          <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
+            <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="hidePitStints"
+              checked={hidePitStints}
+              onCheckedChange={setHidePitStints}
+            />
+            <Label htmlFor="hidePitStints" className="text-xs text-muted-foreground">
+              Ocultar boxes
+            </Label>
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
           Paragens: <span className="tabular">{summary.stops}</span> de{" "}
           <span className="tabular">{summary.requiredStops}</span> obrigatórias
@@ -93,6 +105,7 @@ export function PlanPanel() {
         </p>
 
       </div>
+
 
       <div className="space-y-2">
         {computed.map((c) => (
