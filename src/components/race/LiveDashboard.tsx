@@ -187,10 +187,13 @@ export function LiveDashboard() {
                 <h3 className="truncate font-display text-2xl font-bold">
                   {current?.isPit
                     ? "Box"
-                    : current?.driver?.name ?? running
-                      ? "Fora de plano"
-                      : "Ainda não arrancou"}
+                    : current
+                      ? (current.driver?.name ?? "—")
+                      : running
+                        ? "Fora de plano"
+                        : "Ainda não arrancou"}
                 </h3>
+
                 <p className="text-sm text-muted-foreground">
                   {current?.isPit
                     ? `Paragem ${completedStops + 1} de ${summary.requiredStops} · mín. ${state.config.minPitDuration} min`
