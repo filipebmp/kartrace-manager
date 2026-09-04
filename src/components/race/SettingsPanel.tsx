@@ -1,22 +1,11 @@
-import { Download, RefreshCcw, RotateCcw, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { Download, RotateCcw, Upload } from "lucide-react";
+import { useRef } from "react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { DurationField } from "@/components/race/DurationField";
-import { defaultConfig } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
 import type { RaceState } from "@/lib/race/types";
 
@@ -62,7 +51,6 @@ export function SettingsPanel() {
   const { state, setConfig, reset, replaceState } = useRace();
   const c = state.config;
   const fileRef = useRef<HTMLInputElement>(null);
-  const [proOpen, setProOpen] = useState(false);
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -101,19 +89,9 @@ export function SettingsPanel() {
       </div>
 
       <div className="panel grid grid-cols-2 gap-3 p-4">
-        <div className="col-span-2 flex items-center justify-between">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Regulamento
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-            onClick={() => setProOpen(true)}
-          >
-            <RefreshCcw className="size-3" /> Valores Pro
-          </Button>
-        </div>
+        <p className="col-span-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          Regulamento
+        </p>
         <DurationField
           label="Duração da prova"
           value={c.raceDuration}
@@ -191,39 +169,6 @@ export function SettingsPanel() {
       <Button variant="ghost" className="w-full text-destructive" onClick={reset}>
         <RotateCcw className="size-4" /> Repor valores por omissão
       </Button>
-
-      <AlertDialog open={proOpen} onOpenChange={setProOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Repôr valores Pro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Todos os campos do regulamento serão substituídos pelos valores Pro pré-configurados.
-              As alterações manuais que tenhas feito serão perdidas.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                setConfig({
-                  raceDuration: defaultConfig().raceDuration,
-                  minDriverWeight: defaultConfig().minDriverWeight,
-                  minStint: defaultConfig().minStint,
-                  maxStint: defaultConfig().maxStint,
-                  minTotalDriving: defaultConfig().minTotalDriving,
-                  maxTotalDriving: defaultConfig().maxTotalDriving,
-                  mandatoryStops: defaultConfig().mandatoryStops,
-                  minPitDuration: defaultConfig().minPitDuration,
-                  pitDuration: defaultConfig().pitDuration,
-                  pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
-                })
-              }
-            >
-              Repôr Pro
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
