@@ -123,6 +123,29 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete,
         </div>
       </div>
 
+      {!c.isPit && (
+        <div className="mt-2 flex items-end gap-2">
+          <div className="flex-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">Kart utilizado</Label>
+            <Input
+              value={kart}
+              onChange={(e) => setKart(e.target.value)}
+              placeholder="Nº do kart"
+              className="h-9"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-9"
+            onClick={() => onSaveKart(c.id, kart.trim())}
+            disabled={kart.trim() === (c.kart ?? "")}
+          >
+            <Check className="size-4" /> Guardar kart
+          </Button>
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!c.isPit && (
           <Badge variant="outline" className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}>
