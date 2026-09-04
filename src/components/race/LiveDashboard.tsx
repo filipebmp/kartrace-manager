@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Check, Flag, Square, Timer, Weight } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Check, Flag, Info, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
