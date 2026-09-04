@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Flag, Square, Timer, Weight } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Check, Flag, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,6 +36,7 @@ import {
   totalPlanned,
 
 } from "@/lib/race/engine";
+import { toast } from "sonner";
 import { useNow, useRace } from "@/lib/race/store";
 import type { ComputedStint, RaceState } from "@/lib/race/types";
 
@@ -113,7 +114,7 @@ function actionTooltipContent(
 
 export function LiveDashboard() {
 
-  const { state, start, stop, boxNow, endBoxNow } = useRace();
+  const { state, start, stop, boxNow, endBoxNow, setBallast } = useRace();
   const now = useNow();
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmBox, setConfirmBox] = useState(false);
