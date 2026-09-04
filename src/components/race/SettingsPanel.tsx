@@ -193,6 +193,39 @@ export function SettingsPanel() {
       <Button variant="ghost" className="w-full text-destructive" onClick={reset}>
         <RotateCcw className="size-4" /> Repor valores por omissão
       </Button>
+
+      <AlertDialog open={proOpen} onOpenChange={setProOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Repôr valores Pro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os campos do regulamento serão substituídos pelos valores Pro pré-configurados.
+              As alterações manuais que tenhas feito serão perdidas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                setConfig({
+                  raceDuration: defaultConfig().raceDuration,
+                  minDriverWeight: defaultConfig().minDriverWeight,
+                  minStint: defaultConfig().minStint,
+                  maxStint: defaultConfig().maxStint,
+                  minTotalDriving: defaultConfig().minTotalDriving,
+                  maxTotalDriving: defaultConfig().maxTotalDriving,
+                  mandatoryStops: defaultConfig().mandatoryStops,
+                  minPitDuration: defaultConfig().minPitDuration,
+                  pitDuration: defaultConfig().pitDuration,
+                  pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
+                })
+              }
+            >
+              Repôr Pro
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
