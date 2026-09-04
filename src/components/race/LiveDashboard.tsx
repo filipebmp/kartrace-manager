@@ -1,6 +1,17 @@
-import { AlertTriangle, ArrowDownToLine, Flag, Square, Timer, Weight } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Flag, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ballastInstruction,
   computeStints,
@@ -45,8 +56,9 @@ function Stat({
 }
 
 export function LiveDashboard() {
-  const { state, start, stop, boxNow } = useRace();
+  const { state, start, stop, boxNow, endBoxNow } = useRace();
   const now = useNow();
+  const [confirmStop, setConfirmStop] = useState(false);
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
   const planned = totalPlanned(state.stints);
