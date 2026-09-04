@@ -274,18 +274,20 @@ export function LiveDashboard() {
                             {current ? fmtClock(now - current.startAt) : "--:--:--"}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                            Tempo restante
-                          </p>
-                          <p
-                            className={`tabular text-4xl font-bold leading-none ${
-                              stintRemaining < 5 * MIN && current ? "text-warning" : "text-foreground"
-                            }`}
-                          >
-                            {current ? fmtClock(stintRemaining) : "--:--:--"}
-                          </p>
-                        </div>
+                        {!current?.isPit && (
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                              Tempo restante
+                            </p>
+                            <p
+                              className={`tabular text-4xl font-bold leading-none ${
+                                stintRemaining < 5 * MIN && current ? "text-warning" : "text-foreground"
+                              }`}
+                            >
+                              {current ? fmtClock(stintRemaining) : "--:--:--"}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
