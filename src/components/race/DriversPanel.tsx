@@ -20,7 +20,7 @@ export function DriversPanel() {
   const { state, addDriver, updateDriver, removeDriver, generateDrivers } = useRace();
   const computed = computeStints(state);
   const totals = driverTotals(state, computed);
-  const [driverCount, setDriverCount] = useState(0);
+  const [driverCount, setDriverCount] = useState(5);
   const [driverWeight, setDriverWeight] = useState(85);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
