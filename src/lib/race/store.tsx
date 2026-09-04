@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  applyStintEdit,
   computeStints,
   currentStintIndex,
   defaultState,
