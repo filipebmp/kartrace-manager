@@ -49,7 +49,7 @@ function Stat({
 }: {
   label: string;
   value: string;
-  hint?: string;
+  hint?: string | undefined;
   tone?: "default" | "warning" | "danger" | "success";
 }) {
   const toneClass =
