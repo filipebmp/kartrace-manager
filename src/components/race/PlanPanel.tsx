@@ -275,6 +275,19 @@ export function PlanPanel() {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
+  const scrollToActive = () => {
+    if (!activeStint) return;
+    let target = visibleComputed.find((c) => c.index === activeStint.index);
+    if (!target && hidePitStints && activeStint.isPit) {
+      const before = visibleComputed.filter((c) => c.index < activeStint.index);
+      const after = visibleComputed.filter((c) => c.index > activeStint.index);
+      target = before[before.length - 1] ?? after[0];
+    }
+    if (!target) return;
+    const el = document.getElementById(`plan-stint-${target.id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   return (
     <div className="space-y-4">
       <div className="panel space-y-3 p-4">
