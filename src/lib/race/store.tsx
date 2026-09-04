@@ -26,6 +26,8 @@ interface Ctx {
   setConfig: (patch: Partial<RaceConfig>) => void;
   setDrivers: (drivers: Driver[]) => void;
   addDriver: () => void;
+  /** Cria `count` pilotos novos (Piloto 1..N) com o peso indicado, mantendo a BOX */
+  generateDrivers: (count: number, weight: number) => void;
   updateDriver: (id: string, patch: Partial<Driver>) => void;
   removeDriver: (id: string) => void;
   setStints: (stints: Stint[]) => void;
