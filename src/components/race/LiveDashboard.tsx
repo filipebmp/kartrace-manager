@@ -99,16 +99,27 @@ export function LiveDashboard() {
           </div>
           {running ? (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-warning/50 text-warning"
-                onClick={boxNow}
-                disabled={!current || current.isPit}
-              >
-                <ArrowDownToLine className="size-4" /> Box
-              </Button>
-              <Button variant="destructive" size="sm" onClick={stop}>
+              {current?.isPit ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-warning/50 text-warning"
+                  onClick={endBoxNow}
+                >
+                  <ArrowUpFromLine className="size-4" /> Terminar box
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-warning/50 text-warning"
+                  onClick={boxNow}
+                  disabled={!current}
+                >
+                  <ArrowDownToLine className="size-4" /> Box
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => setConfirmStop(true)}>
                 <Square className="size-4" /> Parar
               </Button>
             </div>
