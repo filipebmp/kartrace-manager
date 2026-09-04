@@ -285,8 +285,16 @@ function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndi
 }
 
 export function PlanPanel() {
-  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers, setKart } =
-    useRace();
+  const {
+    state,
+    updateStint,
+    insertStintAfter,
+    removeStint,
+    setStints,
+    setDrivers,
+    setKart,
+    setKartRating,
+  } = useRace();
   const now = useNow(15000);
   const liveNow = useNow(1000);
   const [stintLength, setStintLength] = useState(60);
@@ -350,6 +358,11 @@ export function PlanPanel() {
   const saveKart = (id: string, kart: string) => {
     setKart(id, kart);
     toast.success(kart ? `Kart ${kart} registado no turno.` : "Kart removido do turno.");
+  };
+
+  const saveKartRating = (id: string, rating: Stint["kartRating"]) => {
+    setKartRating(id, rating);
+    toast.success(rating ? `Avaliação "${rating}" registada.` : "Avaliação removida.");
   };
 
   const scrollToActive = () => {
@@ -438,6 +451,7 @@ export function PlanPanel() {
             onSave={setPendingEdit}
             onDelete={setConfirmDelete}
             onSaveKart={saveKart}
+            onSaveKartRating={saveKartRating}
           />
         ))}
       </div>
