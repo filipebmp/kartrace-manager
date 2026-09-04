@@ -69,6 +69,7 @@ function PlanStintCard({
   onDelete,
   onSaveKart,
   onSaveKartRating,
+  onSaveBallastConfirmed,
 }: CardProps) {
   const [driverCode, setDriverCode] = useState<number | null>(c.driverCode);
   const [duration, setDuration] = useState<number>(c.duration);
@@ -143,6 +144,20 @@ function PlanStintCard({
             className="h-9"
           />
         </div>
+
+        {!c.isPit && (
+          <div>
+            <Label className="text-[10px] uppercase text-muted-foreground">Levou lastro?</Label>
+            <select
+              className="h-9 w-full rounded-md border border-input bg-secondary px-2 py-1 text-sm"
+              value={c.ballastConfirmed ? "sim" : "nao"}
+              onChange={(e) => onSaveBallastConfirmed(c.id, e.target.value === "sim")}
+            >
+              <option value="nao">Não</option>
+              <option value="sim">Sim</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {!c.isPit && (
