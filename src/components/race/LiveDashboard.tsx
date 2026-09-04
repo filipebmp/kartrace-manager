@@ -301,17 +301,17 @@ export function LiveDashboard() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="rounded-lg border-l-4 border-secondary bg-secondary/30 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-lg border-l-4 border-warning bg-warning/30 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-warning">
                     Próxima ação
                   </p>
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning">
                         {nextIsPit ? (
-                          <ArrowDownToLine className="size-5 text-muted-foreground" />
+                          <ArrowDownToLine className="size-5 text-warning-foreground" />
                         ) : (
-                          <Timer className="size-5 text-muted-foreground" />
+                          <Timer className="size-5 text-warning-foreground" />
                         )}
                       </div>
                       <div className="min-w-0">
