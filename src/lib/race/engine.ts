@@ -58,6 +58,17 @@ export function findDriver(drivers: Driver[], code: number | null) {
   return drivers.find((d) => d.code === code) ?? null;
 }
 
+/** Compatibilidade com planos antigos, em que a BOX não tinha `isPit`. */
+export function isPitDriver(driver: Driver | null | undefined) {
+  return driver?.isPit === true || driver?.name.trim().toUpperCase() === "BOX";
+}
+
+export function normalizeDrivers(drivers: Driver[]) {
+  return drivers.map((driver) =>
+    isPitDriver(driver) && !driver.isPit ? { ...driver, isPit: true } : driver,
+  );
+}
+
 export function raceStartTs(state: RaceState) {
   if (state.startedAt) return state.startedAt;
   const t = new Date(state.plannedStart).getTime();
@@ -77,7 +88,7 @@ export function computeStints(state: RaceState): ComputedStint[] {
 
   return stints.map((stint, i) => {
     const driver = findDriver(drivers, stint.driverCode);
-    const isPit = !!driver?.isPit;
+    const isPit = isPitDriver(driver);
 
     const driverWeight = driver && !isPit ? driver.weight : 0;
     const weighInWeight = driverWeight + stint.ballast;
@@ -128,7 +139,7 @@ export function computeStints(state: RaceState): ComputedStint[] {
 
 export function driverTotals(state: RaceState, computed: ComputedStint[]): DriverTotals[] {
   return state.drivers
-    .filter((d) => !d.isPit)
+    .filter((d) => !isPitDriver(d))
     .map((driver) => {
       const own = computed.filter((c) => c.driverCode === driver.code);
       const totalDriving = own.reduce((s, c) => s + c.duration, 0);
@@ -224,24 +235,23 @@ export function generatePlan(
   config: RaceConfig,
   stintLength: number,
 ): Stint[] {
-  const racers = drivers.filter((d) => !d.isPit);
-  const pit = drivers.find((d) => d.isPit);
+  const racers = drivers.filter((d) => !isPitDriver(d));
+  const pit = drivers.find(isPitDriver);
   if (racers.length === 0) return [];
   if (!pit || config.mandatoryStops <= 0) {
+    const firstRacer = racers[0];
+    if (!firstRacer) return [];
     return [
-      { id: uid(), driverCode: racers[0]!.code, duration: config.raceDuration, ballast: 0 },
+      { id: uid(), driverCode: firstRacer.code, duration: config.raceDuration, ballast: 0 },
     ];
   }
 
-  // Número de paragens: as obrigatórias, mais as que forem precisas para
-  // respeitar a duração máxima de turno e a duração base pedida.
-  let stops = Math.max(0, config.mandatoryStops);
+  // Uma prova com N paragens tem sempre exatamente N+1 turnos de condução.
+  // A duração base serve de referência visual; o tempo é redistribuído para
+  // preencher a duração total sem criar paragens adicionais.
+  const stops = Math.max(0, Math.floor(config.mandatoryStops));
   const drivingFor = (n: number) => config.raceDuration - n * config.pitDuration;
-  const perStintFor = (n: number) => drivingFor(n) / (n + 1);
-  const limit = Math.max(config.minStint, Math.min(stintLength, config.maxStint));
-  while (perStintFor(stops) > limit) stops++;
-  // Segurança: as paragens têm de caber dentro da corrida.
-  while (stops > 0 && drivingFor(stops) < (stops + 1) * config.minStint) stops--;
+  void stintLength;
 
   const nDrive = stops + 1;
   const totalDriving = drivingFor(stops);
@@ -253,7 +263,8 @@ export function generatePlan(
   for (let i = 0; i < nDrive; i++) {
     const duration = base + (remainder > 0 ? 1 : 0);
     if (remainder > 0) remainder--;
-    const driver = racers[i % racers.length]!;
+    const driver = racers[i % racers.length];
+    if (!driver) continue;
     stints.push({ id: uid(), driverCode: driver.code, duration, ballast: 0 });
     if (i < stops) {
       stints.push({
