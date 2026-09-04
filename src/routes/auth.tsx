@@ -34,16 +34,31 @@ const signUpSchema = z.object({
   password: z.string().min(8, "A palavra-passe precisa de pelo menos 8 caracteres").max(72),
 });
 
+function formatWait(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m <= 0) return `${s}s`;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const { session, loading } = useSession();
+  const sendReset = useServerFn(requestPasswordReset);
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
+  const [blockedFor, setBlockedFor] = useState(0);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
   }, [loading, session, navigate]);
+
+  useEffect(() => {
+    if (blockedFor <= 0) return;
+    const id = window.setInterval(() => setBlockedFor((v) => Math.max(0, v - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [blockedFor]);
 
   async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
