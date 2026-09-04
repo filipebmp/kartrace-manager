@@ -400,8 +400,20 @@ export function LiveDashboard() {
                 : "Sem lastro"
               : "—"
           }
-          hint={next ? `Próximo: ${next.driver?.name ?? "—"}` : undefined}
-          tone={next && next.suggestedBallast > 0 ? "warning" : "default"}
+          hint={
+            next
+              ? next.suggestedBallast > 0 && next.ballast >= next.suggestedBallast
+                ? `Confirmado · ${next.driver?.name ?? "—"}`
+                : `Próximo: ${next.driver?.name ?? "—"}`
+              : undefined
+          }
+          tone={
+            next && next.suggestedBallast > 0
+              ? next.ballast >= next.suggestedBallast
+                ? "success"
+                : "warning"
+              : "default"
+          }
         />
         <Stat
           label="Balança do piloto"
