@@ -474,6 +474,7 @@ export function PlanPanel() {
             onDelete={setConfirmDelete}
             onSaveKart={saveKart}
             onSaveKartRating={saveKartRating}
+            onSaveBallastConfirmed={saveBallastConfirmed}
           />
         ))}
       </div>
