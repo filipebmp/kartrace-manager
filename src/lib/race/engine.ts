@@ -4,8 +4,10 @@ import type {
   DriverTotals,
   RaceConfig,
   RaceState,
+  RaceSummary,
   Stint,
 } from "./types";
+
 
 export const MIN = 60_000;
 
