@@ -421,7 +421,7 @@ export function applyStintEdit(
       const activeBefore = beforeComputed[cur];
       const activeAfter = computeStints({ ...state, stints: next })[cur];
       if (activeBefore && activeAfter) {
-        startedAt += activeBefore.startAt - activeAfter.startAt;
+        startedAt = state.startedAt + activeBefore.startAt - activeAfter.startAt;
       }
     }
   }
