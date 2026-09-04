@@ -20,8 +20,10 @@ import { DurationField } from "@/components/race/DurationField";
 
 import {
   applyStintEdit,
+  burnableStints,
   computeStints,
   currentStintIndex,
+  driveStintTotal,
   ensurePitDriver,
   fmtClock,
   fmtDuration,
