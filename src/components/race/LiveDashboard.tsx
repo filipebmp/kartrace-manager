@@ -533,6 +533,24 @@ export function LiveDashboard() {
         </div>
       )}
 
+      {running && feasibility !== "ok" && (
+        <div
+          className={
+            feasibility === "critical"
+              ? "flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              : "flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
+          }
+        >
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {feasibility === "critical"
+              ? `Já não há tempo para as ${remainingStops} paragens que faltam antes do fecho do pitlane, mesmo com todos os turnos ao mínimo de ${state.config.minStint} min (faltam ${fmtDuration(Math.abs(slackMin))}).`
+              : `Margem apertada: só sobram ${fmtDuration(slackMin)} para além do mínimo necessário às ${remainingStops} paragens que faltam. Encurta turnos agora.`}
+          </span>
+        </div>
+      )}
+
+
       <div className="grid grid-cols-2 gap-3">
         <Stat
           label="Tempo de corrida"
