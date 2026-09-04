@@ -351,8 +351,9 @@ export function rebalanceFrom(
     if (isPitStint(stint)) {
       return { ...stint, duration: config.minPitDuration };
     }
-    const duration = base + (remainder > 0 ? 1 : 0);
-    if (remainder > 0) remainder--;
+    const extra = Math.min(1, Math.max(0, remainder));
+    const duration = base + extra;
+    remainder -= extra;
     return { ...stint, duration };
   });
 }
