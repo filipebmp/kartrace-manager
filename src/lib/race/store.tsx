@@ -14,6 +14,8 @@ import {
   ensurePitDriver,
   isPitDriver,
   MIN,
+  rebalanceFrom,
+
   uid,
 } from "./engine";
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
