@@ -187,20 +187,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const cur = computed[idx]!;
           // só atua durante uma paragem
           if (!cur.isPit) return s;
-          const elapsedMin = Math.max(0, (now - cur.startAt) / MIN);
-          const min = s.config.minPitDuration;
           const stints = s.stints.map((x) => ({ ...x }));
-          if (elapsedMin >= min) {
-            stints[idx]!.duration = elapsedMin;
-          } else {
-            // Registo tardio da entrada na box: a box conta sempre o mínimo
-            // regulamentar e a diferença sai do turno de condução anterior
-            // (que na realidade começou mais cedo).
-            const shortfall = min - elapsedMin;
-            stints[idx]!.duration = min;
-            const prev = stints[idx - 1];
-            if (prev) prev.duration = Math.max(0, prev.duration - shortfall);
-          }
+          const currentStint = stints[idx];
+          if (!currentStint) return s;
+          // A duração da box é sempre exatamente a definida no regulamento.
+          // Não acumular nem transferir diferenças de tempo entre paragens.
+          currentStint.duration = s.config.minPitDuration;
           return {
             ...s,
             stints: rebalanceFrom(stints, s.drivers, s.config, idx),
