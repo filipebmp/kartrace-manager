@@ -186,7 +186,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const elapsedMin = Math.max(0, (now - cur.startAt) / MIN);
           const stints = [...s.stints];
           stints[idx] = { ...stints[idx]!, duration: elapsedMin };
-          return { ...s, stints };
+          return { ...s, stints: rebalanceFrom(stints, s.drivers, s.config, idx) };
         }),
       boxNow: () =>
         patch((s) => {
@@ -220,8 +220,10 @@ export function RaceProvider({ children }: { children: ReactNode }) {
               });
             }
           }
-          return { ...s, stints };
+          // Recalcular os turnos seguintes para preencher o tempo restante da prova
+          return { ...s, stints: rebalanceFrom(stints, s.drivers, s.config, idx + 1) };
         }),
+
       setPlannedStart: (v) => patch((s) => ({ ...s, plannedStart: v })),
       replaceState: (s) => setState({ ...s, drivers: ensurePitDriver(s.drivers) }),
       reset: () => setState(defaultState()),
