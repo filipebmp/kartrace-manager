@@ -86,9 +86,11 @@ export function LiveDashboard() {
         ? computed[0]
         : undefined;
   const nextIsPit = nextAction?.isPit ?? false;
-  console.log({ idx, currentIsPit: current?.isPit, driverName: current?.driver?.name, driverCode: current?.driverCode, firstStint: computed[0] });
+  console.log({ idx, currentIsPit: current?.isPit, driverName: current?.driver?.name, driverCode: current?.driverCode });
+  console.log("titleExpr", current?.isPit ? "Box" : current?.driver?.name ?? running ? "Fora de plano" : "Ainda não arrancou");
 
   const raceElapsed = now - startTs;
+
 
   const raceRemaining = startTs + planned * MIN - now;
   const stintRemaining = current ? current.endAt - now : 0;
