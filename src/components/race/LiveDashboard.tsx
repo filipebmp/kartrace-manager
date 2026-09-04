@@ -132,8 +132,9 @@ export function LiveDashboard() {
   const idx = running ? (state.liveIndex ?? currentStintIndex(computed, now)) : -1;
   const current = idx >= 0 && idx < computed.length ? computed[idx] : undefined;
   const next = computed.slice(idx + 1).find((c) => !c.isPit);
+  // Durante uma box mostramos a balança do piloto que vai entrar em pista
   const currentRacer = current?.isPit
-    ? computed.slice(0, idx).reverse().find((c) => !c.isPit)
+    ? next ?? computed.slice(0, idx).reverse().find((c) => !c.isPit)
     : current;
   const nextAction =
     running && idx >= 0
