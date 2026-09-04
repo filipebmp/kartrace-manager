@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Plus, Trash2, Wand2 } from "lucide-react";
+import { ArrowUp, Check, Locate, Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,11 @@ import {
   computeStints,
   currentStintIndex,
   ensurePitDriver,
+  fmtClock,
   fmtDuration,
   fmtTimeOfDay,
   generatePlan,
+  MIN,
   raceSummary,
   totalPlanned,
 } from "@/lib/race/engine";
