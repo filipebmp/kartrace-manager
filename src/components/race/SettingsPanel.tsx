@@ -82,6 +82,23 @@ export function SettingsPanel() {
         </div>
       </div>
 
+      <div className="panel p-4">
+        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Categoria
+        </Label>
+        <select
+          className="mt-1 h-9 w-full rounded-md border border-input bg-secondary px-2 text-sm"
+          value={c.category}
+          onChange={(e) => {
+            const category = e.target.value as Category;
+            setConfig({ category, ...CATEGORY_RULES[category] });
+          }}
+        >
+          <option value="PRO">PRO · turno máx. 80 min · 28 paragens</option>
+          <option value="AM">AM · turno máx. 60 min · 34 paragens</option>
+        </select>
+      </div>
+
       <div className="panel grid grid-cols-2 gap-3 p-4">
         <p className="col-span-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           Regulamento
@@ -93,16 +110,16 @@ export function SettingsPanel() {
           onChange={(v) => setConfig({ raceDuration: Number(v) || 0 })}
         />
         <Field
-          label="Peso mínimo conjunto"
+          label="Peso mín. piloto equipado"
           suffix="kg"
-          value={c.minTotalWeight}
-          onChange={(v) => setConfig({ minTotalWeight: Number(v) || 0 })}
+          value={c.minDriverWeight}
+          onChange={(v) => setConfig({ minDriverWeight: Number(v) || 0 })}
         />
         <Field
-          label="Peso do kart"
-          suffix="kg"
-          value={c.kartWeight}
-          onChange={(v) => setConfig({ kartWeight: Number(v) || 0 })}
+          label="Turno mínimo"
+          suffix="min"
+          value={c.minStint}
+          onChange={(v) => setConfig({ minStint: Number(v) || 0 })}
         />
         <Field
           label="Turno máximo"
@@ -111,44 +128,42 @@ export function SettingsPanel() {
           onChange={(v) => setConfig({ maxStint: Number(v) || 0 })}
         />
         <Field
-          label="Condução máxima"
-          suffix="min"
-          value={c.maxTotalDriving}
-          onChange={(v) => setConfig({ maxTotalDriving: Number(v) || 0 })}
-        />
-        <Field
-          label="Condução mínima"
+          label="Condução mínima / piloto"
           suffix="min"
           value={c.minTotalDriving}
           onChange={(v) => setConfig({ minTotalDriving: Number(v) || 0 })}
         />
         <Field
-          label="Paragem em boxes"
+          label="Condução máxima (alvo)"
+          suffix="min"
+          value={c.maxTotalDriving}
+          onChange={(v) => setConfig({ maxTotalDriving: Number(v) || 0 })}
+        />
+        <Field
+          label="Paragens obrigatórias"
+          value={c.mandatoryStops}
+          onChange={(v) => setConfig({ mandatoryStops: Number(v) || 0 })}
+        />
+        <Field
+          label="Paragem mínima"
+          suffix="min"
+          value={c.minPitDuration}
+          onChange={(v) => setConfig({ minPitDuration: Number(v) || 0 })}
+        />
+        <Field
+          label="Paragem planeada"
           suffix="min"
           value={c.pitDuration}
           onChange={(v) => setConfig({ pitDuration: Number(v) || 0 })}
         />
         <Field
-          label="Descanso entre turnos"
+          label="Pitlane fecha antes do fim"
           suffix="min"
-          value={c.restBetweenStints}
-          onChange={(v) => setConfig({ restBetweenStints: Number(v) || 0 })}
+          value={c.pitLaneClosesBefore}
+          onChange={(v) => setConfig({ pitLaneClosesBefore: Number(v) || 0 })}
         />
       </div>
 
-      <div className="panel p-4">
-        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Ordem em boxes
-        </Label>
-        <select
-          className="mt-1 h-9 w-full rounded-md border border-input bg-secondary px-2 text-sm"
-          value={c.boxOrder}
-          onChange={(e) => setConfig({ boxOrder: e.target.value as BoxOrder })}
-        >
-          <option value="BT">Balança / Troca</option>
-          <option value="TB">Troca / Balança</option>
-        </select>
-      </div>
 
       <div className="flex gap-2">
         <Button variant="secondary" className="flex-1" onClick={exportJson}>
