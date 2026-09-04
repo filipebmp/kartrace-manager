@@ -135,6 +135,12 @@ export function LiveDashboard() {
   const running = state.startedAt !== null;
   const idx = running ? (state.liveIndex ?? currentStintIndex(computed, now)) : -1;
   const current = idx >= 0 && idx < computed.length ? computed[idx] : undefined;
+  // Estado da corrida para o indicador visível (explica um registo de eventos vazio).
+  const raceStatus: "not_started" | "running" | "finished" = !running
+    ? "not_started"
+    : idx === -1 || idx >= computed.length
+      ? "finished"
+      : "running";
   const next = computed.slice(idx + 1).find((c) => !c.isPit);
   // Durante uma box mostramos a balança do piloto que vai entrar em pista
   const currentRacer = current?.isPit
