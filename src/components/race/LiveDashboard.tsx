@@ -21,6 +21,7 @@ import {
 
 import {
   ballastInstruction,
+  burnableStints,
   computeStints,
   currentStintIndex,
   driveStintNumber,
@@ -189,6 +190,27 @@ export function LiveDashboard() {
         (c) => c.isPit && c.endOffset <= closeOffset && c.endAt <= now && c.index !== idx,
       ).length
     : 0;
+  // Turnos "rápidos" (ao tempo mínimo) que ainda permitem cumprir as paragens
+  // obrigatórias antes do fecho do pitlane, sem exceder o turno máximo.
+  const remainingStops = Math.max(0, summary.requiredStops - completedStops);
+  const pitCloseAt = startTs + closeOffset * MIN;
+  const minPit = state.config.minPitDuration;
+  // Tempo de condução disponível até ao fecho, descontando as boxes que faltam.
+  // (Boxes bloqueadas manualmente futuras usam a sua duração definida.)
+  const futurePitMinutes = running
+    ? computed
+        .filter(
+          (c) =>
+            c.isPit &&
+            c.endOffset <= closeOffset &&
+            (c.endAt > now || c.index === idx),
+        )
+        .reduce((sum, c) => sum + (c.durationLocked ? c.duration : minPit), 0)
+    : summary.stops * minPit;
+  const drivingAvailableMin = running
+    ? Math.max(0, (pitCloseAt - now) / MIN - futurePitMinutes)
+    : Math.max(0, closeOffset - futurePitMinutes);
+  const burnable = burnableStints(state.config, remainingStops, drivingAvailableMin);
 
   return (
     <div className="space-y-4">
@@ -487,6 +509,16 @@ export function LiveDashboard() {
           tone={
             running && completedStops >= summary.requiredStops ? "success" : "default"
           }
+        />
+        <Stat
+          label="Turnos rápidos"
+          value={remainingStops === 0 && running ? "0" : String(burnable)}
+          hint={
+            remainingStops === 0 && running
+              ? "Paragens obrigatórias cumpridas"
+              : `Até ${burnable} turno(s) ao mínimo (${state.config.minStint} min) e ainda fazes as ${remainingStops} paragens antes do fecho, sem ultrapassar ${state.config.maxStint} min por piloto`
+          }
+          tone={burnable > 0 ? "success" : "default"}
         />
         <Stat
           label="Pitlane fecha"

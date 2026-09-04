@@ -204,6 +204,27 @@ export function currentStintIndex(computed: ComputedStint[], now: number) {
   return computed.findIndex((c) => now >= c.startAt && now < c.endAt);
 }
 
+/** Quantos turnos podemos "queimar" ao tempo mínimo e ainda assim cumprir as
+ *  paragens obrigatórias antes do fecho do pitlane, sem que nenhum dos turnos
+ *  restantes ultrapasse o tempo máximo por piloto.
+ *
+ *  Com S paragens por cumprir há S+1 turnos de condução restantes. Se k turnos
+ *  forem feitos ao mínimo, o tempo restante tem de caber em (S+1−k) turnos de
+ *  duração máxima:
+ *    drivingAvailable − k·minStint ≤ (S+1−k)·maxStint
+ *  ⇔ k ≤ (S+1)·maxStint − drivingAvailable) / (maxStint − minStint) */
+export function burnableStints(
+  config: RaceConfig,
+  remainingStops: number,
+  drivingAvailableMin: number,
+) {
+  const stints = Math.max(0, Math.floor(remainingStops)) + 1;
+  const span = config.maxStint - config.minStint;
+  if (stints <= 0 || span <= 0 || drivingAvailableMin <= 0) return 0;
+  const k = Math.floor((stints * config.maxStint - drivingAvailableMin) / span);
+  return Math.max(0, Math.min(stints, k));
+}
+
 export function ballastInstruction(current?: ComputedStint, next?: ComputedStint) {
   const a = current?.ballast ?? 0;
   const b = next?.ballast ?? 0;
