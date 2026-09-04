@@ -293,7 +293,7 @@ export function LiveDashboard() {
       detail: `Sem paragens obrigatórias depois desta hora`,
       at: pitCloseAt,
     });
-    return items.slice(0, 13);
+    return items;
   })();
 
 
