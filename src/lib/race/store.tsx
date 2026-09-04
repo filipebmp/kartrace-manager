@@ -168,6 +168,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           stints: s.stints.map((st) => (st.id === id ? { ...st, ballast: kg } : st)),
         })),
 
+      setKart: (id, kart) =>
+        patch((s) => ({
+          ...s,
+          stints: s.stints.map((st) => (st.id === id ? { ...st, kart } : st)),
+        })),
+
       insertStintAfter: (id) =>
         patch((s) => {
           const entry: Stint = {
