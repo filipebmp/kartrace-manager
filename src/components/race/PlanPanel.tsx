@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DurationField } from "@/components/race/DurationField";
 
 import {
   computeStints,
@@ -27,6 +28,7 @@ import {
   totalPlanned,
 } from "@/lib/race/engine";
 import { useNow, useRace } from "@/lib/race/store";
+
 
 export function PlanPanel() {
   const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
@@ -72,15 +74,15 @@ export function PlanPanel() {
         <div className="flex items-end gap-2">
           <div className="flex-1">
             <Label htmlFor="stintLen" className="text-xs text-muted-foreground">
-              Duração base do turno (min)
+              Duração base do turno
             </Label>
-            <Input
-              id="stintLen"
-              type="number"
+            <DurationField
+              label=""
               value={stintLength}
-              onChange={(e) => setStintLength(Number(e.target.value) || 0)}
+              onChange={(v) => setStintLength(v)}
             />
           </div>
+
           <Button
             variant="secondary"
             onClick={() => {
@@ -165,13 +167,13 @@ export function PlanPanel() {
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-[10px] uppercase text-muted-foreground">Duração</Label>
-                <Input
-                  type="number"
-                  value={Math.round(c.duration)}
-                  onChange={(e) => updateStint(c.id, { duration: Number(e.target.value) || 0 })}
-                  className="h-9"
+                <DurationField
+                  label=""
+                  value={c.duration}
+                  onChange={(v) => updateStint(c.id, { duration: v })}
                 />
               </div>
+
               <div>
                 <Label className="text-[10px] uppercase text-muted-foreground">Lastro (kg)</Label>
                 <Input

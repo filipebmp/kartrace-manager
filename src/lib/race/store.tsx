@@ -138,10 +138,13 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         }),
       setStints: (stints) => patch((s) => ({ ...s, stints })),
       updateStint: (id, p) =>
-        patch((s) => ({
-          ...s,
-          stints: s.stints.map((st) => (st.id === id ? { ...st, ...p } : st)),
-        })),
+        patch((s) => {
+          const idx = s.stints.findIndex((st) => st.id === id);
+          if (idx < 0) return s;
+          const next = s.stints.map((st) => (st.id === id ? { ...st, ...p } : st));
+          return { ...s, stints: rebalanceFrom(next, s.drivers, s.config, idx) };
+        }),
+
       insertStintAfter: (id) =>
         patch((s) => {
           const entry: Stint = {

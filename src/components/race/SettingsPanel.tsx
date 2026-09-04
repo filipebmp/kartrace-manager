@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { DurationField } from "@/components/race/DurationField";
 import { defaultConfig } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
 import type { RaceState } from "@/lib/race/types";
+
 
 
 function Field({
@@ -109,11 +111,10 @@ export function SettingsPanel() {
             <RefreshCcw className="size-3" /> Valores Pro
           </Button>
         </div>
-        <Field
+        <DurationField
           label="Duração da prova"
-          suffix="min"
           value={c.raceDuration}
-          onChange={(v) => setConfig({ raceDuration: Number(v) || 0 })}
+          onChange={(v) => setConfig({ raceDuration: v })}
         />
         <Field
           label="Peso mín. piloto equipado"
@@ -121,53 +122,47 @@ export function SettingsPanel() {
           value={c.minDriverWeight}
           onChange={(v) => setConfig({ minDriverWeight: Number(v) || 0 })}
         />
-        <Field
+        <DurationField
           label="Turno mínimo"
-          suffix="min"
           value={c.minStint}
-          onChange={(v) => setConfig({ minStint: Number(v) || 0 })}
+          onChange={(v) => setConfig({ minStint: v })}
         />
-        <Field
+        <DurationField
           label="Turno máximo"
-          suffix="min"
           value={c.maxStint}
-          onChange={(v) => setConfig({ maxStint: Number(v) || 0 })}
+          onChange={(v) => setConfig({ maxStint: v })}
         />
-        <Field
+        <DurationField
           label="Condução mínima / piloto"
-          suffix="min"
           value={c.minTotalDriving}
-          onChange={(v) => setConfig({ minTotalDriving: Number(v) || 0 })}
+          onChange={(v) => setConfig({ minTotalDriving: v })}
         />
-        <Field
+        <DurationField
           label="Condução máxima (alvo)"
-          suffix="min"
           value={c.maxTotalDriving}
-          onChange={(v) => setConfig({ maxTotalDriving: Number(v) || 0 })}
+          onChange={(v) => setConfig({ maxTotalDriving: v })}
         />
         <Field
           label="Paragens obrigatórias"
           value={c.mandatoryStops}
           onChange={(v) => setConfig({ mandatoryStops: Number(v) || 0 })}
         />
-        <Field
+        <DurationField
           label="Paragem mínima"
-          suffix="min"
           value={c.minPitDuration}
-          onChange={(v) => setConfig({ minPitDuration: Number(v) || 0 })}
+          onChange={(v) => setConfig({ minPitDuration: v })}
         />
-        <Field
+        <DurationField
           label="Paragem planeada"
-          suffix="min"
           value={c.pitDuration}
-          onChange={(v) => setConfig({ pitDuration: Number(v) || 0 })}
+          onChange={(v) => setConfig({ pitDuration: v })}
         />
-        <Field
+        <DurationField
           label="Pitlane fecha antes do fim"
-          suffix="min"
           value={c.pitLaneClosesBefore}
-          onChange={(v) => setConfig({ pitLaneClosesBefore: Number(v) || 0 })}
+          onChange={(v) => setConfig({ pitLaneClosesBefore: v })}
         />
+
       </div>
 
 
