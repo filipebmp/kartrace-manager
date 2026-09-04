@@ -319,7 +319,16 @@ export function PlanPanel() {
   const liveNow = useNow(1000);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
-  const [hidePitStints, setHidePitStints] = useState(true);
+  // A preferência de ocultar boxes fica guardada até o utilizador a voltar a mudar.
+  const [hidePitStints, setHidePitStints] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const saved = window.localStorage.getItem("kart24h-hide-pit-stints");
+    return saved === null ? true : saved === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("kart24h-hide-pit-stints", hidePitStints ? "1" : "0");
+  }, [hidePitStints]);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
