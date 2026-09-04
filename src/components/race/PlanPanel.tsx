@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Plus, Trash2, Wand2 } from "lucide-react";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,15 +204,6 @@ export function PlanPanel() {
               )}
 
               <div className="ml-auto flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => moveStint(c.id, -1)}>
-                  <ArrowUp className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => moveStint(c.id, 1)}>
-                  <ArrowDown className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => insertStintAfter(c.id)}>
-                  <Plus className="size-4" />
-                </Button>
                 <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(c.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
