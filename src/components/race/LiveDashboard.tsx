@@ -21,6 +21,7 @@ import {
 
 import {
   ballastInstruction,
+  burnableStints,
   computeStints,
   currentStintIndex,
   driveStintNumber,
