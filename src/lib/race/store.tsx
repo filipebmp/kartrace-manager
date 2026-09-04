@@ -181,6 +181,33 @@ export function RaceProvider({ children }: { children: ReactNode }) {
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
 
+  // Registo imutável de eventos da corrida (auditoria de timings, ao segundo).
+  const logEvent = useCallback(
+    (
+      event: "box_start" | "box_end",
+      stintId: string,
+      stintLabel: string,
+      at: number,
+      meta: Record<string, unknown>,
+    ) => {
+      if (!userId) return;
+      void supabase
+        .from("race_event_log")
+        .insert({
+          user_id: userId,
+          event,
+          stint_id: stintId,
+          stint_label: stintLabel,
+          event_at: new Date(at).toISOString(),
+          meta: meta as Json,
+        })
+        .then(({ error }) => {
+          if (error) console.error("Falha ao registar evento", error.message);
+        });
+    },
+    [userId],
+  );
+
   const value = useMemo<Ctx>(
     () => ({
       state,
