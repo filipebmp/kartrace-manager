@@ -23,10 +23,17 @@ export function DriversPanel() {
   const [driverCount, setDriverCount] = useState(5);
   const [driverWeight, setDriverWeight] = useState(85);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmCreate, setConfirmCreate] = useState(false);
+  const racing = state.startedAt !== null;
 
   const confirmRemove = () => {
     if (confirmDelete) removeDriver(confirmDelete);
     setConfirmDelete(null);
+  };
+
+  const confirmCreateDrivers = () => {
+    generateDrivers(driverCount, driverWeight);
+    setConfirmCreate(false);
   };
 
   return (
