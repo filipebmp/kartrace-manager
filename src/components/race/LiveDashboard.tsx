@@ -154,11 +154,34 @@ export function LiveDashboard() {
           tone={current && next && current.ballast !== next.ballast ? "warning" : "default"}
         />
         <Stat
-          label="Peso do conjunto"
-          value={current ? `${Math.round(current.combinedWeight)} kg` : "—"}
-          hint={`Mínimo ${state.config.minTotalWeight} kg`}
-          tone={!current ? "default" : current.weightDiff < 0 ? "danger" : "success"}
+          label="Balança do piloto"
+          value={currentRacer ? `${currentRacer.weighInWeight.toFixed(1)} kg` : "—"}
+          hint={`Mínimo ${state.config.minDriverWeight} kg equipado`}
+          tone={!currentRacer ? "default" : currentRacer.weightDiff < 0 ? "danger" : "success"}
         />
+        <Stat
+          label="Paragens"
+          value={`${summary.stops} / ${summary.requiredStops}`}
+          hint={
+            summary.missingStops > 0
+              ? `Faltam ${summary.missingStops} (−${summary.lapPenalty} voltas)`
+              : "Plano cumpre as obrigatórias"
+          }
+          tone={summary.missingStops > 0 ? "warning" : "success"}
+        />
+        <Stat
+          label="Pitlane fecha"
+          value={fmtTimeOfDay(
+            startTs + (state.config.raceDuration - state.config.pitLaneClosesBefore) * MIN,
+          )}
+          hint={
+            summary.stopsAfterPitClose > 0
+              ? `${summary.stopsAfterPitClose} paragens depois do fecho`
+              : "Todas as paragens dentro do prazo"
+          }
+          tone={summary.stopsAfterPitClose > 0 ? "danger" : "default"}
+        />
+
       </div>
 
       <div className="panel p-4">
