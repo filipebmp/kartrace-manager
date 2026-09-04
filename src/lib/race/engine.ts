@@ -74,17 +74,26 @@ export function computeStints(state: RaceState): ComputedStint[] {
     const isPit = !!driver?.isPit;
 
     const driverWeight = driver && !isPit ? driver.weight : 0;
-    const base = config.kartWeight + driverWeight;
-    const combinedWeight = base + stint.ballast;
-    const weightDiff = combinedWeight - config.minTotalWeight;
-    const suggestedBallast = Math.max(0, Math.ceil(config.minTotalWeight - base));
+    const weighInWeight = driverWeight + stint.ballast;
+    const weightDiff = weighInWeight - config.minDriverWeight;
+    const suggestedBallast = Math.max(0, Math.ceil(config.minDriverWeight - driverWeight));
+    // 30 s por cada 0,5 kg em falta
+    const weightPenalty = weightDiff < 0 ? Math.ceil(Math.abs(weightDiff) / 0.5) * 30 : 0;
 
     const warnings: string[] = [];
-    if (!isPit) {
-      if (weightDiff < 0) warnings.push(`Adicionar ${Math.abs(Math.round(weightDiff))} kg de lastro`);
-      if (weightDiff >= 5) warnings.push("Peso excessivo");
-      if (stint.duration > config.maxStint) warnings.push("Turno acima do máximo");
+    if (isPit) {
+      if (stint.duration < config.minPitDuration)
+        warnings.push(`Paragem abaixo do mínimo de ${config.minPitDuration} min`);
+    } else {
       if (!driver) warnings.push("Sem piloto atribuído");
+      if (weightDiff < 0)
+        warnings.push(
+          `Faltam ${Math.abs(weightDiff).toFixed(1)} kg na balança (+${weightPenalty}s)`,
+        );
+      if (stint.duration > config.maxStint)
+        warnings.push(`Turno acima do máximo (${config.maxStint} min)`);
+      if (stint.duration < config.minStint)
+        warnings.push(`Turno abaixo do mínimo (${config.minStint} min)`);
     }
 
     const computed: ComputedStint = {
@@ -96,9 +105,10 @@ export function computeStints(state: RaceState): ComputedStint[] {
       endOffset: offset + stint.duration,
       startAt: start + offset * MIN,
       endAt: start + (offset + stint.duration) * MIN,
-      combinedWeight,
+      weighInWeight,
       weightDiff,
       suggestedBallast,
+      weightPenalty,
       warnings,
     };
     offset += stint.duration;
@@ -122,6 +132,23 @@ export function driverTotals(state: RaceState, computed: ComputedStint[]): Drive
     });
 }
 
+export function raceSummary(state: RaceState, computed: ComputedStint[]): RaceSummary {
+  const { config } = state;
+  const pits = computed.filter((c) => c.isPit);
+  const stops = pits.length;
+  const requiredStops = config.mandatoryStops;
+  const missingStops = Math.max(0, requiredStops - stops);
+  const closeOffset = config.raceDuration - config.pitLaneClosesBefore;
+  return {
+    plannedMinutes: totalPlanned(state.stints),
+    stops,
+    requiredStops,
+    missingStops,
+    lapPenalty: missingStops * 5,
+    stopsAfterPitClose: pits.filter((c) => c.startOffset >= closeOffset).length,
+  };
+}
+
 export function currentStintIndex(computed: ComputedStint[], now: number) {
   return computed.findIndex((c) => now >= c.startAt && now < c.endAt);
 }
@@ -129,30 +156,38 @@ export function currentStintIndex(computed: ComputedStint[], now: number) {
 export function ballastInstruction(current?: ComputedStint, next?: ComputedStint) {
   const a = current?.ballast ?? 0;
   const b = next?.ballast ?? 0;
-  if (a === b) return a === 0 ? "Sem lastro" : "Manter lastro no kart";
-  if (a > b) return `Retirar ${a - b} kg de lastro`;
-  return `Adicionar ${b - a} kg de lastro`;
+  if (a === b) return a === 0 ? "Sem lastro" : `Manter ${a} kg`;
+  if (a > b) return `Retirar ${a - b} kg`;
+  return `Adicionar ${b - a} kg`;
 }
 
 export function totalPlanned(stints: Stint[]) {
   return stints.reduce((s, x) => s + x.duration, 0);
 }
 
+export const CATEGORY_RULES = {
+  PRO: { maxStint: 80, mandatoryStops: 28 },
+  AM: { maxStint: 60, mandatoryStops: 34 },
+} as const;
+
 export function defaultConfig(): RaceConfig {
   return {
     teamName: "Light Speed",
-    eventName: "24H Karting Palmela",
-    raceDuration: 24 * 60,
-    minTotalWeight: 245,
-    kartWeight: 160,
-    maxStint: 75,
-    maxTotalDriving: 270,
-    minTotalDriving: 90,
-    restBetweenStints: 0,
-    boxOrder: "BT",
+    eventName: "25H Karting Palmela",
+    category: "AM",
+    raceDuration: 25 * 60,
+    minDriverWeight: 85,
+    minStint: 10,
+    maxStint: CATEGORY_RULES.AM.maxStint,
+    minTotalDriving: 120,
+    maxTotalDriving: 300,
+    mandatoryStops: CATEGORY_RULES.AM.mandatoryStops,
+    minPitDuration: 3,
     pitDuration: 3,
+    pitLaneClosesBefore: 30,
   };
 }
+
 
 const DEFAULT_NAMES = [
   "António Baptista",
