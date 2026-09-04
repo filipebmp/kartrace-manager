@@ -39,6 +39,7 @@ function AuthPage() {
   const { session, loading } = useSession();
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
@@ -118,6 +119,57 @@ function AuthPage() {
     else toast.success("Email reenviado");
   }
 
+  async function handleReset(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
+    if (!z.string().email().safeParse(email).success) {
+      toast.error("Indica um email válido");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) {
+      toast.error("Não foi possível enviar", { description: error.message });
+      return;
+    }
+    toast.success("Email enviado", {
+      description: "Se a conta existir, vais receber uma ligação para definires uma nova palavra-passe.",
+    });
+    setForgot(false);
+  }
+
+  if (forgot) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Recuperar palavra-passe</CardTitle>
+            <CardDescription>
+              Indica o email da tua equipa. Enviamos uma ligação segura para definires uma nova palavra-passe.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleReset}>
+              <div className="space-y-1.5">
+                <Label htmlFor="reset-email">Email</Label>
+                <Input id="reset-email" name="email" type="email" required autoComplete="email" />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                Enviar ligação de recuperação
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => setForgot(false)}>
+                Voltar ao login
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (pendingEmail) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
@@ -176,6 +228,13 @@ function AuthPage() {
                   <Button type="submit" className="w-full" disabled={busy}>
                     Entrar
                   </Button>
+                  <button
+                    type="button"
+                    className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    onClick={() => setForgot(true)}
+                  >
+                    Esqueci-me da palavra-passe
+                  </button>
                 </form>
               </TabsContent>
 
