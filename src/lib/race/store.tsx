@@ -352,6 +352,13 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           // cronómetro seguinte arrancar exatamente agora. As paragens futuras
           // mantêm sempre a duração do regulamento (ver rebalanceFrom).
           currentStint.duration = Math.max(0, (now - cur.startAt) / MIN);
+          const nextStint = stints[idx + 1];
+          logEvent("box_end", currentStint.id, "Box", now, {
+            planned_duration_min: cur.duration,
+            actual_duration_sec: Math.round(((now - cur.startAt) / 1000) * 10) / 10,
+            next_driver:
+              s.drivers.find((d) => d.code === nextStint?.driverCode)?.name ?? null,
+          });
           return {
             ...s,
             stints: rebalanceFrom(stints, s.drivers, s.config, idx),
