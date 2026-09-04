@@ -332,7 +332,12 @@ export function PlanPanel() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
-  const idx = now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
+  // Antes da partida o turno ativo é sempre o primeiro (Piloto 1); depois segue a corrida.
+  const idx = !state.startedAt
+    ? (computed.length > 0 ? 0 : -1)
+    : now === null
+      ? -1
+      : (state.liveIndex ?? currentStintIndex(computed, now));
   const activeStint = idx >= 0 ? computed[idx] : null;
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);

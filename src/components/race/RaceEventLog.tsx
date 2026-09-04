@@ -48,7 +48,12 @@ export function RaceEventLog() {
   }, []);
 
   // Recarrega ao montar e sempre que a corrida avança de turno (novo evento).
+  // Sem corrida iniciada não há eventos a mostrar (limpa registos de corridas anteriores).
   useEffect(() => {
+    if (!state.startedAt) {
+      setEvents([]);
+      return;
+    }
     void load();
   }, [load, state.liveIndex, state.startedAt]);
 
@@ -94,7 +99,9 @@ export function RaceEventLog() {
         <div className="divide-y divide-border border-t border-border">
           {groups.length === 0 && (
             <p className="px-4 py-3 text-sm text-muted-foreground">
-              Ainda não há eventos registados nesta corrida.
+              {!state.startedAt
+                ? "A corrida ainda não iniciou — sem eventos."
+                : "Ainda não há eventos registados nesta corrida."}
             </p>
           )}
           {groups.map((g, gi) => (
