@@ -47,46 +47,60 @@ export function DriversPanel() {
           })}
         </ul>
         <p className="mt-3 text-xs text-muted-foreground">
-          Mínimo {fmtDuration(state.config.minTotalDriving)} · Máximo{" "}
+          Mínimo obrigatório {fmtDuration(state.config.minTotalDriving)} · Alvo máximo{" "}
           {fmtDuration(state.config.maxTotalDriving)} por piloto
         </p>
       </div>
 
       <div className="space-y-2">
-        {state.drivers.map((d) => (
-          <div key={d.id} className="panel flex items-end gap-2 p-3">
-            <div className="w-14">
-              <Label className="text-[10px] uppercase text-muted-foreground">Cód.</Label>
-              <Input
-                type="number"
-                className="h-9"
-                value={d.code}
-                onChange={(e) => updateDriver(d.id, { code: Number(e.target.value) || 0 })}
-              />
+        {state.drivers.map((d) => {
+          const need = d.isPit ? 0 : Math.max(0, Math.ceil(state.config.minDriverWeight - d.weight));
+          return (
+            <div key={d.id} className="panel p-3">
+              <div className="flex items-end gap-2">
+                <div className="w-14">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Cód.</Label>
+                  <Input
+                    type="number"
+                    className="h-9"
+                    value={d.code}
+                    onChange={(e) => updateDriver(d.id, { code: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Nome</Label>
+                  <Input
+                    className="h-9"
+                    value={d.name}
+                    onChange={(e) => updateDriver(d.id, { name: e.target.value })}
+                  />
+                </div>
+                <div className="w-24">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Equipado kg</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    className="h-9"
+                    value={d.weight}
+                    onChange={(e) => updateDriver(d.id, { weight: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => removeDriver(d.id)}>
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
+              </div>
+              {!d.isPit && (
+                <p className={`mt-2 text-xs ${need > 0 ? "text-warning" : "text-success"}`}>
+                  {need > 0
+                    ? `Precisa de ${need} kg de lastro para os ${state.config.minDriverWeight} kg`
+                    : "Cumpre o peso mínimo sem lastro"}
+                </p>
+              )}
             </div>
-            <div className="flex-1">
-              <Label className="text-[10px] uppercase text-muted-foreground">Nome</Label>
-              <Input
-                className="h-9"
-                value={d.name}
-                onChange={(e) => updateDriver(d.id, { name: e.target.value })}
-              />
-            </div>
-            <div className="w-20">
-              <Label className="text-[10px] uppercase text-muted-foreground">Peso</Label>
-              <Input
-                type="number"
-                className="h-9"
-                value={d.weight}
-                onChange={(e) => updateDriver(d.id, { weight: Number(e.target.value) || 0 })}
-              />
-            </div>
-            <Button size="icon" variant="ghost" onClick={() => removeDriver(d.id)}>
-              <Trash2 className="size-4 text-destructive" />
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
 
       <Button variant="secondary" className="w-full" onClick={addDriver}>
         <Plus className="size-4" /> Adicionar piloto

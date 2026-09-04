@@ -41,12 +41,21 @@ export function RaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) setState({ ...defaultState(), ...(JSON.parse(raw) as RaceState) });
+      if (raw) {
+        const saved = JSON.parse(raw) as RaceState;
+        const base = defaultState();
+        setState({
+          ...base,
+          ...saved,
+          config: { ...base.config, ...(saved.config ?? {}) },
+        });
+      }
     } catch {
       /* ignore */
     }
     setHydrated(true);
   }, []);
+
 
   useEffect(() => {
     if (!hydrated) return;
