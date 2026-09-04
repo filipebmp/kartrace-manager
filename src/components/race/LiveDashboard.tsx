@@ -79,6 +79,14 @@ export function LiveDashboard() {
   const currentRacer = current?.isPit
     ? computed.slice(0, idx).reverse().find((c) => !c.isPit)
     : current;
+  const nextAction =
+    running && idx >= 0
+      ? computed[idx + 1]
+      : !running
+        ? computed[0]
+        : undefined;
+  const nextIsPit = nextAction?.isPit ?? false;
+
 
   const raceElapsed = now - startTs;
   const raceRemaining = startTs + planned * MIN - now;
