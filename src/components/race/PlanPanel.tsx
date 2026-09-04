@@ -475,16 +475,31 @@ export function PlanPanel() {
             Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
             <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
           </p>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const drivers = ensurePitDriver(state.drivers);
-              if (drivers.length !== state.drivers.length) setDrivers(drivers);
-              setStints(generatePlan(drivers, state.config));
-            }}
-          >
-            <Wand2 className="size-4" /> Gerar plano
-          </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const drivers = ensurePitDriver(state.drivers);
+                if (drivers.length !== state.drivers.length) setDrivers(drivers);
+                const stints = generatePlan(drivers, state.config);
+                setStints(stints);
+                const computed = computeStints({ ...state, stints });
+                const driveStints = driveStintTotal(computed);
+                const total = totalPlanned(stints);
+                const stops = stints.filter((s) =>
+                  computed.find((c) => c.id === s.id)?.isPit,
+                ).length;
+                const burnable = burnableStints(
+                  state.config,
+                  state.config.mandatoryStops,
+                  state.config.raceDuration - stops * state.config.minPitDuration,
+                );
+                toast.success(
+                  `Plano criado com ${driveStints} turnos, duração total de ${fmtDuration(total)} e possibilidade de ${burnable} turno(s) rápido(s).`,
+                );
+              }}
+            >
+              <Wand2 className="size-4" /> Gerar plano
+            </Button>
         </div>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
