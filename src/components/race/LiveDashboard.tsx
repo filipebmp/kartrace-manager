@@ -73,8 +73,8 @@ export function LiveDashboard() {
   }
 
   const running = state.startedAt !== null;
-  const idx = currentStintIndex(computed, now);
-  const current = idx >= 0 ? computed[idx] : undefined;
+  const idx = running ? (state.liveIndex ?? currentStintIndex(computed, now)) : -1;
+  const current = idx >= 0 && idx < computed.length ? computed[idx] : undefined;
   const next = computed.slice(idx + 1).find((c) => !c.isPit);
   const currentRacer = current?.isPit
     ? computed.slice(0, idx).reverse().find((c) => !c.isPit)
@@ -90,6 +90,11 @@ export function LiveDashboard() {
     current && !current.isPit
       ? Math.max(0, current.startAt + state.config.minStint * MIN - now)
       : 0;
+  // Tempo que falta até a box cumprir a permanência mínima regulamentar
+  const pitMinRemainingMs =
+    current?.isPit
+      ? Math.max(0, current.startAt + state.config.minPitDuration * MIN - now)
+      : 0;
   const handleBoxClick = () => {
     if (belowMinStint) setConfirmBox(true);
     else boxNow();
@@ -98,7 +103,9 @@ export function LiveDashboard() {
   // Paragens concluídas (e válidas: terminadas antes do fecho do pitlane)
   const closeOffset = state.config.raceDuration - state.config.pitLaneClosesBefore;
   const completedStops = running
-    ? computed.filter((c) => c.isPit && c.endOffset <= closeOffset && c.endAt <= now).length
+    ? computed.filter(
+        (c) => c.isPit && c.endOffset <= closeOffset && c.endAt <= now && c.index !== idx,
+      ).length
     : 0;
 
   return (
@@ -119,8 +126,12 @@ export function LiveDashboard() {
                   size="sm"
                   className="border-warning/50 text-warning"
                   onClick={endBoxNow}
+                  disabled={pitMinRemainingMs > 0}
                 >
-                  <ArrowUpFromLine className="size-4" /> Terminar box
+                  <ArrowUpFromLine className="size-4" />
+                  {pitMinRemainingMs > 0
+                    ? `Terminar em ${fmtClock(pitMinRemainingMs)}`
+                    : "Terminar box"}
                 </Button>
               ) : (
                 <Button

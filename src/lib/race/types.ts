@@ -48,6 +48,8 @@ export interface RaceState {
   stints: Stint[];
   /** timestamp (ms) da partida real, null = não iniciada */
   startedAt: number | null;
+  /** índice do turno/box em curso durante a corrida (avança só por ação do utilizador) */
+  liveIndex: number | null;
   /** cópia do plano no momento da partida, reposta ao terminar */
   planSnapshot: Stint[] | null;
   /** hora planeada de partida (ISO local) usada antes de arrancar */
