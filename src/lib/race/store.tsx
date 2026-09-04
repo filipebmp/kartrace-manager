@@ -181,6 +181,33 @@ export function RaceProvider({ children }: { children: ReactNode }) {
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
 
+  // Registo imutável de eventos da corrida (auditoria de timings, ao segundo).
+  const logEvent = useCallback(
+    (
+      event: "box_start" | "box_end",
+      stintId: string,
+      stintLabel: string,
+      at: number,
+      meta: Record<string, unknown>,
+    ) => {
+      if (!userId) return;
+      void supabase
+        .from("race_event_log")
+        .insert({
+          user_id: userId,
+          event,
+          stint_id: stintId,
+          stint_label: stintLabel,
+          event_at: new Date(at).toISOString(),
+          meta: meta as Json,
+        })
+        .then(({ error }) => {
+          if (error) console.error("Falha ao registar evento", error.message);
+        });
+    },
+    [userId],
+  );
+
   const value = useMemo<Ctx>(
     () => ({
       state,
@@ -325,6 +352,13 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           // cronómetro seguinte arrancar exatamente agora. As paragens futuras
           // mantêm sempre a duração do regulamento (ver rebalanceFrom).
           currentStint.duration = Math.max(0, (now - cur.startAt) / MIN);
+          const nextStint = stints[idx + 1];
+          logEvent("box_end", currentStint.id, "Box", now, {
+            planned_duration_min: cur.duration,
+            actual_duration_sec: Math.round(((now - cur.startAt) / 1000) * 10) / 10,
+            next_driver:
+              s.drivers.find((d) => d.code === nextStint?.driverCode)?.name ?? null,
+          });
           return {
             ...s,
             stints: rebalanceFrom(stints, s.drivers, s.config, idx),
@@ -367,6 +401,14 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             }
           }
           // Recalcular os turnos seguintes para preencher o tempo restante da prova
+          const pitStint = stints[idx + 1];
+          if (pitStint) {
+            logEvent("box_start", pitStint.id, "Box", now, {
+              planned_duration_min: pitStint.duration,
+              elapsed_stint_sec: Math.round(elapsedMin * 60 * 10) / 10,
+              driver_in_pit: s.drivers.find((d) => d.code === cur.driverCode)?.name ?? null,
+            });
+          }
           return {
             ...s,
             stints: rebalanceFrom(stints, s.drivers, s.config, idx + 1),
@@ -378,7 +420,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       replaceState: (s) => setState({ ...s, drivers: ensurePitDriver(s.drivers) }),
       reset: () => setState(defaultState()),
     }),
-    [state, hydrated, patch],
+    [state, hydrated, patch, logEvent],
   );
 
   return <RaceContext.Provider value={value}>{children}</RaceContext.Provider>;

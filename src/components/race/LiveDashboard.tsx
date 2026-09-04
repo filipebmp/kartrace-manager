@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner";
 import { useNow, useRace } from "@/lib/race/store";
 import type { ComputedStint, RaceState } from "@/lib/race/types";
+import { RaceEventLog } from "./RaceEventLog";
 
 
 
@@ -525,6 +526,8 @@ export function LiveDashboard() {
         </ul>
 
       </div>
+
+      <RaceEventLog />
 
       <AlertDialog open={confirmBox} onOpenChange={setConfirmBox}>
         <AlertDialogContent>
