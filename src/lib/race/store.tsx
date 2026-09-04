@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -76,6 +77,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<RaceState>(() => defaultState());
   const [hydrated, setHydrated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const loggedEventKeys = useRef(new Set<string>());
 
   // Carrega o estado da equipa: primeiro a cópia local (rápida), depois a nuvem.
   // Recarrega sempre que a sessão muda, para nunca mostrar dados de outra equipa.
@@ -191,6 +193,9 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       meta: Record<string, unknown>,
     ) => {
       if (!userId) return;
+      const eventKey = `${userId}:${event}:${stintId}`;
+      if (loggedEventKeys.current.has(eventKey)) return;
+      loggedEventKeys.current.add(eventKey);
       void supabase
         .from("race_event_log")
         .insert({
@@ -202,7 +207,10 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           meta: meta as Json,
         })
         .then(({ error }) => {
-          if (error) console.error("Falha ao registar evento", error.message);
+          if (error) {
+            loggedEventKeys.current.delete(eventKey);
+            console.error("Falha ao registar evento", error.message);
+          }
         });
     },
     [userId],
