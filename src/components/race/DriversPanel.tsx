@@ -145,7 +145,7 @@ export function DriversPanel() {
                     onChange={(e) => updateDriver(d.id, { weight: Number(e.target.value) || 0 })}
                   />
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => removeDriver(d.id)}>
+                <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(d.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
@@ -165,6 +165,21 @@ export function DriversPanel() {
       <Button variant="secondary" className="w-full" onClick={addDriver}>
         <Plus className="size-4" /> Adicionar piloto
       </Button>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover piloto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove o piloto selecionado. Não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
