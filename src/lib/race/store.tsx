@@ -20,7 +20,7 @@ import {
 } from "./engine";
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
 
-const KEY = "kart24h-state-v1";
+const KEY = "kart24h-state-v2";
 
 interface Ctx {
   state: RaceState;
