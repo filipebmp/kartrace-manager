@@ -10,6 +10,7 @@ import {
   fmtDuration,
   fmtTimeOfDay,
   generatePlan,
+  raceSummary,
   totalPlanned,
 } from "@/lib/race/engine";
 import { useNow, useRace } from "@/lib/race/store";
@@ -21,6 +22,8 @@ export function PlanPanel() {
   const computed = computeStints(state);
   const idx = now === null ? -1 : currentStintIndex(computed, now);
   const planned = totalPlanned(state.stints);
+  const summary = raceSummary(state, computed);
+
 
   return (
     <div className="space-y-4">
@@ -48,6 +51,20 @@ export function PlanPanel() {
           Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
           <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
         </p>
+        <p className="text-xs text-muted-foreground">
+          Paragens: <span className="tabular">{summary.stops}</span> de{" "}
+          <span className="tabular">{summary.requiredStops}</span> obrigatórias
+          {summary.missingStops > 0 ? (
+            <span className="text-destructive"> · −{summary.lapPenalty} voltas de penalização</span>
+          ) : null}
+          {summary.stopsAfterPitClose > 0 ? (
+            <span className="text-destructive">
+              {" "}
+              · {summary.stopsAfterPitClose} depois do fecho do pitlane
+            </span>
+          ) : null}
+        </p>
+
       </div>
 
       <div className="space-y-2">
@@ -105,9 +122,14 @@ export function PlanPanel() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="tabular">
-                Peso: {Math.round(c.combinedWeight)} kg
-              </Badge>
+              {!c.isPit && (
+                <Badge
+                  variant="outline"
+                  className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}
+                >
+                  Balança: {c.weighInWeight.toFixed(1)} kg
+                </Badge>
+              )}
               {c.suggestedBallast > 0 && c.suggestedBallast !== c.ballast && !c.isPit && (
                 <button
                   type="button"
@@ -117,6 +139,7 @@ export function PlanPanel() {
                   Sugerir {c.suggestedBallast} kg
                 </button>
               )}
+
               <div className="ml-auto flex gap-1">
                 <Button size="icon" variant="ghost" onClick={() => moveStint(c.id, -1)}>
                   <ArrowUp className="size-4" />
