@@ -344,7 +344,12 @@ export function PlanPanel() {
       </div>
 
       {state.startedAt !== null && activeStint && liveNow !== null ? (
-        <ActiveStintIndicator active={activeStint} now={liveNow} onLocate={scrollToActive} />
+        <ActiveStintIndicator
+          active={activeStint}
+          driveNumber={driveStintNumber(computed, activeStint.index)}
+          now={liveNow}
+          onLocate={scrollToActive}
+        />
       ) : null}
 
       <div className="space-y-2">
