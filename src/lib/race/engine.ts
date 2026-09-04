@@ -276,6 +276,7 @@ export function defaultState(): RaceState {
     drivers,
     stints: generatePlan(drivers, config, 60),
     startedAt: null,
+    planSnapshot: null,
     plannedStart: toLocalInput(start),
   };
 }

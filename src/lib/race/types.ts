@@ -50,6 +50,8 @@ export interface RaceState {
   stints: Stint[];
   /** timestamp (ms) da partida real, null = não iniciada */
   startedAt: number | null;
+  /** cópia do plano no momento da partida, reposta ao terminar */
+  planSnapshot: Stint[] | null;
   /** hora planeada de partida (ISO local) usada antes de arrancar */
   plannedStart: string;
 }
