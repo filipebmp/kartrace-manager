@@ -39,6 +39,8 @@ interface Ctx {
   stop: () => void;
   /** Termina o turno atual agora (piloto entra nas boxes mais cedo que o planeado) */
   boxNow: () => void;
+  /** Termina a paragem atual nas boxes agora (saída mais cedo que o planeado) */
+  endBoxNow: () => void;
   setPlannedStart: (v: string) => void;
   replaceState: (s: RaceState) => void;
   reset: () => void;
