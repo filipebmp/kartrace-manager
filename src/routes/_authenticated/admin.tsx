@@ -77,6 +77,25 @@ function AdminPage() {
     queryClient.invalidateQueries({ queryKey: ["all-teams"] });
   }
 
+  async function confirmDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await removeTeam({ data: { userId: toDelete.id } });
+      toast.success("Equipa eliminada", {
+        description: `${toDelete.team_name} e todos os seus dados foram removidos.`,
+      });
+      setToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    } catch (e) {
+      toast.error("Não foi possível eliminar", {
+        description: e instanceof Error ? e.message : "Tenta novamente.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background pb-10">
       <TeamHeader teamName={me?.profile?.team_name} isAdmin={isAdmin} />
@@ -124,11 +143,48 @@ function AdminPage() {
                 >
                   Recusar
                 </Button>
+                {t.id !== user?.id ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="ml-auto"
+                    onClick={() => setToDelete(t)}
+                  >
+                    <Trash2 className="size-4" />
+                    Eliminar
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           ))
         )}
       </main>
+
+      <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar equipa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete
+                ? `Vais eliminar permanentemente a equipa ${toDelete.team_name} (${toDelete.email}), incluindo a conta e todos os dados da corrida. Esta ação não pode ser anulada.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "A eliminar…" : "Eliminar equipa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
