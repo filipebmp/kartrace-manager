@@ -191,6 +191,23 @@ export function DriversPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmCreate} onOpenChange={() => setConfirmCreate(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Criar pilotos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação substitui todos os pilotos atuais por {driverCount} piloto(s) com {driverWeight}{" "}
+              kg. O plano e a corrida em curso não são afetados, mas os nomes e códigos existentes
+              serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmCreate(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreateDrivers}>Criar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
