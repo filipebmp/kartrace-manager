@@ -240,7 +240,11 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             }
           }
           // Recalcular os turnos seguintes para preencher o tempo restante da prova
-          return { ...s, stints: rebalanceFrom(stints, s.drivers, s.config, idx + 1) };
+          return {
+            ...s,
+            stints: rebalanceFrom(stints, s.drivers, s.config, idx + 1),
+            liveIndex: idx + 1,
+          };
         }),
 
       setPlannedStart: (v) => patch((s) => ({ ...s, plannedStart: v })),
