@@ -22,7 +22,7 @@ import type { Driver, RaceConfig, RaceState, Stint } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
-const KEY = "kart24h-state-v2";
+const KEY = "kart24h-state-v3";
 
 interface Ctx {
   state: RaceState;
@@ -103,6 +103,25 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         const remote = row?.state as Partial<RaceState> | undefined;
         if (remote && Object.keys(remote).length > 0) setState(merge(remote));
+
+        // Se ainda não há nome de equipa definido, usa o nome do registo.
+        const hasName =
+          (remote?.config?.teamName ?? local?.config?.teamName ?? "").trim().length > 0;
+        if (!hasName) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("team_name")
+            .eq("id", currentUid)
+            .maybeSingle();
+          const name = profile?.team_name?.trim();
+          if (active && name) {
+            setState((s) =>
+              s.config.teamName.trim()
+                ? s
+                : { ...s, config: { ...s.config, teamName: name } },
+            );
+          }
+        }
       }
       if (active) setHydrated(true);
     })();
