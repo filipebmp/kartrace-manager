@@ -260,7 +260,7 @@ export function generatePlan(
   // A duração base serve de referência visual; o tempo é redistribuído para
   // preencher a duração total sem criar paragens adicionais.
   const stops = Math.max(0, Math.floor(config.mandatoryStops));
-  const drivingFor = (n: number) => config.raceDuration - n * config.pitDuration;
+  const drivingFor = (n: number) => config.raceDuration - n * config.minPitDuration;
   void stintLength;
 
   const nDrive = stops + 1;
@@ -280,7 +280,7 @@ export function generatePlan(
       stints.push({
         id: uid(),
         driverCode: pit.code,
-        duration: config.pitDuration,
+        duration: config.minPitDuration,
         ballast: 0,
       });
     }
@@ -330,7 +330,9 @@ export function rebalanceFrom(
   const drivesAfter = rest.filter((s) => !isPitStint(s));
   if (drivesAfter.length === 0) return stints;
 
-  const pitMinutes = pitsAfter.reduce((s, x) => s + Math.max(x.duration, config.minPitDuration), 0);
+  // Todas as boxes têm exatamente a duração definida no regulamento.
+  // Uma box terminada antecipadamente não transfere o tempo em falta para as seguintes.
+  const pitMinutes = pitsAfter.length * config.minPitDuration;
   const available = Math.max(0, config.raceDuration - consumed - pitMinutes);
   const base = Math.floor(available / drivesAfter.length);
   let remainder = available - base * drivesAfter.length;
@@ -338,7 +340,7 @@ export function rebalanceFrom(
   return stints.map((stint, i) => {
     if (i <= fromIndex) return stint;
     if (isPitStint(stint)) {
-      return { ...stint, duration: Math.max(stint.duration, config.minPitDuration) };
+      return { ...stint, duration: config.minPitDuration };
     }
     const duration = base + (remainder > 0 ? 1 : 0);
     if (remainder > 0) remainder--;
