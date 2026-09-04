@@ -108,13 +108,14 @@ export function PlanPanel() {
 
 
       <div className="space-y-2">
-        {computed.map((c) => (
+        {visibleComputed.map((c) => (
           <div
             key={c.id}
             className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
               c.isPit ? "opacity-80" : ""
             }`}
           >
+
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="tabular w-6 text-xs text-muted-foreground">{c.index + 1}</span>
