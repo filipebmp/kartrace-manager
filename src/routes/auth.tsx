@@ -188,9 +188,14 @@ function AuthPage() {
                 <Label htmlFor="reset-email">Email</Label>
                 <Input id="reset-email" name="email" type="email" required autoComplete="email" />
               </div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                Enviar ligação de recuperação
+              <Button type="submit" className="w-full" disabled={busy || blockedFor > 0}>
+                {blockedFor > 0
+                  ? `Bloqueado — tenta em ${formatWait(blockedFor)}`
+                  : "Enviar ligação de recuperação"}
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Por segurança, são permitidos até 5 pedidos por hora para o mesmo email.
+              </p>
               <Button type="button" variant="ghost" className="w-full" onClick={() => setForgot(false)}>
                 Voltar ao login
               </Button>
