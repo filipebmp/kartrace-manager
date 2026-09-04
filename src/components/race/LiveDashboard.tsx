@@ -69,6 +69,11 @@ export function LiveDashboard() {
   const raceRemaining = startTs + planned * MIN - now;
   const stintRemaining = current ? current.endAt - now : 0;
   const alerts = current?.warnings ?? [];
+  // Paragens concluídas (e válidas: terminadas antes do fecho do pitlane)
+  const closeOffset = state.config.raceDuration - state.config.pitLaneClosesBefore;
+  const completedStops = running
+    ? computed.filter((c) => c.isPit && c.endOffset <= closeOffset && c.endAt <= now).length
+    : 0;
 
   return (
     <div className="space-y-4">
