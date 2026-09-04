@@ -48,6 +48,7 @@ export function SettingsPanel() {
   const { state, setConfig, setPlannedStart, reset, replaceState } = useRace();
   const c = state.config;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [proOpen, setProOpen] = useState(false);
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
