@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Fuel, Plus, Trash2, Wand2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,7 +83,7 @@ export function PlanPanel() {
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-[10px] uppercase text-muted-foreground">Duração</Label>
                 <Input
@@ -102,24 +102,9 @@ export function PlanPanel() {
                   className="h-9"
                 />
               </div>
-              <div className="flex flex-col">
-                <Label className="text-[10px] uppercase text-muted-foreground">Gás</Label>
-                <Button
-                  type="button"
-                  variant={c.refuel ? "default" : "secondary"}
-                  className="h-9"
-                  onClick={() => updateStint(c.id, { refuel: !c.refuel })}
-                >
-                  <Fuel className="size-4" />
-                  {c.refuel ? "Sim" : "Não"}
-                </Button>
-              </div>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="tabular">
-                Gás fim: {c.fuelEnd.toFixed(1)} kg
-              </Badge>
               <Badge variant="outline" className="tabular">
                 Peso: {Math.round(c.combinedWeight)} kg
               </Badge>

@@ -1,4 +1,4 @@
-import { AlertTriangle, Flag, Fuel, Square, Timer, Weight } from "lucide-react";
+import { AlertTriangle, Flag, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -64,18 +64,6 @@ export function LiveDashboard() {
   const raceElapsed = now - startTs;
   const raceRemaining = startTs + planned * MIN - now;
   const stintRemaining = current ? current.endAt - now : 0;
-  const fuelPct = current
-    ? Math.max(
-        0,
-        Math.min(
-          100,
-          ((current.fuelStart - ((now - current.startAt) / MIN) * (state.config.fuelWeight / state.config.fuelAutonomy)) /
-            state.config.fuelWeight) *
-            100,
-        ),
-      )
-    : 100;
-
   const alerts = current?.warnings ?? [];
 
   return (
@@ -149,24 +137,6 @@ export function LiveDashboard() {
         </div>
       )}
 
-      <div className="panel p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <Fuel className="size-4" /> Combustível
-          </p>
-          <span className="tabular text-sm">
-            {(((fuelPct / 100) * state.config.fuelWeight) as number).toFixed(1)} kg ·{" "}
-            {Math.round((fuelPct / 100) * state.config.fuelAutonomy)} min
-          </span>
-        </div>
-        <div className="h-3 overflow-hidden rounded-full bg-muted">
-          <div className="heat-bar h-full transition-[width]" style={{ width: `${fuelPct}%` }} />
-        </div>
-        {next?.refuel ? (
-          <p className="mt-2 text-xs text-warning">Abastecer na próxima paragem</p>
-        ) : null}
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <Stat
           label="Tempo de corrida"
@@ -210,11 +180,6 @@ export function LiveDashboard() {
                   <span className="text-sm font-medium">{c.driver?.name ?? "—"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {c.refuel && (
-                    <Badge variant="outline" className="border-warning/50 text-warning">
-                      GAS
-                    </Badge>
-                  )}
                   {c.ballast > 0 && (
                     <Badge variant="outline" className="gap-1">
                       <Weight className="size-3" />

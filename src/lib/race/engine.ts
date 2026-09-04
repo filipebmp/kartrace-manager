@@ -65,34 +65,20 @@ export function raceStartTs(state: RaceState) {
 export function computeStints(state: RaceState): ComputedStint[] {
   const { config, drivers, stints } = state;
   const start = raceStartTs(state);
-  const fullTank = config.fuelWeight;
-  const burnPerMin = config.fuelWeight / Math.max(config.fuelAutonomy, 1);
-
-  let fuel = config.refuelBeforeStart
-    ? fullTank
-    : Math.max(0, fullTank - config.practiceTime * burnPerMin);
   let offset = 0;
 
   return stints.map((stint, i) => {
     const driver = findDriver(drivers, stint.driverCode);
     const isPit = !!driver?.isPit;
-    if (stint.refuel) fuel = fullTank;
-
-    const fuelStart = fuel;
-    const consumed = isPit ? 0 : stint.duration * burnPerMin;
-    const fuelEnd = fuelStart - consumed;
-    fuel = fuelEnd;
 
     const driverWeight = driver && !isPit ? driver.weight : 0;
-    const fuelWeightCounted = config.fuelCountsAsBallast ? Math.max(0, fuelStart) : 0;
-    const base = config.kartWeight + driverWeight + fuelWeightCounted;
+    const base = config.kartWeight + driverWeight;
     const combinedWeight = base + stint.ballast;
     const weightDiff = combinedWeight - config.minTotalWeight;
     const suggestedBallast = Math.max(0, Math.ceil(config.minTotalWeight - base));
 
     const warnings: string[] = [];
     if (!isPit) {
-      if (fuelEnd < 0) warnings.push("Risco de falta de combustível");
       if (weightDiff < 0) warnings.push(`Adicionar ${Math.abs(Math.round(weightDiff))} kg de lastro`);
       if (weightDiff >= 5) warnings.push("Peso excessivo");
       if (stint.duration > config.maxStint) warnings.push("Turno acima do máximo");
@@ -108,10 +94,6 @@ export function computeStints(state: RaceState): ComputedStint[] {
       endOffset: offset + stint.duration,
       startAt: start + offset * MIN,
       endAt: start + (offset + stint.duration) * MIN,
-      fuelStart,
-      fuelEnd,
-      fuelStartMin: (fuelStart / burnPerMin) | 0,
-      fuelEndMin: Math.round(fuelEnd / burnPerMin),
       combinedWeight,
       weightDiff,
       suggestedBallast,
@@ -165,12 +147,7 @@ export function defaultConfig(): RaceConfig {
     maxTotalDriving: 270,
     minTotalDriving: 90,
     restBetweenStints: 0,
-    fuelAutonomy: 140,
-    fuelWeight: 6,
-    fuelCountsAsBallast: true,
-    boxOrder: "BGT",
-    practiceTime: 20,
-    refuelBeforeStart: false,
+    boxOrder: "BT",
     pitDuration: 3,
   };
 }
@@ -204,28 +181,20 @@ export function generatePlan(
   const racers = drivers.filter((d) => !d.isPit);
   const pit = drivers.find((d) => d.isPit);
   if (racers.length === 0) return [];
-  const burnPerMin = config.fuelWeight / Math.max(config.fuelAutonomy, 1);
   const stints: Stint[] = [];
   let elapsed = 0;
-  let fuel = config.refuelBeforeStart
-    ? config.fuelWeight
-    : config.fuelWeight - config.practiceTime * burnPerMin;
   let i = 0;
 
   while (elapsed < config.raceDuration) {
     const duration = Math.min(stintLength, config.raceDuration - elapsed);
     if (duration <= 0) break;
-    const refuel = fuel - duration * burnPerMin < 0.2;
-    if (refuel) fuel = config.fuelWeight;
     const driver = racers[i % racers.length]!;
     stints.push({
       id: uid(),
       driverCode: driver.code,
       duration,
-      refuel,
       ballast: 0,
     });
-    fuel -= duration * burnPerMin;
     elapsed += duration;
     i++;
     if (elapsed < config.raceDuration && pit) {
@@ -235,7 +204,6 @@ export function generatePlan(
           id: uid(),
           driverCode: pit.code,
           duration: pitTime,
-          refuel: false,
           ballast: 0,
         });
         elapsed += pitTime;

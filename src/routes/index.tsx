@@ -10,7 +10,7 @@ import { RaceProvider } from "@/lib/race/store";
 
 const title = "Team Manager 24H Karting";
 const description =
-  "Gestão de equipa em corridas de resistência de karts: turnos, combustível, lastro e tempos de condução em tempo real.";
+  "Gestão de equipa em corridas de resistência de karts: turnos, lastro e tempos de condução em tempo real.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
