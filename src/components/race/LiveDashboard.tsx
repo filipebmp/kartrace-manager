@@ -511,6 +511,16 @@ export function LiveDashboard() {
           }
         />
         <Stat
+          label="Turnos rápidos"
+          value={remainingStops === 0 && running ? "0" : String(burnable)}
+          hint={
+            remainingStops === 0 && running
+              ? "Paragens obrigatórias cumpridas"
+              : `Até ${burnable} turno(s) ao mínimo (${state.config.minStint} min) e ainda fazes as ${remainingStops} paragens antes do fecho, sem ultrapassar ${state.config.maxStint} min por piloto`
+          }
+          tone={burnable > 0 ? "success" : "default"}
+        />
+        <Stat
           label="Pitlane fecha"
           value={
             running
