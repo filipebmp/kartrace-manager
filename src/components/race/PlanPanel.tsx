@@ -46,11 +46,14 @@ export function PlanPanel() {
     if (idx < 0) return;
     const active = computed.find((c) => c.index === idx);
     if (!active) return;
-    const visible = hidePitStints && active.isPit
-      ? visibleComputed.find((c) => c.index < idx ? c.index < idx : c.index > idx)
-      : visibleComputed.find((c) => c.index === idx);
-    if (!visible) return;
-    const el = document.getElementById(`plan-stint-${visible.id}`);
+    let target = visibleComputed.find((c) => c.index === idx);
+    if (!target && hidePitStints && active.isPit) {
+      const before = visibleComputed.filter((c) => c.index < idx);
+      const after = visibleComputed.filter((c) => c.index > idx);
+      target = before[before.length - 1] ?? after[0];
+    }
+    if (!target) return;
+    const el = document.getElementById(`plan-stint-${target.id}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
