@@ -6,6 +6,7 @@ import { useRace } from "@/lib/race/store";
 interface RaceEvent {
   id: string;
   event: "box_start" | "box_end";
+  stint_id: string;
   stint_label: string;
   event_at: string;
   meta: Record<string, unknown>;
@@ -39,9 +40,9 @@ export function RaceEventLog() {
     if (!uid) return;
     const { data: rows } = await supabase
       .from("race_event_log")
-      .select("id, event, stint_label, event_at, meta")
+      .select("id, event, stint_id, stint_label, event_at, meta")
       .eq("user_id", uid)
-      .order("event_at", { ascending: false })
+      .order("event_at", { ascending: true })
       .limit(50);
     setEvents((rows as RaceEvent[] | null) ?? []);
   }, []);
@@ -50,6 +51,28 @@ export function RaceEventLog() {
   useEffect(() => {
     void load();
   }, [load, state.liveIndex, state.startedAt]);
+
+  // Agrupa os eventos por paragem, em ordem cronológica.
+  const groups = (() => {
+    const map = new Map<string, RaceEvent[]>();
+    for (const e of events) {
+      const list = map.get(e.stint_id) ?? [];
+      list.push(e);
+      map.set(e.stint_id, list);
+    }
+    return [...map.entries()].map(([stintId, list]) => {
+      const driver = list
+        .map((e) => e.meta?.["driver_in_pit"])
+        .find((v): v is string => typeof v === "string" && v.length > 0);
+      const endEvent = list.find((e) => e.event === "box_end");
+      return {
+        stintId,
+        driver: driver ?? null,
+        realDuration: fmtReal(endEvent?.meta?.["actual_duration_sec"]),
+        events: list,
+      };
+    });
+  })();
 
   return (
     <div className="panel">
@@ -64,45 +87,50 @@ export function RaceEventLog() {
           Registo de eventos (auditoria)
         </span>
         <span className="text-xs text-muted-foreground">
-          {events.length} {events.length === 1 ? "evento" : "eventos"} · {open ? "Ocultar" : "Ver"}
+          {groups.length} {groups.length === 1 ? "box" : "boxes"} · {open ? "Ocultar" : "Ver"}
         </span>
       </button>
       {open && (
-        <ul className="divide-y divide-border border-t border-border">
-          {events.length === 0 && (
-            <li className="px-4 py-3 text-sm text-muted-foreground">
+        <div className="divide-y divide-border border-t border-border">
+          {groups.length === 0 && (
+            <p className="px-4 py-3 text-sm text-muted-foreground">
               Ainda não há eventos registados nesta corrida.
-            </li>
+            </p>
           )}
-          {events.map((e) => {
-            const real = fmtReal(e.meta?.["actual_duration_sec"]);
-            return (
-              <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <span className="flex items-center gap-2 text-sm">
-                  {e.event === "box_start" ? (
-                    <ArrowDownToLine className="size-4 text-warning" />
-                  ) : (
-                    <ArrowUpFromLine className="size-4 text-success" />
-                  )}
-                  {e.event === "box_start" ? "Box iniciada" : "Box terminada"}
-                  {typeof e.meta?.["driver_in_pit"] === "string" && e.meta["driver_in_pit"]
-                    ? ` · ${e.meta["driver_in_pit"]}`
-                    : ""}
+          {groups.map((g, gi) => (
+            <div key={g.stintId} className="px-4 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold">
+                  Box {gi + 1}
+                  {g.driver ? ` · ${g.driver}` : ""}
                 </span>
-                <span className="text-right">
-                  <span className="tabular block text-sm font-medium">
-                    {fmtClockWithSeconds(e.event_at)}
+                {g.realDuration && (
+                  <span className="tabular text-xs text-muted-foreground">
+                    duração real {g.realDuration}
                   </span>
-                  {e.event === "box_end" && real && (
-                    <span className="tabular block text-xs text-muted-foreground">
-                      duração real {real}
+                )}
+              </div>
+              <ul className="space-y-1.5">
+                {g.events.map((e) => (
+                  <li key={e.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-2">
+                      {e.event === "box_start" ? (
+                        <ArrowDownToLine className="size-4 text-warning" />
+                      ) : (
+                        <ArrowUpFromLine className="size-4 text-success" />
+                      )}
+                      {e.event === "box_start" ? "Entrada na box" : "Saída da box"}
                     </span>
-                  )}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+                    <span className="tabular font-medium">{fmtClockWithSeconds(e.event_at)}</span>
+                  </li>
+                ))}
+                {!g.events.some((e) => e.event === "box_end") && (
+                  <li className="text-xs text-muted-foreground">Paragem ainda a decorrer.</li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
