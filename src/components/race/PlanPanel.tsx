@@ -74,15 +74,15 @@ export function PlanPanel() {
         <div className="flex items-end gap-2">
           <div className="flex-1">
             <Label htmlFor="stintLen" className="text-xs text-muted-foreground">
-              Duração base do turno (min)
+              Duração base do turno
             </Label>
-            <Input
-              id="stintLen"
-              type="number"
+            <DurationField
+              label=""
               value={stintLength}
-              onChange={(e) => setStintLength(Number(e.target.value) || 0)}
+              onChange={(v) => setStintLength(v)}
             />
           </div>
+
           <Button
             variant="secondary"
             onClick={() => {
