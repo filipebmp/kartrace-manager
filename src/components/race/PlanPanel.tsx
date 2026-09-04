@@ -474,6 +474,12 @@ export function PlanPanel() {
             </Label>
           </div>
         </div>
+        <p className="rounded-md border border-border bg-muted/30 p-2 text-[11px] leading-snug text-muted-foreground">
+          Ao corrigir o tempo de um turno já passado só se acerta a diferença: o turno em curso
+          mantém a duração e a hora de fim, e o tempo restante é redistribuído pelos turnos que
+          ainda faltam. Cada correção manual fica registada com data e utilizador.
+        </p>
+
         <p className="text-xs text-muted-foreground">
           Paragens: <span className="tabular">{summary.stops}</span> de{" "}
           <span className="tabular">{summary.requiredStops}</span> obrigatórias
