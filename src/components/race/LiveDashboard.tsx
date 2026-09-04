@@ -165,41 +165,93 @@ export function LiveDashboard() {
           )}
         </div>
 
-        <div className="px-4 py-5 text-center">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {current ? "Tempo para troca" : running ? "Fora de plano" : "Ainda não arrancou"}
-          </p>
-          <p
-            className={`tabular text-5xl font-bold tracking-tight ${
-              stintRemaining < 5 * MIN && current ? "text-warning" : "text-primary"
-            }`}
-          >
-            {current ? fmtClock(stintRemaining) : "--:--:--"}
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-left">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Em pista
-              </p>
-              <p className="font-display text-lg font-semibold">
-                {currentRacer?.driver?.name ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Turno {idx >= 0 ? idx + 1 : "—"} de {computed.length}
-                {current?.isPit ? " · em boxes" : ""}
-              </p>
+        <div className="space-y-3 px-4 py-5">
+          {/* Ação em curso */}
+          <div className="relative overflow-hidden rounded-xl border-l-4 border-primary bg-primary/10 p-4">
+            <div className="absolute right-3 top-3">
+              {running && current && (
+                <Badge variant="default" className="gap-1 uppercase tracking-wider">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-foreground opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-foreground" />
+                  </span>
+                  Ao vivo
+                </Badge>
+              )}
             </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Piloto seguinte
-              </p>
-              <p className="font-display text-lg font-semibold">{next?.driver?.name ?? "—"}</p>
-              <p className="text-xs text-muted-foreground">
-                {next ? `${fmtTimeOfDay(next.startAt)} · ${fmtDuration(next.duration)}` : "—"}
-              </p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary">Ação em curso</p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="truncate font-display text-2xl font-bold">
+                  {current?.isPit
+                    ? "Box"
+                    : current?.driver?.name ?? running
+                      ? "Fora de plano"
+                      : "Ainda não arrancou"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {current?.isPit
+                    ? `Paragem ${completedStops + 1} de ${summary.requiredStops} · mín. ${state.config.minPitDuration} min`
+                    : current
+                      ? `Turno ${idx >= 0 ? idx + 1 : "—"} de ${computed.length}`
+                      : running
+                        ? "A corrida ultrapassou o plano"
+                        : `Partida prevista ${fmtTimeOfDay(startTs)}`}
+                </p>
+              </div>
+              <div className="shrink-0 text-left sm:text-right">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Tempo restante
+                </p>
+                <p
+                  className={`tabular text-4xl font-bold leading-none ${
+                    stintRemaining < 5 * MIN && current ? "text-warning" : "text-foreground"
+                  }`}
+                >
+                  {current ? fmtClock(stintRemaining) : "--:--:--"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Próxima ação */}
+          <div className="rounded-lg border-l-4 border-secondary bg-secondary/30 p-3">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Próxima ação
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+                  {nextIsPit ? (
+                    <ArrowDownToLine className="size-5 text-muted-foreground" />
+                  ) : (
+                    <Timer className="size-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-display text-lg font-semibold">
+                    {nextIsPit ? "Box" : nextAction?.driver?.name ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {nextAction
+                      ? nextIsPit
+                        ? `Troca de kart · ${fmtTimeOfDay(nextAction.startAt)}`
+                        : `Início ${fmtTimeOfDay(nextAction.startAt)} · ${fmtDuration(nextAction.duration)}`
+                      : running
+                        ? "Fora de plano"
+                        : "Gere o plano e clica em Partida"}
+                  </p>
+                </div>
+              </div>
+              {nextAction && (
+                <Badge variant="outline" className="shrink-0 tabular">
+                  em {fmtClock(nextAction.startAt - now)}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
+
       </div>
 
       {alerts.length > 0 && (
