@@ -146,8 +146,27 @@ function PlanStintCard({
 
       {!c.isPit && (
         <div className="mt-2 flex items-end gap-2">
+          <div className="w-32">
+            <Label className="text-[10px] uppercase text-muted-foreground">Tipo de kart</Label>
+            <select
+              className="h-9 w-full rounded-md border border-input bg-secondary px-2 py-1 text-sm"
+              value={kartRating ?? ""}
+              onChange={(e) =>
+                setKartRating(
+                  e.target.value === "" ? undefined : (e.target.value as Stint["kartRating"]),
+                )
+              }
+            >
+              <option value="">—</option>
+              {KART_RATINGS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex-1">
-            <Label className="text-[10px] uppercase text-muted-foreground">Kart utilizado</Label>
+            <Label className="text-[10px] uppercase text-muted-foreground">Nº do kart</Label>
             <Input
               value={kart}
               onChange={(e) => setKart(e.target.value)}
@@ -159,8 +178,11 @@ function PlanStintCard({
             size="sm"
             variant="secondary"
             className="h-9"
-            onClick={() => onSaveKart(c.id, kart.trim())}
-            disabled={kart.trim() === (c.kart ?? "")}
+            onClick={() => {
+              onSaveKart(c.id, kart.trim());
+              if (kartRating !== c.kartRating) onSaveKartRating(c.id, kartRating);
+            }}
+            disabled={kart.trim() === (c.kart ?? "") && kartRating === c.kartRating}
           >
             <Check className="size-4" /> Guardar kart
           </Button>
