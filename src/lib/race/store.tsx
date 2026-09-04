@@ -350,9 +350,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const nextIsPit = pitDriver && stints[idx + 1]?.driverCode === pitDriver.code;
           if (pitDriver) {
             if (nextIsPit) {
+              const nextPit = stints[idx + 1]!;
               stints[idx + 1] = {
-                ...stints[idx + 1]!,
-                duration: s.config.minPitDuration,
+                ...nextPit,
+                duration: nextPit.durationLocked
+                  ? nextPit.duration
+                  : s.config.minPitDuration,
               };
             } else {
               stints.splice(idx + 1, 0, {

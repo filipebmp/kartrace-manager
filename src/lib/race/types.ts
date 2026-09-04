@@ -13,6 +13,8 @@ export interface Stint {
   driverCode: number | null;
   /** duração em minutos */
   duration: number;
+  /** duração desta box definida manualmente (ex.: penalização) — não é reposta pelo regulamento */
+  durationLocked?: boolean;
   /** lastro que o piloto leva consigo para a pesagem (kg) */
   ballast: number;
   /** confirmação de que o piloto levou o lastro neste turno (não afeta cálculos) */
