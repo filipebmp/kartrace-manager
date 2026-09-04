@@ -401,6 +401,14 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             }
           }
           // Recalcular os turnos seguintes para preencher o tempo restante da prova
+          const pitStint = stints[idx + 1];
+          if (pitStint) {
+            logEvent("box_start", pitStint.id, "Box", now, {
+              planned_duration_min: pitStint.duration,
+              elapsed_stint_sec: Math.round(elapsedMin * 60 * 10) / 10,
+              driver_in_pit: s.drivers.find((d) => d.code === cur.driverCode)?.name ?? null,
+            });
+          }
           return {
             ...s,
             stints: rebalanceFrom(stints, s.drivers, s.config, idx + 1),
