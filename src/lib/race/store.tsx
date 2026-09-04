@@ -153,18 +153,27 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const cur = computed[idx]!;
           // já está nas boxes: não encurtar a paragem
           if (cur.isPit) return s;
-          const elapsedMin = Math.max(1, Math.round(((now - cur.startAt) / MIN) * 10) / 10);
+          // Preservar o instante exato do clique para a contagem da box
+          // começar na duração mínima completa, sem perder segundos por arredondamento.
+          const elapsedMin = Math.max(0, (now - cur.startAt) / MIN);
           const stints = [...s.stints];
           stints[idx] = { ...stints[idx]!, duration: elapsedMin };
           const pitDriver = s.drivers.find((d) => d.isPit);
           const nextIsPit = pitDriver && stints[idx + 1]?.driverCode === pitDriver.code;
-          if (pitDriver && !nextIsPit) {
-            stints.splice(idx + 1, 0, {
-              id: uid(),
-              driverCode: pitDriver.code,
-              duration: s.config.minPitDuration,
-              ballast: 0,
-            });
+          if (pitDriver) {
+            if (nextIsPit) {
+              stints[idx + 1] = {
+                ...stints[idx + 1]!,
+                duration: s.config.minPitDuration,
+              };
+            } else {
+              stints.splice(idx + 1, 0, {
+                id: uid(),
+                driverCode: pitDriver.code,
+                duration: s.config.minPitDuration,
+                ballast: 0,
+              });
+            }
           }
           return { ...s, stints };
         }),
