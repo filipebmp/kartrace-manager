@@ -108,7 +108,7 @@ export function PlanPanel() {
 
 
       <div className="space-y-2">
-        {visibleComputed.map((c) => (
+        {visibleComputed.map((c, visiblePos) => (
           <div
             key={c.id}
             className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
@@ -118,7 +118,9 @@ export function PlanPanel() {
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="tabular w-6 text-xs text-muted-foreground">{c.index + 1}</span>
+<span className="tabular w-6 text-xs text-muted-foreground">
+                  {hidePitStints ? visiblePos + 1 : c.index + 1}
+                </span>
                 <select
                   className="rounded-md border border-input bg-secondary px-2 py-1 text-sm"
                   value={c.driverCode ?? ""}
