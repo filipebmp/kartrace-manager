@@ -28,12 +28,16 @@ function Field({
   onChange,
   type = "number",
   suffix,
+  placeholder,
+  hint,
 }: {
   label: string;
   value: string | number;
   onChange: (v: string) => void;
   type?: string;
   suffix?: string;
+  placeholder?: string;
+  hint?: string;
 }) {
   return (
     <div>
@@ -41,10 +45,18 @@ function Field({
         {label}
         {suffix ? ` (${suffix})` : ""}
       </Label>
-      <Input type={type} className="h-9" value={value} onChange={(e) => onChange(e.target.value)} />
+      <Input
+        type={type}
+        className="h-9"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {hint ? <p className="mt-1 text-[10px] leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
+
 
 export function SettingsPanel() {
   const { state, setConfig, setPlannedStart, reset, replaceState } = useRace();
@@ -82,6 +94,8 @@ export function SettingsPanel() {
           label="Prova"
           type="text"
           value={c.eventName}
+          placeholder="Ex.: 24H Karting Braga 2026"
+          hint="Nome oficial da prova: evento, local e ano. Aparece no dashboard e nas exportações."
           onChange={(v) => setConfig({ eventName: v })}
         />
         <div>

@@ -53,6 +53,10 @@ function AdminPage() {
   const removeTeam = useServerFn(deleteTeam);
   const [toDelete, setToDelete] = useState<TeamProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingChange, setPendingChange] = useState<
+    { team: TeamProfile; status: "approved" | "rejected" } | null
+  >(null);
+  const [saving, setSaving] = useState(false);
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
@@ -67,13 +71,20 @@ function AdminPage() {
     },
   });
 
-  async function setStatus(id: string, status: TeamProfile["status"]) {
-    const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
+  async function confirmStatus() {
+    if (!pendingChange) return;
+    const { team, status } = pendingChange;
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({ status }).eq("id", team.id);
+    setSaving(false);
     if (error) {
       toast.error("Não foi possível guardar", { description: error.message });
       return;
     }
-    toast.success(status === "approved" ? "Equipa aprovada" : "Equipa recusada");
+    setPendingChange(null);
+    toast.success(status === "approved" ? "Equipa aprovada" : "Equipa recusada", {
+      description: team.team_name,
+    });
     queryClient.invalidateQueries({ queryKey: ["all-teams"] });
   }
 
@@ -131,7 +142,7 @@ function AdminPage() {
                 <Button
                   size="sm"
                   disabled={t.status === "approved"}
-                  onClick={() => setStatus(t.id, "approved")}
+                  onClick={() => setPendingChange({ team: t, status: "approved" })}
                 >
                   Aprovar
                 </Button>
@@ -139,7 +150,7 @@ function AdminPage() {
                   size="sm"
                   variant="outline"
                   disabled={t.status === "rejected"}
-                  onClick={() => setStatus(t.id, "rejected")}
+                  onClick={() => setPendingChange({ team: t, status: "rejected" })}
                 >
                   Recusar
                 </Button>
@@ -159,6 +170,38 @@ function AdminPage() {
           ))
         )}
       </main>
+
+      <AlertDialog
+        open={pendingChange !== null}
+        onOpenChange={(open) => !open && setPendingChange(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingChange?.status === "approved" ? "Aprovar equipa?" : "Recusar equipa?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingChange
+                ? pendingChange.status === "approved"
+                  ? `A equipa ${pendingChange.team.team_name} (${pendingChange.team.email}) passa a ter acesso ao dashboard e aos dados da sua corrida.`
+                  : `A equipa ${pendingChange.team.team_name} (${pendingChange.team.email}) fica sem acesso ao dashboard. Podes voltar a aprovar mais tarde.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmStatus();
+              }}
+              disabled={saving}
+            >
+              {saving ? "A guardar…" : pendingChange?.status === "approved" ? "Aprovar" : "Recusar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
         <AlertDialogContent>
