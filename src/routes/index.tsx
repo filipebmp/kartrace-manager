@@ -39,19 +39,19 @@ function Index() {
         <main className="mx-auto w-full max-w-3xl px-4 py-4">
           <Tabs defaultValue="live">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="live">
+              <TabsTrigger value="live" aria-label="Corrida">
                 <Gauge className="size-4" />
                 <span className="hidden sm:inline">Corrida</span>
               </TabsTrigger>
-              <TabsTrigger value="plan">
+              <TabsTrigger value="plan" aria-label="Plano">
                 <CalendarClock className="size-4" />
                 <span className="hidden sm:inline">Plano</span>
               </TabsTrigger>
-              <TabsTrigger value="drivers">
+              <TabsTrigger value="drivers" aria-label="Pilotos">
                 <Users className="size-4" />
                 <span className="hidden sm:inline">Pilotos</span>
               </TabsTrigger>
-              <TabsTrigger value="settings">
+              <TabsTrigger value="settings" aria-label="Regras">
                 <Settings className="size-4" />
                 <span className="hidden sm:inline">Regras</span>
               </TabsTrigger>

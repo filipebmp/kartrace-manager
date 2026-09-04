@@ -185,9 +185,9 @@ export function LiveDashboard() {
         />
         <Stat
           label="Peso do conjunto"
-          value={`${current ? Math.round(current.combinedWeight) : 0} kg`}
+          value={current ? `${Math.round(current.combinedWeight)} kg` : "—"}
           hint={`Mínimo ${state.config.minTotalWeight} kg`}
-          tone={current && current.weightDiff < 0 ? "danger" : "success"}
+          tone={!current ? "default" : current.weightDiff < 0 ? "danger" : "success"}
         />
       </div>
 
