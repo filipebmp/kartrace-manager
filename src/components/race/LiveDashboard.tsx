@@ -35,6 +35,8 @@ import {
 
 } from "@/lib/race/engine";
 import { useNow, useRace } from "@/lib/race/store";
+import type { ComputedStint } from "@/lib/race/types";
+
 
 function Stat({
   label,
