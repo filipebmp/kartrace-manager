@@ -11,9 +11,9 @@ import {
   computeStints,
   currentStintIndex,
   defaultState,
+  ensurePitDriver,
   isPitDriver,
   MIN,
-  normalizeDrivers,
   uid,
 } from "./engine";
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
@@ -60,7 +60,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           ...base,
           ...saved,
           config: { ...base.config, ...(saved.config ?? {}) },
-          drivers: normalizeDrivers(Array.isArray(saved.drivers) ? saved.drivers : base.drivers),
+          drivers: ensurePitDriver(Array.isArray(saved.drivers) ? saved.drivers : base.drivers),
         });
       }
     } catch {
@@ -207,7 +207,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           return { ...s, stints };
         }),
       setPlannedStart: (v) => patch((s) => ({ ...s, plannedStart: v })),
-      replaceState: (s) => setState({ ...s, drivers: normalizeDrivers(s.drivers) }),
+      replaceState: (s) => setState({ ...s, drivers: ensurePitDriver(s.drivers) }),
       reset: () => setState(defaultState()),
     }),
     [state, hydrated, patch],
