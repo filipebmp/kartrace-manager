@@ -134,8 +134,15 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           next.splice(j, 0, item!);
           return { ...s, stints: next };
         }),
-      start: () => patch((s) => ({ ...s, startedAt: Date.now() })),
-      stop: () => patch((s) => ({ ...s, startedAt: null })),
+      start: () =>
+        patch((s) => ({ ...s, startedAt: Date.now(), planSnapshot: s.stints })),
+      stop: () =>
+        patch((s) => ({
+          ...s,
+          startedAt: null,
+          stints: s.planSnapshot ?? s.stints,
+          planSnapshot: null,
+        })),
       boxNow: () =>
         patch((s) => {
           if (s.startedAt === null) return s;
@@ -144,13 +151,10 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const idx = currentStintIndex(computed, now);
           if (idx < 0) return s;
           const cur = computed[idx]!;
+          // já está nas boxes: não encurtar a paragem
+          if (cur.isPit) return s;
           const elapsedMin = Math.max(1, Math.round(((now - cur.startAt) / MIN) * 10) / 10);
           const stints = [...s.stints];
-          if (cur.isPit) {
-            // já está nas boxes: terminar a paragem mais cedo
-            stints[idx] = { ...stints[idx]!, duration: elapsedMin };
-            return { ...s, stints };
-          }
           stints[idx] = { ...stints[idx]!, duration: elapsedMin };
           const pitDriver = s.drivers.find((d) => d.isPit);
           const nextIsPit = pitDriver && stints[idx + 1]?.driverCode === pitDriver.code;
