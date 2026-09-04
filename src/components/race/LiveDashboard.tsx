@@ -73,8 +73,8 @@ export function LiveDashboard() {
   }
 
   const running = state.startedAt !== null;
-  const idx = currentStintIndex(computed, now);
-  const current = idx >= 0 ? computed[idx] : undefined;
+  const idx = running ? (state.liveIndex ?? currentStintIndex(computed, now)) : -1;
+  const current = idx >= 0 && idx < computed.length ? computed[idx] : undefined;
   const next = computed.slice(idx + 1).find((c) => !c.isPit);
   const currentRacer = current?.isPit
     ? computed.slice(0, idx).reverse().find((c) => !c.isPit)

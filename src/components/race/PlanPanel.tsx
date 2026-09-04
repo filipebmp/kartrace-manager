@@ -22,7 +22,8 @@ export function PlanPanel() {
   const now = useNow(15000);
   const [stintLength, setStintLength] = useState(60);
   const computed = computeStints(state);
-  const idx = now === null ? -1 : currentStintIndex(computed, now);
+  const idx =
+    now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
 
