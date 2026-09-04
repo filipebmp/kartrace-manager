@@ -1,6 +1,16 @@
 import { Download, RefreshCcw, RotateCcw, Upload } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +48,7 @@ export function SettingsPanel() {
   const { state, setConfig, setPlannedStart, reset, replaceState } = useRace();
   const c = state.config;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [proOpen, setProOpen] = useState(false);
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -93,20 +104,7 @@ export function SettingsPanel() {
             variant="ghost"
             size="sm"
             className="h-7 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-            onClick={() =>
-              setConfig({
-                raceDuration: defaultConfig().raceDuration,
-                minDriverWeight: defaultConfig().minDriverWeight,
-                minStint: defaultConfig().minStint,
-                maxStint: defaultConfig().maxStint,
-                minTotalDriving: defaultConfig().minTotalDriving,
-                maxTotalDriving: defaultConfig().maxTotalDriving,
-                mandatoryStops: defaultConfig().mandatoryStops,
-                minPitDuration: defaultConfig().minPitDuration,
-                pitDuration: defaultConfig().pitDuration,
-                pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
-              })
-            }
+            onClick={() => setProOpen(true)}
           >
             <RefreshCcw className="size-3" /> Valores Pro
           </Button>
@@ -195,6 +193,39 @@ export function SettingsPanel() {
       <Button variant="ghost" className="w-full text-destructive" onClick={reset}>
         <RotateCcw className="size-4" /> Repor valores por omissão
       </Button>
+
+      <AlertDialog open={proOpen} onOpenChange={setProOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Repôr valores Pro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os campos do regulamento serão substituídos pelos valores Pro pré-configurados.
+              As alterações manuais que tenhas feito serão perdidas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                setConfig({
+                  raceDuration: defaultConfig().raceDuration,
+                  minDriverWeight: defaultConfig().minDriverWeight,
+                  minStint: defaultConfig().minStint,
+                  maxStint: defaultConfig().maxStint,
+                  minTotalDriving: defaultConfig().minTotalDriving,
+                  maxTotalDriving: defaultConfig().maxTotalDriving,
+                  mandatoryStops: defaultConfig().mandatoryStops,
+                  minPitDuration: defaultConfig().minPitDuration,
+                  pitDuration: defaultConfig().pitDuration,
+                  pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
+                })
+              }
+            >
+              Repôr Pro
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
