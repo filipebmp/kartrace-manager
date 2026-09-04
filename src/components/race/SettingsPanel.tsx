@@ -104,20 +104,7 @@ export function SettingsPanel() {
             variant="ghost"
             size="sm"
             className="h-7 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-            onClick={() =>
-              setConfig({
-                raceDuration: defaultConfig().raceDuration,
-                minDriverWeight: defaultConfig().minDriverWeight,
-                minStint: defaultConfig().minStint,
-                maxStint: defaultConfig().maxStint,
-                minTotalDriving: defaultConfig().minTotalDriving,
-                maxTotalDriving: defaultConfig().maxTotalDriving,
-                mandatoryStops: defaultConfig().mandatoryStops,
-                minPitDuration: defaultConfig().minPitDuration,
-                pitDuration: defaultConfig().pitDuration,
-                pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
-              })
-            }
+            onClick={() => setProOpen(true)}
           >
             <RefreshCcw className="size-3" /> Valores Pro
           </Button>
