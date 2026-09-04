@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   computeStints,
   currentStintIndex,
+  ensurePitDriver,
   fmtDuration,
   fmtTimeOfDay,
   generatePlan,
@@ -16,7 +17,8 @@ import {
 import { useNow, useRace } from "@/lib/race/store";
 
 export function PlanPanel() {
-  const { state, updateStint, insertStintAfter, removeStint, moveStint, setStints } = useRace();
+  const { state, updateStint, insertStintAfter, removeStint, moveStint, setStints, setDrivers } =
+    useRace();
   const now = useNow(15000);
   const [stintLength, setStintLength] = useState(60);
   const computed = computeStints(state);
@@ -42,7 +44,11 @@ export function PlanPanel() {
           </div>
           <Button
             variant="secondary"
-            onClick={() => setStints(generatePlan(state.drivers, state.config, stintLength))}
+            onClick={() => {
+              const drivers = ensurePitDriver(state.drivers);
+              if (drivers.length !== state.drivers.length) setDrivers(drivers);
+              setStints(generatePlan(drivers, state.config, stintLength));
+            }}
           >
             <Wand2 className="size-4" /> Gerar plano
           </Button>
