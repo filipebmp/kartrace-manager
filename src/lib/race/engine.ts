@@ -341,7 +341,9 @@ export function rebalanceFrom(
 
   // Todas as boxes têm exatamente a duração definida no regulamento.
   // Uma box terminada antecipadamente não transfere o tempo em falta para as seguintes.
-  const pitMinutes = pitsAfter.length * config.minPitDuration;
+  const pitDurationOf = (s: Stint) =>
+    s.durationLocked ? s.duration : config.minPitDuration;
+  const pitMinutes = pitsAfter.reduce((sum, s) => sum + pitDurationOf(s), 0);
   const available = Math.max(0, config.raceDuration - consumed - pitMinutes);
   const base = Math.floor(available / drivesAfter.length);
   let remainder = available - base * drivesAfter.length;
@@ -349,7 +351,7 @@ export function rebalanceFrom(
   return stints.map((stint, i) => {
     if (i <= fromIndex) return stint;
     if (isPitStint(stint)) {
-      return { ...stint, duration: config.minPitDuration };
+      return { ...stint, duration: pitDurationOf(stint) };
     }
     const extra = Math.min(1, Math.max(0, remainder));
     const duration = base + extra;
@@ -405,7 +407,15 @@ export function applyStintEdit(
   const idx = state.stints.findIndex((st) => st.id === id);
   if (idx < 0)
     return { stints: state.stints, startedAt: state.startedAt, from: 0, recalculated: 0 };
-  let next = state.stints.map((st) => (st.id === id ? { ...st, ...patch } : st));
+  const target = state.stints[idx]!;
+  const targetIsPit = isPitDriver(findDriver(state.drivers, target.driverCode));
+  // Ao alterar manualmente o tempo de uma box (ex.: penalização de 3m30),
+  // essa paragem passa a manter exatamente esse tempo.
+  const effective: Partial<Stint> =
+    targetIsPit && patch.duration !== undefined
+      ? { ...patch, durationLocked: true }
+      : patch;
+  let next = state.stints.map((st) => (st.id === id ? { ...st, ...effective } : st));
   let startedAt = state.startedAt;
 
   let from = idx;

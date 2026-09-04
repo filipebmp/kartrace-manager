@@ -87,7 +87,9 @@ function actionTooltipContent(
         <p className="font-semibold">Piloto em box: {driverInPit}</p>
         <p className="text-primary-foreground/80">Motivo: troca de kart (paragem obrigatória)</p>
         <p className="text-primary-foreground/80">
-          Tempo do regulamento: mín. {state.config.minPitDuration} min
+          {action.durationLocked
+            ? `Tempo definido para esta box: ${fmtDuration(action.duration)}`
+            : `Tempo do regulamento: mín. ${state.config.minPitDuration} min`}
         </p>
         <p className="text-primary-foreground/80">
           Decorrido: {fmtDuration(elapsedMin)} · Restante: {fmtDuration(remainingMin)}
@@ -160,7 +162,12 @@ export function LiveDashboard() {
   // Tempo que falta até a box cumprir a permanência mínima regulamentar
   const pitMinRemainingMs =
     current?.isPit
-      ? Math.max(0, current.startAt + state.config.minPitDuration * MIN - now)
+      ? Math.max(
+          0,
+          current.startAt +
+            (current.durationLocked ? current.duration : state.config.minPitDuration) * MIN -
+            now,
+        )
       : 0;
   const handleBoxClick = () => {
     if (belowMinStint) setConfirmBox(true);
@@ -256,7 +263,7 @@ export function LiveDashboard() {
 
                       <p className="text-sm text-muted-foreground">
                         {current?.isPit
-                          ? `Paragem ${completedStops + 1} de ${summary.requiredStops} · mín. ${state.config.minPitDuration} min`
+                          ? `Paragem ${completedStops + 1} de ${summary.requiredStops} · ${current.durationLocked ? fmtDuration(current.duration) : `mín. ${state.config.minPitDuration} min`}`
                           : current
                             ? `Turno ${driveStintNumber(computed, idx)} de ${driveStintTotal(computed)}`
                             : running
