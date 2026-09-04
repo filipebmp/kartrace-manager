@@ -1,12 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession, type TeamProfile } from "@/hooks/use-session";
 import { TeamHeader } from "@/components/race/TeamHeader";
+import { deleteTeam } from "@/lib/admin.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const title = "Administração de equipas — Team Manager 24H Karting";
 const description = "Aprova ou recusa os registos das equipas que pedem acesso à aplicação.";
@@ -36,6 +50,9 @@ function AdminPage() {
   const { data: me } = useProfile(user?.id);
   const isAdmin = me?.isAdmin ?? false;
   const queryClient = useQueryClient();
+  const removeTeam = useServerFn(deleteTeam);
+  const [toDelete, setToDelete] = useState<TeamProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
@@ -58,6 +75,25 @@ function AdminPage() {
     }
     toast.success(status === "approved" ? "Equipa aprovada" : "Equipa recusada");
     queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+  }
+
+  async function confirmDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await removeTeam({ data: { userId: toDelete.id } });
+      toast.success("Equipa eliminada", {
+        description: `${toDelete.team_name} e todos os seus dados foram removidos.`,
+      });
+      setToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    } catch (e) {
+      toast.error("Não foi possível eliminar", {
+        description: e instanceof Error ? e.message : "Tenta novamente.",
+      });
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -107,11 +143,48 @@ function AdminPage() {
                 >
                   Recusar
                 </Button>
+                {t.id !== user?.id ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="ml-auto"
+                    onClick={() => setToDelete(t)}
+                  >
+                    <Trash2 className="size-4" />
+                    Eliminar
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           ))
         )}
       </main>
+
+      <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar equipa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete
+                ? `Vais eliminar permanentemente a equipa ${toDelete.team_name} (${toDelete.email}), incluindo a conta e todos os dados da corrida. Esta ação não pode ser anulada.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "A eliminar…" : "Eliminar equipa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
