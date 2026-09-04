@@ -27,6 +27,7 @@ import {
   fmtTimeOfDay,
   generatePlan,
   MIN,
+  driveStintNumber,
   raceSummary,
   totalPlanned,
 } from "@/lib/race/engine";
