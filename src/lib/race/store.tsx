@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { defaultState, uid } from "./engine";
+import { computeStints, currentStintIndex, defaultState, MIN, uid } from "./engine";
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
 
 const KEY = "kart24h-state-v1";
@@ -27,6 +27,8 @@ interface Ctx {
   moveStint: (id: string, dir: -1 | 1) => void;
   start: () => void;
   stop: () => void;
+  /** Termina o turno atual agora (piloto entra nas boxes mais cedo que o planeado) */
+  boxNow: () => void;
   setPlannedStart: (v: string) => void;
   replaceState: (s: RaceState) => void;
   reset: () => void;
@@ -134,6 +136,34 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         }),
       start: () => patch((s) => ({ ...s, startedAt: Date.now() })),
       stop: () => patch((s) => ({ ...s, startedAt: null })),
+      boxNow: () =>
+        patch((s) => {
+          if (s.startedAt === null) return s;
+          const now = Date.now();
+          const computed = computeStints(s);
+          const idx = currentStintIndex(computed, now);
+          if (idx < 0) return s;
+          const cur = computed[idx]!;
+          const elapsedMin = Math.max(1, Math.round(((now - cur.startAt) / MIN) * 10) / 10);
+          const stints = [...s.stints];
+          if (cur.isPit) {
+            // já está nas boxes: terminar a paragem mais cedo
+            stints[idx] = { ...stints[idx]!, duration: elapsedMin };
+            return { ...s, stints };
+          }
+          stints[idx] = { ...stints[idx]!, duration: elapsedMin };
+          const pitDriver = s.drivers.find((d) => d.isPit);
+          const nextIsPit = pitDriver && stints[idx + 1]?.driverCode === pitDriver.code;
+          if (pitDriver && !nextIsPit) {
+            stints.splice(idx + 1, 0, {
+              id: uid(),
+              driverCode: pitDriver.code,
+              duration: s.config.pitDuration,
+              ballast: 0,
+            });
+          }
+          return { ...s, stints };
+        }),
       setPlannedStart: (v) => patch((s) => ({ ...s, plannedStart: v })),
       replaceState: (s) => setState(s),
       reset: () => setState(defaultState()),
