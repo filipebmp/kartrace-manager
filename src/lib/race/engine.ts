@@ -145,17 +145,19 @@ export function driverTotals(state: RaceState, computed: ComputedStint[]): Drive
 export function raceSummary(state: RaceState, computed: ComputedStint[]): RaceSummary {
   const { config } = state;
   const pits = computed.filter((c) => c.isPit);
-  const stops = pits.length;
+  const closeOffset = pitLaneCloseOffset(config);
+  // Só contam como obrigatórias as trocas efetuadas na totalidade até ao fecho do pitlane
+  const validStops = pits.filter((c) => c.endOffset <= closeOffset).length;
+  const stopsAfterPitClose = pits.length - validStops;
   const requiredStops = config.mandatoryStops;
-  const missingStops = Math.max(0, requiredStops - stops);
-  const closeOffset = config.raceDuration - config.pitLaneClosesBefore;
+  const missingStops = Math.max(0, requiredStops - validStops);
   return {
     plannedMinutes: totalPlanned(state.stints),
-    stops,
+    stops: validStops,
     requiredStops,
     missingStops,
     lapPenalty: missingStops * 5,
-    stopsAfterPitClose: pits.filter((c) => c.startOffset >= closeOffset).length,
+    stopsAfterPitClose,
   };
 }
 
@@ -228,6 +230,7 @@ export function generatePlan(
   const racers = drivers.filter((d) => !d.isPit);
   const pit = drivers.find((d) => d.isPit);
   if (racers.length === 0) return [];
+  const closeOffset = pitLaneCloseOffset(config);
   const stints: Stint[] = [];
   let elapsed = 0;
   let i = 0;
@@ -244,9 +247,11 @@ export function generatePlan(
     });
     elapsed += duration;
     i++;
+    // Não agendar paragens obrigatórias depois do fecho do pitlane (24:30):
+    // a troca tem de estar concluída na totalidade antes do fecho.
     if (elapsed < config.raceDuration && pit) {
       const pitTime = Math.min(config.pitDuration, config.raceDuration - elapsed);
-      if (pitTime > 0) {
+      if (pitTime > 0 && elapsed + pitTime <= closeOffset) {
         stints.push({
           id: uid(),
           driverCode: pit.code,
