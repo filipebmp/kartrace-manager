@@ -26,9 +26,8 @@ import {
   generatePlan,
   raceSummary,
   totalPlanned,
-  type ComputedStint,
 } from "@/lib/race/engine";
-import type { Driver, Stint } from "@/lib/race/types";
+import type { ComputedStint, Driver, Stint } from "@/lib/race/types";
 import { useNow, useRace } from "@/lib/race/store";
 
 interface PendingEdit {
