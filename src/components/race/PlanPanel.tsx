@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Plus, Trash2, Wand2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ export function PlanPanel() {
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [hidePitStints, setHidePitStints] = useState(false);
+  const hasScrolled = useRef(false);
   const computed = computeStints(state);
   const idx =
     now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
@@ -42,6 +43,24 @@ export function PlanPanel() {
   const summary = raceSummary(state, computed);
   const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
 
+  useEffect(() => {
+    if (hasScrolled.current) return;
+    if (idx < 0) return;
+    const active = computed.find((c) => c.index === idx);
+    if (!active) return;
+    let target = visibleComputed.find((c) => c.index === idx);
+    if (!target && hidePitStints && active.isPit) {
+      const before = visibleComputed.filter((c) => c.index < idx);
+      const after = visibleComputed.filter((c) => c.index > idx);
+      target = before[before.length - 1] ?? after[0];
+    }
+    if (!target) return;
+    const el = document.getElementById(`plan-stint-${target.id}`);
+    if (el) {
+      hasScrolled.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [idx, computed, visibleComputed, hidePitStints]);
 
   const confirmRemove = () => {
     if (confirmDelete) removeStint(confirmDelete);
@@ -111,6 +130,7 @@ export function PlanPanel() {
         {visibleComputed.map((c, visiblePos) => (
           <div
             key={c.id}
+            id={`plan-stint-${c.id}`}
             className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
               c.isPit ? "opacity-80" : ""
             }`}
