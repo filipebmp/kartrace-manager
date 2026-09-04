@@ -86,6 +86,10 @@ export function LiveDashboard() {
   const stintElapsedMin = current ? (now - current.startAt) / MIN : 0;
   const belowMinStint =
     !!current && !current.isPit && stintElapsedMin < state.config.minStint;
+  const minStintRemainingMs =
+    current && !current.isPit
+      ? Math.max(0, current.startAt + state.config.minStint * MIN - now)
+      : 0;
   const handleBoxClick = () => {
     if (belowMinStint) setConfirmBox(true);
     else boxNow();
