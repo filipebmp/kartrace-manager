@@ -23,6 +23,8 @@ import {
   ballastInstruction,
   computeStints,
   currentStintIndex,
+  driveStintNumber,
+  driveStintTotal,
   fmtClock,
   fmtDuration,
   fmtTimeOfDay,
@@ -70,6 +72,7 @@ function Stat({
 function actionTooltipContent(
   action: ComputedStint | undefined,
   state: RaceState,
+  computed: ComputedStint[],
   now: number,
   previousDriver?: ComputedStint,
 ) {
