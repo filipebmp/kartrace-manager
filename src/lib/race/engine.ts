@@ -41,10 +41,12 @@ export function fmtDuration(minutes: number) {
   return `${neg ? "-" : ""}${h}:${String(m).padStart(2, "0")}`;
 }
 
-/** milissegundos -> "01:05:33" */
+/** milissegundos -> "01:05:33" (tempo decorrido, arredondado para baixo) */
 export function fmtClock(ms: number) {
-  const neg = ms < 0;
-  const total = Math.floor(Math.abs(ms) / 1000);
+  // Evita mostrar "-00:00:00" por diferenças de milissegundos no arranque.
+  const safe = Math.abs(ms) < 1000 ? Math.max(0, ms) : ms;
+  const neg = safe < 0;
+  const total = Math.floor(Math.abs(safe) / 1000);
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
@@ -444,4 +446,14 @@ export function applyStintEdit(
     from,
     recalculated: Math.max(0, next.length - from),
   };
+}
+
+/** milissegundos -> "01:05:33" para contagens decrescentes.
+ *  Arredonda para cima para nunca mostrar menos tempo do que o real. */
+export function fmtCountdown(ms: number) {
+  const total = Math.ceil(Math.max(0, ms) / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }

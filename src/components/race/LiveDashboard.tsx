@@ -26,6 +26,7 @@ import {
   driveStintNumber,
   driveStintTotal,
   fmtClock,
+  fmtCountdown,
   fmtDuration,
   fmtTimeOfDay,
   MIN,
@@ -117,7 +118,7 @@ function actionTooltipContent(
 export function LiveDashboard() {
 
   const { state, start, stop, boxNow, endBoxNow, setBallast } = useRace();
-  const now = useNow();
+  const now = useNow(200);
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmBox, setConfirmBox] = useState(false);
   const computed = computeStints(state);
@@ -203,7 +204,7 @@ export function LiveDashboard() {
                 >
                   <ArrowUpFromLine className="size-4" />
                   {pitMinRemainingMs > 0
-                    ? `Terminar box · ${fmtClock(pitMinRemainingMs)}`
+                    ? `Terminar box · ${fmtCountdown(pitMinRemainingMs)}`
                     : "Terminar box"}
                 </Button>
               ) : (
@@ -216,7 +217,7 @@ export function LiveDashboard() {
                 >
                   <ArrowDownToLine className="size-4" />
                   {belowMinStint
-                    ? `Box em ${fmtClock(minStintRemainingMs)}`
+                    ? `Box em ${fmtCountdown(minStintRemainingMs)}`
                     : "Box"}
                 </Button>
               )}
@@ -278,7 +279,7 @@ export function LiveDashboard() {
                             Decorrido
                           </p>
                           <p className="tabular text-2xl font-bold leading-none text-foreground">
-                            {current ? fmtClock(now - current.startAt) : "--:--:--"}
+                            {current ? fmtClock(Math.max(0, now - current.startAt)) : "--:--:--"}
                           </p>
                         </div>
                         {!current?.isPit && (
@@ -291,7 +292,7 @@ export function LiveDashboard() {
                                 stintRemaining < 5 * MIN && current ? "text-warning" : "text-foreground"
                               }`}
                             >
-                              {current ? fmtClock(stintRemaining) : "--:--:--"}
+                              {current ? fmtCountdown(stintRemaining) : "--:--:--"}
                             </p>
                           </div>
                         )}
@@ -372,7 +373,7 @@ export function LiveDashboard() {
                     </div>
                     {nextAction && running && (
                       <Badge variant="outline" className="shrink-0 tabular">
-                        em {fmtClock(nextAction.startAt - now)}
+                        em {fmtCountdown(nextAction.startAt - now)}
                       </Badge>
                     )}
                   </div>
@@ -404,12 +405,12 @@ export function LiveDashboard() {
       <div className="grid grid-cols-2 gap-3">
         <Stat
           label="Tempo de corrida"
-          value={running ? fmtClock(raceElapsed) : "00:00:00"}
+          value={running ? fmtClock(Math.max(0, raceElapsed)) : "00:00:00"}
           hint={`Partida ${fmtTimeOfDay(startTs)}`}
         />
         <Stat
           label="Falta terminar"
-          value={running ? fmtClock(raceRemaining) : "--:--:--"}
+          value={running ? fmtCountdown(raceRemaining) : "--:--:--"}
           hint={`Plano: ${fmtDuration(planned)}`}
         />
         <Stat
