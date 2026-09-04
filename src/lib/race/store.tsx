@@ -33,7 +33,7 @@ interface Ctx {
   updateDriver: (id: string, patch: Partial<Driver>) => void;
   removeDriver: (id: string) => void;
   setStints: (stints: Stint[]) => void;
-  updateStint: (id: string, patch: Partial<Stint>) => void;
+  updateStint: (id: string, patch: Partial<Stint>) => number;
   insertStintAfter: (id: string | null) => void;
   removeStint: (id: string) => void;
   moveStint: (id: string, dir: -1 | 1) => void;
@@ -137,7 +137,8 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           };
         }),
       setStints: (stints) => patch((s) => ({ ...s, stints })),
-      updateStint: (id, p) =>
+      updateStint: (id, p) => {
+        let recalculated = 0;
         patch((s) => {
           const idx = s.stints.findIndex((st) => st.id === id);
           if (idx < 0) return s;
@@ -151,8 +152,11 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             const cur = s.liveIndex ?? currentStintIndex(computed, Date.now());
             if (cur > from) from = cur;
           }
+          recalculated = Math.max(0, next.length - from);
           return { ...s, stints: rebalanceFrom(next, s.drivers, s.config, from) };
-        }),
+        });
+        return recalculated;
+      },
 
       insertStintAfter: (id) =>
         patch((s) => {

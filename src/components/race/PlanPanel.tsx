@@ -1,5 +1,6 @@
 import { Check, Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -199,7 +200,14 @@ export function PlanPanel() {
   };
 
   const confirmSave = () => {
-    if (pendingEdit) updateStint(pendingEdit.id, pendingEdit.patch);
+    if (pendingEdit) {
+      const count = updateStint(pendingEdit.id, pendingEdit.patch);
+      toast.success(
+        count === 1
+          ? "Plano guardado. 1 turno recalculado."
+          : `Plano guardado. ${count} turnos recalculados.`,
+      );
+    }
     setPendingEdit(null);
   };
 
