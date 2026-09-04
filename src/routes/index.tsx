@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarClock, Gauge, Settings, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Toaster } from "@/components/ui/sonner";
 import { LiveDashboard } from "@/components/race/LiveDashboard";
 import { PlanPanel } from "@/components/race/PlanPanel";
 import { DriversPanel } from "@/components/race/DriversPanel";
@@ -70,7 +69,6 @@ function Index() {
             </TabsContent>
           </Tabs>
         </main>
-        <Toaster />
       </div>
     </RaceProvider>
   );
