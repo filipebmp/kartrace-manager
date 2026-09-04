@@ -97,11 +97,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             weight,
           }));
           const pit = s.drivers.find(isPitDriver);
-          return {
-            ...s,
-            drivers: pit ? [...racers, pit] : racers,
-            stints: [],
-          };
+          return { ...s, drivers: pit ? [...racers, pit] : racers };
         }),
       addDriver: () =>
         patch((s) => {
