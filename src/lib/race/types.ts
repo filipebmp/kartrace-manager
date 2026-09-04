@@ -60,8 +60,6 @@ export interface RaceState {
   liveIndex: number | null;
   /** cópia do plano no momento da partida, reposta ao terminar */
   planSnapshot: Stint[] | null;
-  /** hora planeada de partida (ISO local) usada antes de arrancar */
-  plannedStart: string;
 }
 
 export interface ComputedStint extends Stint {

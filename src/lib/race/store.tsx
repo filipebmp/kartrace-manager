@@ -55,7 +55,7 @@ interface Ctx {
   boxNow: () => void;
   /** Termina a paragem atual nas boxes agora (saída mais cedo que o planeado) */
   endBoxNow: () => void;
-  setPlannedStart: (v: string) => void;
+  
   replaceState: (s: RaceState) => void;
   reset: () => void;
 }
@@ -433,7 +433,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           };
         }),
 
-      setPlannedStart: (v) => patch((s) => ({ ...s, plannedStart: v })),
+      
       replaceState: (s) => setState({ ...s, drivers: ensurePitDriver(s.drivers) }),
       reset: () => setState(defaultState()),
     }),
