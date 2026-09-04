@@ -265,6 +265,9 @@ function AuthPage() {
                 </form>
               </TabsContent>
             </Tabs>
+            <Button variant="ghost" className="mt-4 w-full" asChild>
+              <Link to="/">Voltar</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
