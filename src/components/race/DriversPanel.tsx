@@ -22,6 +22,12 @@ export function DriversPanel() {
   const totals = driverTotals(state, computed);
   const [driverCount, setDriverCount] = useState(0);
   const [driverWeight, setDriverWeight] = useState(85);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const confirmRemove = () => {
+    if (confirmDelete) removeDriver(confirmDelete);
+    setConfirmDelete(null);
+  };
 
   return (
     <div className="space-y-4">
