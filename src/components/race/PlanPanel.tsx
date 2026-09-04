@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Plus, Trash2, Wand2 } from "lucide-react";
+import { ArrowUp, Check, Locate, Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,11 @@ import {
   computeStints,
   currentStintIndex,
   ensurePitDriver,
+  fmtClock,
   fmtDuration,
   fmtTimeOfDay,
   generatePlan,
+  MIN,
   raceSummary,
   totalPlanned,
 } from "@/lib/race/engine";
@@ -161,9 +163,60 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete 
   );
 }
 
+interface ActiveIndicatorProps {
+  active: ComputedStint;
+  now: number;
+  onLocate: () => void;
+}
+
+function ActiveStintIndicator({ active, now, onLocate }: ActiveIndicatorProps) {
+  const elapsedMs = Math.max(0, now - active.startAt);
+  const remainingMs = Math.max(0, active.endAt - now);
+  const progress = Math.min(100, Math.max(0, (elapsedMs / (active.duration * MIN)) * 100));
+
+  return (
+    <div className="sticky top-0 z-40 -mx-4 mb-4 border-b border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur sm:-mx-0 sm:rounded-lg sm:border">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="relative flex size-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+          </span>
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              {active.isPit ? "Box em curso" : `Turno ${active.index + 1} em curso`}
+            </p>
+            <p className="font-display text-lg font-semibold leading-tight">
+              {active.isPit ? "BOX" : active.driver?.name ?? "—"}
+              {!active.isPit && active.driver ? (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  #{active.driver.code}
+                </span>
+              ) : null}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="tabular text-xl font-bold leading-none">{fmtClock(remainingMs)}</p>
+          <p className="text-xs text-muted-foreground">{fmtClock(elapsedMs)} decorridos</p>
+        </div>
+      </div>
+
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+        <div className="h-full heat-bar transition-all duration-1000" style={{ width: `${progress}%` }} />
+      </div>
+
+      <Button variant="ghost" size="sm" className="mt-2 h-8 w-full gap-2 text-xs" onClick={onLocate}>
+        <Locate className="size-3.5" /> Ver no plano
+      </Button>
+    </div>
+  );
+}
+
 export function PlanPanel() {
   const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
   const now = useNow(15000);
+  const liveNow = useNow(1000);
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
@@ -172,6 +225,7 @@ export function PlanPanel() {
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
   const idx = now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
+  const activeStint = idx >= 0 ? computed[idx] : null;
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
   const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
@@ -220,6 +274,19 @@ export function PlanPanel() {
   }, []);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+  const scrollToActive = () => {
+    if (!activeStint) return;
+    let target = visibleComputed.find((c) => c.index === activeStint.index);
+    if (!target && hidePitStints && activeStint.isPit) {
+      const before = visibleComputed.filter((c) => c.index < activeStint.index);
+      const after = visibleComputed.filter((c) => c.index > activeStint.index);
+      target = before[before.length - 1] ?? after[0];
+    }
+    if (!target) return;
+    const el = document.getElementById(`plan-stint-${target.id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   return (
     <div className="space-y-4">
@@ -273,6 +340,10 @@ export function PlanPanel() {
           ) : null}
         </p>
       </div>
+
+      {state.startedAt !== null && activeStint && liveNow !== null ? (
+        <ActiveStintIndicator active={activeStint} now={liveNow} onLocate={scrollToActive} />
+      ) : null}
 
       <div className="space-y-2">
         {visibleComputed.map((c, visiblePos) => (
