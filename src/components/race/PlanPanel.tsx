@@ -35,6 +35,7 @@ export function PlanPanel() {
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [hidePitStints, setHidePitStints] = useState(false);
+  const hasScrolled = useRef(false);
   const computed = computeStints(state);
   const idx =
     now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
@@ -43,6 +44,7 @@ export function PlanPanel() {
   const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
 
   useEffect(() => {
+    if (hasScrolled.current) return;
     if (idx < 0) return;
     const active = computed.find((c) => c.index === idx);
     if (!active) return;
@@ -55,6 +57,7 @@ export function PlanPanel() {
     if (!target) return;
     const el = document.getElementById(`plan-stint-${target.id}`);
     if (el) {
+      hasScrolled.current = true;
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [idx, computed, visibleComputed, hidePitStints]);
