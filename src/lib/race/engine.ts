@@ -90,6 +90,10 @@ export function computeStints(state: RaceState): ComputedStint[] {
     if (isPit) {
       if (stint.duration < config.minPitDuration)
         warnings.push(`Paragem abaixo do mínimo de ${config.minPitDuration} min`);
+      if (offset + stint.duration > closeOffset)
+        warnings.push(
+          `Paragem depois do fecho do pitlane (${fmtDuration(closeOffset)}) — não conta como obrigatória`,
+        );
     } else {
       if (!driver) warnings.push("Sem piloto atribuído");
       if (weightDiff < 0)
