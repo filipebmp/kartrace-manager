@@ -1,4 +1,4 @@
-import { AlertTriangle, Flag, Square, Timer, Weight } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, Flag, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -45,7 +45,7 @@ function Stat({
 }
 
 export function LiveDashboard() {
-  const { state, start, stop } = useRace();
+  const { state, start, stop, boxNow } = useRace();
   const now = useNow();
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
@@ -81,9 +81,20 @@ export function LiveDashboard() {
             <h2 className="font-display text-xl font-bold">{state.config.teamName}</h2>
           </div>
           {running ? (
-            <Button variant="destructive" size="sm" onClick={stop}>
-              <Square className="size-4" /> Parar
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-warning/50 text-warning"
+                onClick={boxNow}
+                disabled={!current}
+              >
+                <ArrowDownToLine className="size-4" /> Box
+              </Button>
+              <Button variant="destructive" size="sm" onClick={stop}>
+                <Square className="size-4" /> Parar
+              </Button>
+            </div>
           ) : (
             <Button size="sm" onClick={start}>
               <Flag className="size-4" /> Partida
