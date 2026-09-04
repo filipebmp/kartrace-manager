@@ -126,13 +126,27 @@ function AuthPage() {
       toast.error("Indica um email válido");
       return;
     }
+    if (blockedFor > 0) {
+      toast.error("Demasiados pedidos", { description: `Tenta novamente em ${formatWait(blockedFor)}.` });
+      return;
+    }
     setBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    let result: { ok: boolean; retryAfterSeconds: number };
+    try {
+      result = await sendReset({
+        data: { email, redirectTo: `${window.location.origin}/reset-password` },
+      });
+    } catch {
+      setBusy(false);
+      toast.error("Não foi possível enviar", { description: "Tenta novamente daqui a pouco." });
+      return;
+    }
     setBusy(false);
-    if (error) {
-      toast.error("Não foi possível enviar", { description: error.message });
+    if (!result.ok) {
+      setBlockedFor(result.retryAfterSeconds);
+      toast.error("Demasiados pedidos de recuperação", {
+        description: `Por segurança, este email fica bloqueado durante ${formatWait(result.retryAfterSeconds)}.`,
+      });
       return;
     }
     toast.success("Email enviado", {
