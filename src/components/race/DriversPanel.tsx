@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,12 +7,55 @@ import { computeStints, driverTotals, fmtDuration } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
 
 export function DriversPanel() {
-  const { state, addDriver, updateDriver, removeDriver } = useRace();
+  const { state, addDriver, updateDriver, removeDriver, generateDrivers } = useRace();
   const computed = computeStints(state);
   const totals = driverTotals(state, computed);
+  const [driverCount, setDriverCount] = useState(0);
+  const [driverWeight, setDriverWeight] = useState(85);
 
   return (
     <div className="space-y-4">
+      <div className="panel p-4">
+        <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          Configuração rápida
+        </p>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">
+              Número de pilotos
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              className="h-9"
+              value={driverCount}
+              onChange={(e) => setDriverCount(Math.max(0, Number(e.target.value) || 0))}
+            />
+          </div>
+          <div className="flex-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">Peso kg</Label>
+            <Input
+              type="number"
+              step="0.1"
+              className="h-9"
+              value={driverWeight}
+              onChange={(e) => setDriverWeight(Number(e.target.value) || 0)}
+            />
+          </div>
+          <Button
+            variant="secondary"
+            className="h-9"
+            onClick={() => generateDrivers(driverCount, driverWeight)}
+          >
+            <Users className="size-4" /> Criar
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Substitui os pilotos atuais por Piloto 1, Piloto 2, … com o peso indicado. A BOX é
+          mantida.
+        </p>
+      </div>
+
       <div className="panel p-4">
         <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           Tempo de condução
