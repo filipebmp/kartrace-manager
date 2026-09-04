@@ -90,6 +90,11 @@ export function LiveDashboard() {
     current && !current.isPit
       ? Math.max(0, current.startAt + state.config.minStint * MIN - now)
       : 0;
+  // Tempo que falta até a box cumprir a permanência mínima regulamentar
+  const pitMinRemainingMs =
+    current?.isPit
+      ? Math.max(0, current.startAt + state.config.minPitDuration * MIN - now)
+      : 0;
   const handleBoxClick = () => {
     if (belowMinStint) setConfirmBox(true);
     else boxNow();
