@@ -38,7 +38,7 @@ export function DriversPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="panel p-4">
+      <div className={`panel p-4 ${racing ? "opacity-70" : ""}`}>
         <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           Configuração rápida
         </p>
@@ -52,6 +52,7 @@ export function DriversPanel() {
               min={0}
               className="h-9"
               value={driverCount}
+              disabled={racing}
               onChange={(e) => setDriverCount(Math.max(0, Number(e.target.value) || 0))}
             />
           </div>
@@ -62,20 +63,23 @@ export function DriversPanel() {
               step="0.1"
               className="h-9"
               value={driverWeight}
+              disabled={racing}
               onChange={(e) => setDriverWeight(Number(e.target.value) || 0)}
             />
           </div>
           <Button
             variant="secondary"
             className="h-9"
-            onClick={() => generateDrivers(driverCount, driverWeight)}
+            disabled={racing}
+            onClick={() => setConfirmCreate(true)}
           >
             <Users className="size-4" /> Criar
           </Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Substitui os pilotos atuais por Piloto 1, Piloto 2, … com o peso indicado. A BOX é
-          mantida.
+          {racing
+            ? "Não é possível alterar pilotos enquanto a corrida estiver em andamento."
+            : "Substitui os pilotos atuais por Piloto 1, Piloto 2, … com o peso indicado. A BOX é mantida."}
         </p>
       </div>
 
