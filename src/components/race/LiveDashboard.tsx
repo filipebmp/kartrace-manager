@@ -229,19 +229,19 @@ export function LiveDashboard() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="relative overflow-hidden rounded-xl border-l-4 border-primary bg-primary/10 p-4">
+                <div className="relative overflow-hidden rounded-xl border-l-4 border-success bg-success/10 p-4">
                   <div className="absolute right-3 top-3">
                     {running && current && (
-                      <Badge variant="default" className="gap-1 uppercase tracking-wider">
+                      <Badge variant="default" className="gap-1 border-success/50 bg-success uppercase tracking-wider text-success-foreground hover:bg-success">
                         <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-foreground opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-foreground" />
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-foreground opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-success-foreground" />
                         </span>
                         Ao vivo
                       </Badge>
                     )}
                   </div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-primary">Ação em curso</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-success">Ação em curso</p>
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div className="min-w-0">
                       <h3 className="truncate font-display text-2xl font-bold">
@@ -301,17 +301,17 @@ export function LiveDashboard() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="rounded-lg border-l-4 border-secondary bg-secondary/30 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-lg border-l-4 border-warning bg-warning/30 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-warning">
                     Próxima ação
                   </p>
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning">
                         {nextIsPit ? (
-                          <ArrowDownToLine className="size-5 text-muted-foreground" />
+                          <ArrowDownToLine className="size-5 text-warning-foreground" />
                         ) : (
-                          <Timer className="size-5 text-muted-foreground" />
+                          <Timer className="size-5 text-warning-foreground" />
                         )}
                       </div>
                       <div className="min-w-0">
