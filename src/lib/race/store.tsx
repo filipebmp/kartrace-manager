@@ -80,7 +80,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const code = (codes.length ? Math.max(...codes) : 0) + 1;
           const pitIndex = s.drivers.findIndex((d) => d.isPit);
           const next = [...s.drivers];
-          const entry: Driver = { id: uid(), code, name: `Piloto ${code}`, weight: 82 };
+          const entry: Driver = { id: uid(), code, name: `Piloto ${code}`, weight: 85 };
           if (pitIndex >= 0) next.splice(pitIndex, 0, entry);
           else next.push(entry);
           return { ...s, drivers: next };

@@ -203,7 +203,7 @@ export function defaultDrivers(): Driver[] {
     id: uid(),
     code: i + 1,
     name,
-    weight: 82,
+    weight: 85,
   }));
   list.push({ id: uid(), code: 10, name: "BOX", weight: 0, isPit: true });
   return list;
