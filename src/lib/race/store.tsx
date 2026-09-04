@@ -36,6 +36,8 @@ interface Ctx {
   updateStint: (id: string, patch: Partial<Stint>) => number;
   /** Define o lastro de um turno sem recalcular horários (confirmação via rádio) */
   setBallast: (id: string, kg: number) => void;
+  /** Marca se o piloto levou lastro no turno, sem recalcular horários */
+  setBallastConfirmed: (id: string, confirmed: boolean) => void;
   /** Regista o kart utilizado num turno sem recalcular horários */
   setKart: (id: string, kart: string) => void;
   /** Regista a avaliação do kart num turno sem recalcular horários */
