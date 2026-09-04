@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
+import { requestPasswordReset } from "@/lib/auth.functions";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,16 +36,31 @@ const signUpSchema = z.object({
   password: z.string().min(8, "A palavra-passe precisa de pelo menos 8 caracteres").max(72),
 });
 
+function formatWait(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m <= 0) return `${s}s`;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const { session, loading } = useSession();
+  const sendReset = useServerFn(requestPasswordReset);
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
+  const [blockedFor, setBlockedFor] = useState(0);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
   }, [loading, session, navigate]);
+
+  useEffect(() => {
+    if (blockedFor <= 0) return;
+    const id = window.setInterval(() => setBlockedFor((v) => Math.max(0, v - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [blockedFor]);
 
   async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -126,13 +143,27 @@ function AuthPage() {
       toast.error("Indica um email válido");
       return;
     }
+    if (blockedFor > 0) {
+      toast.error("Demasiados pedidos", { description: `Tenta novamente em ${formatWait(blockedFor)}.` });
+      return;
+    }
     setBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    let result: { ok: boolean; retryAfterSeconds: number };
+    try {
+      result = await sendReset({
+        data: { email, redirectTo: `${window.location.origin}/reset-password` },
+      });
+    } catch {
+      setBusy(false);
+      toast.error("Não foi possível enviar", { description: "Tenta novamente daqui a pouco." });
+      return;
+    }
     setBusy(false);
-    if (error) {
-      toast.error("Não foi possível enviar", { description: error.message });
+    if (!result.ok) {
+      setBlockedFor(result.retryAfterSeconds);
+      toast.error("Demasiados pedidos de recuperação", {
+        description: `Por segurança, este email fica bloqueado durante ${formatWait(result.retryAfterSeconds)}.`,
+      });
       return;
     }
     toast.success("Email enviado", {
@@ -157,9 +188,14 @@ function AuthPage() {
                 <Label htmlFor="reset-email">Email</Label>
                 <Input id="reset-email" name="email" type="email" required autoComplete="email" />
               </div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                Enviar ligação de recuperação
+              <Button type="submit" className="w-full" disabled={busy || blockedFor > 0}>
+                {blockedFor > 0
+                  ? `Bloqueado — tenta em ${formatWait(blockedFor)}`
+                  : "Enviar ligação de recuperação"}
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Por segurança, são permitidos até 5 pedidos por hora para o mesmo email.
+              </p>
               <Button type="button" variant="ghost" className="w-full" onClick={() => setForgot(false)}>
                 Voltar ao login
               </Button>
