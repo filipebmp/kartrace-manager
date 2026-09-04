@@ -199,6 +199,30 @@ export function LiveDashboard() {
               {state.config.eventName}
             </p>
             <h2 className="font-display text-xl font-bold">{state.config.teamName}</h2>
+            <span
+              className={
+                raceStatus === "running"
+                  ? "mt-1 inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success"
+                  : raceStatus === "finished"
+                    ? "mt-1 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                    : "mt-1 inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning"
+              }
+            >
+              <span
+                className={
+                  raceStatus === "running"
+                    ? "size-1.5 animate-pulse rounded-full bg-success"
+                    : raceStatus === "finished"
+                      ? "size-1.5 rounded-full bg-muted-foreground"
+                      : "size-1.5 rounded-full bg-warning"
+                }
+              />
+              {raceStatus === "running"
+                ? "Em andamento"
+                : raceStatus === "finished"
+                  ? "Finalizada"
+                  : "Não iniciada"}
+            </span>
           </div>
           {running ? (
             <div className="flex gap-2">
