@@ -167,13 +167,13 @@ export function PlanPanel() {
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-[10px] uppercase text-muted-foreground">Duração</Label>
-                <Input
-                  type="number"
-                  value={Math.round(c.duration)}
-                  onChange={(e) => updateStint(c.id, { duration: Number(e.target.value) || 0 })}
-                  className="h-9"
+                <DurationField
+                  label=""
+                  value={c.duration}
+                  onChange={(v) => updateStint(c.id, { duration: v })}
                 />
               </div>
+
               <div>
                 <Label className="text-[10px] uppercase text-muted-foreground">Lastro (kg)</Label>
                 <Input
