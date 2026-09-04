@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { CATEGORY_RULES } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
-import type { Category, RaceState } from "@/lib/race/types";
+import type { RaceState } from "@/lib/race/types";
 
 
 function Field({
@@ -82,23 +81,6 @@ export function SettingsPanel() {
             onChange={(e) => setPlannedStart(e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="panel p-4">
-        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Categoria
-        </Label>
-        <select
-          className="mt-1 h-9 w-full rounded-md border border-input bg-secondary px-2 text-sm"
-          value={c.category}
-          onChange={(e) => {
-            const category = e.target.value as Category;
-            setConfig({ category, ...CATEGORY_RULES[category] });
-          }}
-        >
-          <option value="PRO">PRO · turno máx. 80 min · 28 paragens</option>
-          <option value="AM">AM · turno máx. 60 min · 34 paragens</option>
-        </select>
       </div>
 
       <div className="panel grid grid-cols-2 gap-3 p-4">

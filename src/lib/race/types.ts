@@ -1,4 +1,3 @@
-export type Category = "PRO" | "AM";
 
 export interface Driver {
   id: string;
@@ -22,7 +21,6 @@ export interface Stint {
 export interface RaceConfig {
   teamName: string;
   eventName: string;
-  category: Category;
   /** duração total da prova em minutos */
   raceDuration: number;
   /** peso mínimo do piloto equipado à saída do kart (kg) */
