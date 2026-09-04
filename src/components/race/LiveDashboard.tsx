@@ -126,11 +126,10 @@ export function LiveDashboard() {
                   size="sm"
                   className="border-warning/50 text-warning"
                   onClick={endBoxNow}
-                  disabled={pitMinRemainingMs > 0}
                 >
                   <ArrowUpFromLine className="size-4" />
                   {pitMinRemainingMs > 0
-                    ? `Terminar em ${fmtClock(pitMinRemainingMs)}`
+                    ? `Terminar box · ${fmtClock(pitMinRemainingMs)}`
                     : "Terminar box"}
                 </Button>
               ) : (
