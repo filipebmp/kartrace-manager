@@ -23,6 +23,8 @@ import {
   ballastInstruction,
   computeStints,
   currentStintIndex,
+  driveStintNumber,
+  driveStintTotal,
   fmtClock,
   fmtDuration,
   fmtTimeOfDay,
@@ -70,6 +72,7 @@ function Stat({
 function actionTooltipContent(
   action: ComputedStint | undefined,
   state: RaceState,
+  computed: ComputedStint[],
   now: number,
   previousDriver?: ComputedStint,
 ) {
@@ -95,7 +98,7 @@ function actionTooltipContent(
     <div className="space-y-1">
       <p className="font-semibold">Piloto: {action.driver?.name ?? "—"}</p>
       <p className="text-primary-foreground/80">
-        Turno {action.index + 1} de {state.stints.length}
+        Turno {driveStintNumber(computed, action.index)} de {driveStintTotal(computed)}
       </p>
       <p className="text-primary-foreground/80">
         Duração: {fmtDuration(action.duration)} · Mínimo: {state.config.minStint} min · Máximo:{" "}
@@ -253,7 +256,7 @@ export function LiveDashboard() {
                         {current?.isPit
                           ? `Paragem ${completedStops + 1} de ${summary.requiredStops} · mín. ${state.config.minPitDuration} min`
                           : current
-                            ? `Turno ${idx >= 0 ? idx + 1 : "—"} de ${computed.length}`
+                            ? `Turno ${driveStintNumber(computed, idx)} de ${driveStintTotal(computed)}`
                             : running
                               ? "A corrida ultrapassou o plano"
                               : `Partida prevista ${fmtTimeOfDay(startTs)}`}
@@ -275,7 +278,7 @@ export function LiveDashboard() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                {actionTooltipContent(current, state, now, currentRacer)}
+                {actionTooltipContent(current, state, computed, now, currentRacer)}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -321,7 +324,7 @@ export function LiveDashboard() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                {actionTooltipContent(nextAction, state, now, currentRacer)}
+                {actionTooltipContent(nextAction, state, computed, now, currentRacer)}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

@@ -27,6 +27,7 @@ import {
   fmtTimeOfDay,
   generatePlan,
   MIN,
+  driveStintNumber,
   raceSummary,
   totalPlanned,
 } from "@/lib/race/engine";
@@ -40,7 +41,7 @@ interface PendingEdit {
 
 interface CardProps {
   c: ComputedStint;
-  displayNumber: number;
+  displayNumber: string;
   isCurrent: boolean;
   drivers: Driver[];
   onSave: (edit: PendingEdit) => void;
@@ -165,11 +166,12 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete 
 
 interface ActiveIndicatorProps {
   active: ComputedStint;
+  driveNumber: number;
   now: number;
   onLocate: () => void;
 }
 
-function ActiveStintIndicator({ active, now, onLocate }: ActiveIndicatorProps) {
+function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndicatorProps) {
   const elapsedMs = Math.max(0, now - active.startAt);
   const remainingMs = Math.max(0, active.endAt - now);
   const progress = Math.min(100, Math.max(0, (elapsedMs / (active.duration * MIN)) * 100));
@@ -184,7 +186,7 @@ function ActiveStintIndicator({ active, now, onLocate }: ActiveIndicatorProps) {
           </span>
           <div>
             <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {active.isPit ? "Box em curso" : `Turno ${active.index + 1} em curso`}
+              {active.isPit ? "Box em curso" : `Turno ${driveNumber} em curso`}
             </p>
             <p className="font-display text-lg font-semibold leading-tight">
               {active.isPit ? "BOX" : active.driver?.name ?? "—"}
@@ -342,7 +344,12 @@ export function PlanPanel() {
       </div>
 
       {state.startedAt !== null && activeStint && liveNow !== null ? (
-        <ActiveStintIndicator active={activeStint} now={liveNow} onLocate={scrollToActive} />
+        <ActiveStintIndicator
+          active={activeStint}
+          driveNumber={driveStintNumber(computed, activeStint.index)}
+          now={liveNow}
+          onLocate={scrollToActive}
+        />
       ) : null}
 
       <div className="space-y-2">
@@ -350,7 +357,7 @@ export function PlanPanel() {
           <PlanStintCard
             key={c.id}
             c={c}
-            displayNumber={hidePitStints ? visiblePos + 1 : c.index + 1}
+            displayNumber={c.isPit ? "Box" : String(driveStintNumber(computed, c.index))}
             isCurrent={idx === c.index}
             drivers={state.drivers}
             onSave={setPendingEdit}

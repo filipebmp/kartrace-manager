@@ -15,6 +15,23 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+/** Número de turnos de condução (as boxes não contam). */
+export function driveStintTotal(computed: ComputedStint[]) {
+  return computed.reduce((n, c) => n + (c.isPit ? 0 : 1), 0);
+}
+
+/** Número sequencial do turno de condução na posição `index` (1-based); 0 se for box. */
+export function driveStintNumber(computed: ComputedStint[], index: number) {
+  const target = computed[index];
+  if (!target || target.isPit) return 0;
+  let n = 0;
+  for (let i = 0; i <= index; i++) {
+    const c = computed[i];
+    if (c && !c.isPit) n++;
+  }
+  return n;
+}
+
 /** minutos -> "1:05" ou "0:07" */
 export function fmtDuration(minutes: number) {
   const neg = minutes < 0;
