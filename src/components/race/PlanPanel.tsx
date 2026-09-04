@@ -359,7 +359,7 @@ export function PlanPanel() {
   const preview = (() => {
     if (!pendingEdit) return null;
     const res = applyStintEdit(state, pendingEdit.id, pendingEdit.patch);
-    const after = computeStints({ ...state, stints: res.stints });
+    const after = computeStints({ ...state, stints: res.stints, startedAt: res.startedAt });
     const rows = computed
       .map((old, i) => ({ old, next: after[i] }))
       .filter(
