@@ -365,8 +365,15 @@ export function LiveDashboard() {
         />
         <Stat
           label="Lastro na troca"
-          value={ballastInstruction(current, next)}
-          tone={current && next && current.ballast !== next.ballast ? "warning" : "default"}
+          value={
+            next
+              ? next.suggestedBallast > 0
+                ? `${next.suggestedBallast} kg`
+                : "Sem lastro"
+              : "—"
+          }
+          hint={next ? `Próximo: ${next.driver?.name ?? "—"}` : undefined}
+          tone={next && next.suggestedBallast > 0 ? "warning" : "default"}
         />
         <Stat
           label="Balança do piloto"
