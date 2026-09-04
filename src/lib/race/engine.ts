@@ -226,12 +226,23 @@ export function generatePlan(
   const pit = drivers.find((d) => d.isPit);
   if (racers.length === 0) return [];
   const closeOffset = pitLaneCloseOffset(config);
+
+  // Garantir as paragens obrigatórias antes do fecho do pitlane:
+  // limitar a duração do turno para que caibam N paragens (ciclo turno+box).
+  const maxLenForStops =
+    Math.floor(closeOffset / Math.max(1, config.mandatoryStops)) -
+    config.pitDuration;
+  const effLength = Math.max(
+    config.minStint,
+    Math.min(stintLength, maxLenForStops),
+  );
+
   const stints: Stint[] = [];
   let elapsed = 0;
   let i = 0;
 
   while (elapsed < config.raceDuration) {
-    const duration = Math.min(stintLength, config.raceDuration - elapsed);
+    const duration = Math.min(effLength, config.raceDuration - elapsed);
     if (duration <= 0) break;
     const driver = racers[i % racers.length]!;
     stints.push({
