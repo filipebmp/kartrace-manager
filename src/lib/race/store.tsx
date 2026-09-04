@@ -420,7 +420,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       replaceState: (s) => setState({ ...s, drivers: ensurePitDriver(s.drivers) }),
       reset: () => setState(defaultState()),
     }),
-    [state, hydrated, patch],
+    [state, hydrated, patch, logEvent],
   );
 
   return <RaceContext.Provider value={value}>{children}</RaceContext.Provider>;
