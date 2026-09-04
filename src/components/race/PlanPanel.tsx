@@ -216,6 +216,7 @@ function ActiveStintIndicator({ active, now, onLocate }: ActiveIndicatorProps) {
 export function PlanPanel() {
   const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
   const now = useNow(15000);
+  const liveNow = useNow(1000);
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
@@ -224,6 +225,7 @@ export function PlanPanel() {
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
   const idx = now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
+  const activeStint = idx >= 0 ? computed[idx] : null;
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
   const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
