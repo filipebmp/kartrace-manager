@@ -19,6 +19,8 @@ import {
   uid,
 } from "./engine";
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 const KEY = "kart24h-state-v2";
 
@@ -58,38 +60,73 @@ interface Ctx {
 
 const RaceContext = createContext<Ctx | null>(null);
 
+function merge(saved: Partial<RaceState> | null | undefined): RaceState {
+  const base = defaultState();
+  if (!saved) return base;
+  return {
+    ...base,
+    ...saved,
+    config: { ...base.config, ...(saved.config ?? {}) },
+    drivers: ensurePitDriver(Array.isArray(saved.drivers) ? saved.drivers : base.drivers),
+  };
+}
+
 export function RaceProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<RaceState>(() => defaultState());
   const [hydrated, setHydrated] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  // Carrega o estado da equipa: primeiro a cópia local (rápida), depois a nuvem.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as RaceState;
-        const base = defaultState();
-        setState({
-          ...base,
-          ...saved,
-          config: { ...base.config, ...(saved.config ?? {}) },
-          drivers: ensurePitDriver(Array.isArray(saved.drivers) ? saved.drivers : base.drivers),
-        });
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const currentUid = data.user?.id ?? null;
+      if (!active) return;
+      setUserId(currentUid);
+
+      let local: Partial<RaceState> | null = null;
+      try {
+        const raw = localStorage.getItem(currentUid ? KEY + ":" + currentUid : KEY);
+        if (raw) local = JSON.parse(raw) as Partial<RaceState>;
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
+      if (local) setState(merge(local));
+
+      if (currentUid) {
+        const { data: row } = await supabase
+          .from("race_states")
+          .select("state")
+          .eq("user_id", currentUid)
+          .maybeSingle();
+        if (!active) return;
+        const remote = row?.state as Partial<RaceState> | undefined;
+        if (remote && Object.keys(remote).length > 0) setState(merge(remote));
+      }
+      if (active) setHydrated(true);
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
-
+  // Guarda localmente de imediato e na nuvem com um pequeno atraso.
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(userId ? `${KEY}:${userId}` : KEY, JSON.stringify(state));
     } catch {
       /* ignore */
     }
-  }, [state, hydrated]);
+    if (!userId) return;
+    const t = setTimeout(() => {
+      void supabase
+        .from("race_states")
+        .upsert({ user_id: userId, state: state as unknown as Json }, { onConflict: "user_id" });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state, hydrated, userId]);
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
 
