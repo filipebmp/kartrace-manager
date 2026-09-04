@@ -39,6 +39,7 @@ function AuthPage() {
   const { session, loading } = useSession();
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
@@ -225,6 +226,15 @@ function AuthPage() {
                     <Input id="in-pass" name="password" type="password" required autoComplete="current-password" />
                   </div>
                   <Button type="submit" className="w-full" disabled={busy}>
+                    Entrar
+                  </Button>
+                  <button
+                    type="button"
+                    className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    onClick={() => setForgot(true)}
+                  >
+                    Esqueci-me da palavra-passe
+                  </button>
                     Entrar
                   </Button>
                 </form>
