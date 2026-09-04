@@ -596,8 +596,40 @@ export function LiveDashboard() {
               ? "Paragens obrigatórias cumpridas"
               : `Até ${burnable} turno(s) ao mínimo (${state.config.minStint} min) e ainda fazes as ${remainingStops} paragens antes do fecho, sem ultrapassar ${state.config.maxStint} min por piloto`
           }
-          tone={burnable > 0 ? "success" : "default"}
+          tone={
+            feasibility === "critical"
+              ? "danger"
+              : feasibility === "tight"
+                ? "warning"
+                : burnable > 0
+                  ? "success"
+                  : "default"
+          }
+          info={
+            <div className="space-y-1">
+              <p className="font-semibold">Como é calculado</p>
+              <p>
+                Tempo até ao fecho do pitlane:{" "}
+                {running ? fmtDuration(Math.max(0, (pitCloseAt - now) / MIN)) : fmtDuration(closeOffset)}
+              </p>
+              <p>
+                Menos as {remainingStops} boxes que faltam ({minPit} min cada):{" "}
+                {fmtDuration(futurePitMinutes)}
+              </p>
+              <p>Tempo de condução disponível: {fmtDuration(drivingAvailableMin)}</p>
+              <p>
+                Faltam {remainingStops} paragens → {remainingStops + 1} turnos de condução, nenhum
+                acima de {state.config.maxStint} min.
+              </p>
+              <p>
+                Turnos que podem ser feitos ao mínimo de {state.config.minStint} min sem que os
+                restantes ultrapassem o máximo: <strong>{burnable}</strong>.
+              </p>
+              <p>Margem atual: {fmtDuration(slackMin)}</p>
+            </div>
+          }
         />
+
         <Stat
           label="Pitlane fecha"
           value={
