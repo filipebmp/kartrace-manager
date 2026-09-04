@@ -1,10 +1,11 @@
-import { Download, RotateCcw, Upload } from "lucide-react";
+import { Download, RefreshCcw, RotateCcw, Upload } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { defaultConfig } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
 import type { RaceState } from "@/lib/race/types";
 
@@ -84,9 +85,32 @@ export function SettingsPanel() {
       </div>
 
       <div className="panel grid grid-cols-2 gap-3 p-4">
-        <p className="col-span-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Regulamento
-        </p>
+        <div className="col-span-2 flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Regulamento
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+            onClick={() =>
+              setConfig({
+                raceDuration: defaultConfig().raceDuration,
+                minDriverWeight: defaultConfig().minDriverWeight,
+                minStint: defaultConfig().minStint,
+                maxStint: defaultConfig().maxStint,
+                minTotalDriving: defaultConfig().minTotalDriving,
+                maxTotalDriving: defaultConfig().maxTotalDriving,
+                mandatoryStops: defaultConfig().mandatoryStops,
+                minPitDuration: defaultConfig().minPitDuration,
+                pitDuration: defaultConfig().pitDuration,
+                pitLaneClosesBefore: defaultConfig().pitLaneClosesBefore,
+              })
+            }
+          >
+            <RefreshCcw className="size-3" /> Valores Pro
+          </Button>
+        </div>
         <Field
           label="Duração da prova"
           suffix="min"
