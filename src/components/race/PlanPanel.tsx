@@ -5,6 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   computeStints,
   currentStintIndex,
   ensurePitDriver,
@@ -21,12 +31,17 @@ export function PlanPanel() {
     useRace();
   const now = useNow(15000);
   const [stintLength, setStintLength] = useState(60);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const computed = computeStints(state);
   const idx =
     now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
 
+  const confirmRemove = () => {
+    if (confirmDelete) removeStint(confirmDelete);
+    setConfirmDelete(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -157,7 +172,7 @@ export function PlanPanel() {
                 <Button size="icon" variant="ghost" onClick={() => insertStintAfter(c.id)}>
                   <Plus className="size-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => removeStint(c.id)}>
+                <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(c.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
@@ -173,6 +188,21 @@ export function PlanPanel() {
       <Button variant="secondary" className="w-full" onClick={() => insertStintAfter(null)}>
         <Plus className="size-4" /> Adicionar turno
       </Button>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover turno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove o turno selecionado do plano. Não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

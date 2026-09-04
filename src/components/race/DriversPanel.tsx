@@ -3,6 +3,16 @@ import { Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { computeStints, driverTotals, fmtDuration } from "@/lib/race/engine";
 import { useRace } from "@/lib/race/store";
 
@@ -12,6 +22,12 @@ export function DriversPanel() {
   const totals = driverTotals(state, computed);
   const [driverCount, setDriverCount] = useState(0);
   const [driverWeight, setDriverWeight] = useState(85);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const confirmRemove = () => {
+    if (confirmDelete) removeDriver(confirmDelete);
+    setConfirmDelete(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -129,7 +145,7 @@ export function DriversPanel() {
                     onChange={(e) => updateDriver(d.id, { weight: Number(e.target.value) || 0 })}
                   />
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => removeDriver(d.id)}>
+                <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(d.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
@@ -149,6 +165,21 @@ export function DriversPanel() {
       <Button variant="secondary" className="w-full" onClick={addDriver}>
         <Plus className="size-4" /> Adicionar piloto
       </Button>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover piloto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove o piloto selecionado. Não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
