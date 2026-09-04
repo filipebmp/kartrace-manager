@@ -77,70 +77,97 @@ export function RaceProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
 
   // Carrega o estado da equipa: primeiro a cópia local (rápida), depois a nuvem.
+  // Recarrega sempre que a sessão muda, para nunca mostrar dados de outra equipa.
   useEffect(() => {
     let active = true;
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      const currentUid = data.user?.id ?? null;
-      if (!active) return;
+    let loadToken = 0;
+
+    async function loadFor(currentUid: string | null) {
+      const token = ++loadToken;
+      const stale = () => !active || token !== loadToken;
+
       setUserId(currentUid);
+      setHydrated(false);
+      setState(defaultState());
+
+      // Sem sessão não carregamos nem guardamos nada: evita fugas entre equipas.
+      if (!currentUid) {
+        if (!stale()) setHydrated(true);
+        return;
+      }
 
       let local: Partial<RaceState> | null = null;
       try {
-        const raw = localStorage.getItem(currentUid ? KEY + ":" + currentUid : KEY);
+        const raw = localStorage.getItem(`${KEY}:${currentUid}`);
         if (raw) local = JSON.parse(raw) as Partial<RaceState>;
       } catch {
         /* ignore */
       }
+      if (stale()) return;
       if (local) setState(merge(local));
 
-      if (currentUid) {
-        const { data: row } = await supabase
-          .from("race_states")
-          .select("state")
-          .eq("user_id", currentUid)
-          .maybeSingle();
-        if (!active) return;
-        const remote = row?.state as Partial<RaceState> | undefined;
-        if (remote && Object.keys(remote).length > 0) setState(merge(remote));
+      const { data: row } = await supabase
+        .from("race_states")
+        .select("state")
+        .eq("user_id", currentUid)
+        .maybeSingle();
+      if (stale()) return;
+      const remote = row?.state as Partial<RaceState> | undefined;
+      if (remote && Object.keys(remote).length > 0) setState(merge(remote));
 
-        // Se ainda não há nome de equipa definido, usa o nome do registo.
-        const hasName =
-          (remote?.config?.teamName ?? local?.config?.teamName ?? "").trim().length > 0;
-        if (!hasName) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("team_name")
-            .eq("id", currentUid)
-            .maybeSingle();
-          const name = profile?.team_name?.trim();
-          if (active && name) {
-            setState((s) =>
-              s.config.teamName.trim()
-                ? s
-                : { ...s, config: { ...s.config, teamName: name } },
-            );
-          }
+      // Se ainda não há nome de equipa definido, usa o nome do registo.
+      const hasName =
+        (remote?.config?.teamName ?? local?.config?.teamName ?? "").trim().length > 0;
+      if (!hasName) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("team_name")
+          .eq("id", currentUid)
+          .maybeSingle();
+        const name = profile?.team_name?.trim();
+        if (!stale() && name) {
+          setState((s) =>
+            s.config.teamName.trim() ? s : { ...s, config: { ...s.config, teamName: name } },
+          );
         }
       }
-      if (active) setHydrated(true);
+      if (!stale()) setHydrated(true);
+    }
+
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!active) return;
+      await loadFor(data.user?.id ?? null);
     })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      const nextUid = session?.user?.id ?? null;
+      setUserId((prev) => {
+        if (prev !== nextUid) void loadFor(nextUid);
+        return prev;
+      });
+    });
+
     return () => {
       active = false;
+      sub.subscription.unsubscribe();
     };
   }, []);
 
   // Guarda localmente de imediato e na nuvem com um pequeno atraso.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !userId) return;
     try {
-      localStorage.setItem(userId ? `${KEY}:${userId}` : KEY, JSON.stringify(state));
+      localStorage.setItem(`${KEY}:${userId}`, JSON.stringify(state));
     } catch {
       /* ignore */
     }
-    if (!userId) return;
     const t = setTimeout(() => {
       void (async () => {
+        // Confirma que a sessão ainda é da mesma equipa antes de escrever.
+        const { data } = await supabase.auth.getUser();
+        if (data.user?.id !== userId) return;
         const { error } = await supabase
           .from("race_states")
           .upsert({ user_id: userId, state: state as unknown as Json }, { onConflict: "user_id" });
@@ -149,6 +176,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
     }, 800);
     return () => clearTimeout(t);
   }, [state, hydrated, userId]);
+
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
 
