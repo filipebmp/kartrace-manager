@@ -281,43 +281,52 @@ export function LiveDashboard() {
           </TooltipProvider>
 
           {/* Próxima ação */}
-
-          <div className="rounded-lg border-l-4 border-secondary bg-secondary/30 p-3">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Próxima ação
-            </p>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
-                  {nextIsPit ? (
-                    <ArrowDownToLine className="size-5 text-muted-foreground" />
-                  ) : (
-                    <Timer className="size-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-display text-lg font-semibold">
-                    {nextIsPit ? "Box" : nextAction?.driver?.name ?? "—"}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="rounded-lg border-l-4 border-secondary bg-secondary/30 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Próxima ação
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {nextAction
-                      ? nextIsPit
-                        ? `Troca de kart · ${fmtTimeOfDay(nextAction.startAt)}`
-                        : `Início ${fmtTimeOfDay(nextAction.startAt)} · ${fmtDuration(nextAction.duration)}`
-                      : running
-                        ? "Fora de plano"
-                        : "Gere o plano e clica em Partida"}
-                  </p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+                        {nextIsPit ? (
+                          <ArrowDownToLine className="size-5 text-muted-foreground" />
+                        ) : (
+                          <Timer className="size-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-display text-lg font-semibold">
+                          {nextIsPit ? "Box" : nextAction?.driver?.name ?? "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {nextAction
+                            ? nextIsPit
+                              ? `Troca de kart · ${fmtTimeOfDay(nextAction.startAt)}`
+                              : `Início ${fmtTimeOfDay(nextAction.startAt)} · ${fmtDuration(nextAction.duration)}`
+                            : running
+                              ? "Fora de plano"
+                              : "Gere o plano e clica em Partida"}
+                        </p>
+                      </div>
+                    </div>
+                    {nextAction && (
+                      <Badge variant="outline" className="shrink-0 tabular">
+                        em {fmtClock(nextAction.startAt - now)}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {nextAction && (
-                <Badge variant="outline" className="shrink-0 tabular">
-                  em {fmtClock(nextAction.startAt - now)}
-                </Badge>
-              )}
-            </div>
-          </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                {actionTooltipContent(nextAction, state, now, currentRacer)}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
+
 
       </div>
 
