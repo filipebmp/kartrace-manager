@@ -146,6 +146,14 @@ export function LiveDashboard() {
   const now = useNow(200);
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmBox, setConfirmBox] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = window.localStorage.getItem("kart24h-hide-timeline");
+    return saved ? saved === "0" : true;
+  });
+  useEffect(() => {
+    window.localStorage.setItem("kart24h-hide-timeline", timelineOpen ? "0" : "1");
+  }, [timelineOpen]);
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
   const planned = totalPlanned(state.stints);
