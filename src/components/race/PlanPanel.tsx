@@ -314,7 +314,6 @@ export function PlanPanel() {
   } = useRace();
   const now = useNow(15000);
   const liveNow = useNow(1000);
-  const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
   const [hidePitStints, setHidePitStints] = useState(true);
@@ -403,30 +402,23 @@ export function PlanPanel() {
   return (
     <div className="space-y-4">
       <div className="panel space-y-3 p-4">
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Label htmlFor="stintLen" className="text-xs text-muted-foreground">
-              Duração base do turno
-            </Label>
-            <DurationField label="" value={stintLength} onChange={(v) => setStintLength(v)} />
-          </div>
-
+        <div className="flex items-end justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
+            <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
+          </p>
           <Button
             variant="secondary"
             onClick={() => {
               const drivers = ensurePitDriver(state.drivers);
               if (drivers.length !== state.drivers.length) setDrivers(drivers);
-              setStints(generatePlan(drivers, state.config, stintLength));
+              setStints(generatePlan(drivers, state.config));
             }}
           >
             <Wand2 className="size-4" /> Gerar plano
           </Button>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">
-            Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
-            <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
-          </p>
           <div className="flex items-center gap-2">
             <Switch
               id="hidePitStints"
