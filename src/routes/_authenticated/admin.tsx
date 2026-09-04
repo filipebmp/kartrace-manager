@@ -53,6 +53,10 @@ function AdminPage() {
   const removeTeam = useServerFn(deleteTeam);
   const [toDelete, setToDelete] = useState<TeamProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingChange, setPendingChange] = useState<
+    { team: TeamProfile; status: "approved" | "rejected" } | null
+  >(null);
+  const [saving, setSaving] = useState(false);
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
