@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      password_reset_attempts: {
+        Row: {
+          attempts: number
+          blocked_until: string | null
+          created_at: string
+          email: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          blocked_until?: string | null
+          created_at?: string
+          email: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          attempts?: number
+          blocked_until?: string | null
+          created_at?: string
+          email?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           contact_name: string
@@ -99,6 +126,10 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      register_password_reset_attempt: {
+        Args: { _email: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "team"
