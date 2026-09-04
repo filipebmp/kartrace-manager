@@ -87,7 +87,7 @@ export function LiveDashboard() {
                 size="sm"
                 className="border-warning/50 text-warning"
                 onClick={boxNow}
-                disabled={!current}
+                disabled={!current || current.isPit}
               >
                 <ArrowDownToLine className="size-4" /> Box
               </Button>
