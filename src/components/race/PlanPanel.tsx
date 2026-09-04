@@ -47,13 +47,33 @@ interface CardProps {
   onSave: (edit: PendingEdit) => void;
   onDelete: (id: string) => void;
   onSaveKart: (id: string, kart: string) => void;
+  onSaveKartRating: (id: string, rating: Stint["kartRating"]) => void;
 }
 
-function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete, onSaveKart }: CardProps) {
+const KART_RATINGS: Stint["kartRating"][] = [
+  "não sei",
+  "muito bom",
+  "bom",
+  "médio",
+  "mau",
+  "muito mau",
+];
+
+function PlanStintCard({
+  c,
+  displayNumber,
+  isCurrent,
+  drivers,
+  onSave,
+  onDelete,
+  onSaveKart,
+  onSaveKartRating,
+}: CardProps) {
   const [driverCode, setDriverCode] = useState<number | null>(c.driverCode);
   const [duration, setDuration] = useState<number>(c.duration);
   const [ballast, setBallast] = useState<number>(c.ballast);
   const [kart, setKart] = useState<string>(c.kart ?? "");
+  const [kartRating, setKartRating] = useState<Stint["kartRating"]>(c.kartRating);
 
   // Quando o turno muda por fora (recálculo do plano), repõe o rascunho.
   useEffect(() => {
