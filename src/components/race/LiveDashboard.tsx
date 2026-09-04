@@ -265,16 +265,28 @@ export function LiveDashboard() {
                       </p>
                     </div>
                     <div className="shrink-0 text-left sm:text-right">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                        Tempo restante
-                      </p>
-                      <p
-                        className={`tabular text-4xl font-bold leading-none ${
-                          stintRemaining < 5 * MIN && current ? "text-warning" : "text-foreground"
-                        }`}
-                      >
-                        {current ? fmtClock(stintRemaining) : "--:--:--"}
-                      </p>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                            Decorrido
+                          </p>
+                          <p className="tabular text-2xl font-bold leading-none text-foreground">
+                            {current ? fmtClock(now - current.startAt) : "--:--:--"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                            Tempo restante
+                          </p>
+                          <p
+                            className={`tabular text-4xl font-bold leading-none ${
+                              stintRemaining < 5 * MIN && current ? "text-warning" : "text-foreground"
+                            }`}
+                          >
+                            {current ? fmtClock(stintRemaining) : "--:--:--"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
