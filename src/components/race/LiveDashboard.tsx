@@ -278,7 +278,7 @@ export function LiveDashboard() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                {actionTooltipContent(current, state, now, currentRacer)}
+                {actionTooltipContent(current, state, computed, now, currentRacer)}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -324,7 +324,7 @@ export function LiveDashboard() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                {actionTooltipContent(nextAction, state, now, currentRacer)}
+                {actionTooltipContent(nextAction, state, computed, now, currentRacer)}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
