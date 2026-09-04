@@ -103,6 +103,25 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         const remote = row?.state as Partial<RaceState> | undefined;
         if (remote && Object.keys(remote).length > 0) setState(merge(remote));
+
+        // Se ainda não há nome de equipa definido, usa o nome do registo.
+        const hasName =
+          (remote?.config?.teamName ?? local?.config?.teamName ?? "").trim().length > 0;
+        if (!hasName) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("team_name")
+            .eq("id", currentUid)
+            .maybeSingle();
+          const name = profile?.team_name?.trim();
+          if (active && name) {
+            setState((s) =>
+              s.config.teamName.trim()
+                ? s
+                : { ...s, config: { ...s.config, teamName: name } },
+            );
+          }
+        }
       }
       if (active) setHydrated(true);
     })();
