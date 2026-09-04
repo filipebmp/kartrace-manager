@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DurationField } from "@/components/race/DurationField";
 
 import {
   computeStints,
@@ -27,6 +28,7 @@ import {
   totalPlanned,
 } from "@/lib/race/engine";
 import { useNow, useRace } from "@/lib/race/store";
+
 
 export function PlanPanel() {
   const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
