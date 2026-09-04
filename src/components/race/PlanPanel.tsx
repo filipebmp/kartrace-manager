@@ -242,7 +242,8 @@ function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndi
 }
 
 export function PlanPanel() {
-  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
+  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers, setKart } =
+    useRace();
   const now = useNow(15000);
   const liveNow = useNow(1000);
   const [stintLength, setStintLength] = useState(60);
