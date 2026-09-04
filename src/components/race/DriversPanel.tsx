@@ -173,7 +173,7 @@ export function DriversPanel() {
       </div>
 
 
-      <Button variant="secondary" className="w-full" onClick={addDriver}>
+      <Button variant="secondary" className="w-full" onClick={addDriver} disabled={racing}>
         <Plus className="size-4" /> Adicionar piloto
       </Button>
 
