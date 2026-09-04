@@ -69,6 +69,11 @@ export function LiveDashboard() {
   const raceRemaining = startTs + planned * MIN - now;
   const stintRemaining = current ? current.endAt - now : 0;
   const alerts = current?.warnings ?? [];
+  // Paragens concluídas (e válidas: terminadas antes do fecho do pitlane)
+  const closeOffset = state.config.raceDuration - state.config.pitLaneClosesBefore;
+  const completedStops = running
+    ? computed.filter((c) => c.isPit && c.endOffset <= closeOffset && c.endAt <= now).length
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -176,13 +181,17 @@ export function LiveDashboard() {
         />
         <Stat
           label="Paragens"
-          value={`${summary.stops} / ${summary.requiredStops}`}
+          value={`${completedStops} / ${summary.requiredStops}`}
           hint={
-            summary.missingStops > 0
-              ? `Faltam ${summary.missingStops} (−${summary.lapPenalty} voltas)`
-              : "Plano cumpre as obrigatórias"
+            running
+              ? completedStops >= summary.requiredStops
+                ? "Obrigatórias cumpridas"
+                : `Faltam ${summary.requiredStops - completedStops}`
+              : `Plano prevê ${summary.stops} paragens`
           }
-          tone={summary.missingStops > 0 ? "warning" : "success"}
+          tone={
+            running && completedStops >= summary.requiredStops ? "success" : "default"
+          }
         />
         <Stat
           label="Pitlane fecha"
