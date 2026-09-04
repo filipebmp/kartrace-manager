@@ -163,6 +163,56 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete 
   );
 }
 
+interface ActiveIndicatorProps {
+  active: ComputedStint;
+  now: number;
+  onLocate: () => void;
+}
+
+function ActiveStintIndicator({ active, now, onLocate }: ActiveIndicatorProps) {
+  const elapsedMs = Math.max(0, now - active.startAt);
+  const remainingMs = Math.max(0, active.endAt - now);
+  const progress = Math.min(100, Math.max(0, (elapsedMs / (active.duration * MIN)) * 100));
+
+  return (
+    <div className="sticky top-0 z-40 -mx-4 mb-4 border-b border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur sm:-mx-0 sm:rounded-lg sm:border">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="relative flex size-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+          </span>
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              {active.isPit ? "Box em curso" : `Turno ${active.index + 1} em curso`}
+            </p>
+            <p className="font-display text-lg font-semibold leading-tight">
+              {active.isPit ? "BOX" : active.driver?.name ?? "—"}
+              {!active.isPit && active.driver ? (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  #{active.driver.code}
+                </span>
+              ) : null}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="tabular text-xl font-bold leading-none">{fmtClock(remainingMs)}</p>
+          <p className="text-xs text-muted-foreground">{fmtClock(elapsedMs)} decorridos</p>
+        </div>
+      </div>
+
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+        <div className="h-full heat-bar transition-all duration-1000" style={{ width: `${progress}%` }} />
+      </div>
+
+      <Button variant="ghost" size="sm" className="mt-2 h-8 w-full gap-2 text-xs" onClick={onLocate}>
+        <Locate className="size-3.5" /> Ver no plano
+      </Button>
+    </div>
+  );
+}
+
 export function PlanPanel() {
   const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
   const now = useNow(15000);
