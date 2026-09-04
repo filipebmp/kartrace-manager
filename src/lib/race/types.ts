@@ -1,4 +1,4 @@
-export type BoxOrder = "BGT" | "BTG" | "GBT";
+export type BoxOrder = "BT" | "TB";
 
 export interface Driver {
   id: string;
@@ -13,8 +13,6 @@ export interface Stint {
   driverCode: number | null;
   /** duração em minutos */
   duration: number;
-  /** abastecer nesta paragem (antes deste turno) */
-  refuel: boolean;
   /** lastro colocado no kart (kg) */
   ballast: number;
   note?: string;
@@ -31,15 +29,7 @@ export interface RaceConfig {
   maxTotalDriving: number;
   minTotalDriving: number;
   restBetweenStints: number;
-  /** autonomia do depósito em minutos */
-  fuelAutonomy: number;
-  /** capacidade do depósito em kg */
-  fuelWeight: number;
-  fuelCountsAsBallast: boolean;
   boxOrder: BoxOrder;
-  /** tempo de treinos consumido antes da partida (min) */
-  practiceTime: number;
-  refuelBeforeStart: boolean;
   pitDuration: number;
 }
 
@@ -61,10 +51,6 @@ export interface ComputedStint extends Stint {
   endOffset: number;
   startAt: number;
   endAt: number;
-  fuelStart: number;
-  fuelEnd: number;
-  fuelStartMin: number;
-  fuelEndMin: number;
   combinedWeight: number;
   weightDiff: number;
   suggestedBallast: number;
