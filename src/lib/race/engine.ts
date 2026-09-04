@@ -310,3 +310,73 @@ export function toLocalInput(d: Date) {
     d.getHours(),
   )}:${pad(d.getMinutes())}`;
 }
+
+/** Redistribui o tempo restante pelos turnos de condução ainda por cumprir,
+ *  mantendo o número de paragens e a duração total da prova.
+ *  `fromIndex` é o último turno já fechado (não é alterado). */
+export function rebalanceFrom(
+  stints: Stint[],
+  drivers: Driver[],
+  config: RaceConfig,
+  fromIndex: number,
+): Stint[] {
+  const consumed = stints.slice(0, fromIndex + 1).reduce((s, x) => s + x.duration, 0);
+  const rest = stints.slice(fromIndex + 1);
+  if (rest.length === 0) return stints;
+
+  const isPitStint = (s: Stint) => isPitDriver(findDriver(drivers, s.driverCode));
+  const pitsAfter = rest.filter(isPitStint);
+  const drivesAfter = rest.filter((s) => !isPitStint(s));
+  if (drivesAfter.length === 0) return stints;
+
+  const pitMinutes = pitsAfter.reduce((s, x) => s + Math.max(x.duration, config.minPitDuration), 0);
+  const available = Math.max(0, config.raceDuration - consumed - pitMinutes);
+  const base = Math.floor(available / drivesAfter.length);
+  let remainder = available - base * drivesAfter.length;
+
+  return stints.map((stint, i) => {
+    if (i <= fromIndex) return stint;
+    if (isPitStint(stint)) {
+      return { ...stint, duration: Math.max(stint.duration, config.minPitDuration) };
+    }
+    const duration = base + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    return { ...stint, duration };
+  });
+}
+
+/** Avisos globais de conformidade com o regulamento (após ajustes em tempo real). */
+export function planWarnings(state: RaceState, computed: ComputedStint[]): string[] {
+  const { config } = state;
+  const out: string[] = [];
+  const summary = raceSummary(state, computed);
+  const total = totalPlanned(state.stints);
+
+  if (summary.missingStops > 0)
+    out.push(
+      `Faltam ${summary.missingStops} paragens obrigatórias antes do fecho do pitlane (−${summary.lapPenalty} voltas)`,
+    );
+  if (summary.stopsAfterPitClose > 0)
+    out.push(`${summary.stopsAfterPitClose} paragem(ns) depois do fecho do pitlane`);
+  if (Math.round(total) !== config.raceDuration)
+    out.push(
+      `Plano com ${fmtDuration(total)} — a prova tem ${fmtDuration(config.raceDuration)}`,
+    );
+
+  const long = computed.filter((c) => !c.isPit && c.duration > config.maxStint).length;
+  if (long > 0) out.push(`${long} turno(s) acima do máximo de ${config.maxStint} min`);
+  const short = computed.filter((c) => !c.isPit && c.duration < config.minStint).length;
+  if (short > 0) out.push(`${short} turno(s) abaixo do mínimo de ${config.minStint} min`);
+
+  for (const t of driverTotals(state, computed)) {
+    if (t.belowMin)
+      out.push(
+        `${t.driver.name} com ${fmtDuration(t.totalDriving)} — mínimo ${fmtDuration(config.minTotalDriving)}`,
+      );
+    if (t.aboveMax)
+      out.push(
+        `${t.driver.name} com ${fmtDuration(t.totalDriving)} — máximo ${fmtDuration(config.maxTotalDriving)}`,
+      );
+  }
+  return out;
+}
