@@ -42,6 +42,19 @@ export function PlanPanel() {
   const summary = raceSummary(state, computed);
   const visibleComputed = hidePitStints ? computed.filter((c) => !c.isPit) : computed;
 
+  useEffect(() => {
+    if (idx < 0) return;
+    const active = computed.find((c) => c.index === idx);
+    if (!active) return;
+    const visible = hidePitStints && active.isPit
+      ? visibleComputed.find((c) => c.index < idx ? c.index < idx : c.index > idx)
+      : visibleComputed.find((c) => c.index === idx);
+    if (!visible) return;
+    const el = document.getElementById(`plan-stint-${visible.id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [idx, computed, visibleComputed, hidePitStints]);
 
   const confirmRemove = () => {
     if (confirmDelete) removeStint(confirmDelete);
