@@ -437,9 +437,13 @@ export function LiveDashboard() {
         />
         <Stat
           label="Pitlane fecha"
-          value={fmtTimeOfDay(
-            startTs + (state.config.raceDuration - state.config.pitLaneClosesBefore) * MIN,
-          )}
+          value={
+            running
+              ? fmtTimeOfDay(
+                  startTs + (state.config.raceDuration - state.config.pitLaneClosesBefore) * MIN,
+                )
+              : "--:--"
+          }
           hint={
             summary.stopsAfterPitClose > 0
               ? `${summary.stopsAfterPitClose} paragens depois do fecho`
