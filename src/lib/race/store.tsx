@@ -235,41 +235,13 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       updateStint: (id, p) => {
         let recalculated = 0;
         patch((s) => {
-          const idx = s.stints.findIndex((st) => st.id === id);
-          if (idx < 0) return s;
-          const before = s.stints[idx];
-          let next = s.stints.map((st) => (st.id === id ? { ...st, ...p } : st));
-          // Só recalcula os turnos que ainda não foram executados: durante a
-          // corrida, os turnos já feitos (e o que está em curso) ficam como
-          // estão e só podem ser alterados manualmente.
-          let from = idx;
-          if (s.startedAt !== null) {
-            const computed = computeStints({ ...s, stints: next });
-            const cur = s.liveIndex ?? currentStintIndex(computed, Date.now());
-            if (cur > from) {
-              from = cur;
-              // Corrigir um turno já executado não pode empurrar a hora de fim
-              // do turno em curso: a diferença é absorvida pelos turnos
-              // intermédios já feitos (do mais recente para trás).
-              let delta = (next[idx]?.duration ?? 0) - (before?.duration ?? 0);
-              if (delta !== 0) {
-                const adjusted = [...next];
-                for (let i = cur - 1; i > idx && delta !== 0; i--) {
-                  const st = adjusted[i];
-                  if (!st) continue;
-                  const take = delta > 0 ? Math.min(delta, st.duration) : delta;
-                  adjusted[i] = { ...st, duration: st.duration - take };
-                  delta -= take;
-                }
-                next = adjusted;
-              }
-            }
-          }
-          recalculated = Math.max(0, next.length - from);
-          return { ...s, stints: rebalanceFrom(next, s.drivers, s.config, from) };
+          const res = applyStintEdit(s, id, p);
+          recalculated = res.recalculated;
+          return { ...s, stints: res.stints };
         });
         return recalculated;
       },
+
 
 
       setBallast: (id, kg) =>
