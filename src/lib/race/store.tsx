@@ -105,6 +105,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             drivers: ensurePitDriver(racers),
             stints: [],
             startedAt: null,
+            liveIndex: null,
             planSnapshot: null,
           };
         }),
@@ -167,11 +168,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           return { ...s, stints: next };
         }),
       start: () =>
-        patch((s) => ({ ...s, startedAt: Date.now(), planSnapshot: s.stints })),
+        patch((s) => ({ ...s, startedAt: Date.now(), liveIndex: 0, planSnapshot: s.stints })),
       stop: () =>
         patch((s) => ({
           ...s,
           startedAt: null,
+          liveIndex: null,
           stints: s.planSnapshot ?? s.stints,
           planSnapshot: null,
         })),
@@ -180,28 +182,38 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           if (s.startedAt === null) return s;
           const now = Date.now();
           const computed = computeStints(s);
-          const idx = currentStintIndex(computed, now);
-          if (idx < 0) return s;
+          const idx = s.liveIndex ?? currentStintIndex(computed, now);
+          if (idx < 0 || idx >= computed.length) return s;
           const cur = computed[idx]!;
           // só atua durante uma paragem
           if (!cur.isPit) return s;
-          // A box conta sempre pelo menos a duração mínima regulamentar,
-          // mesmo que o registo seja feito mais cedo.
           const elapsedMin = Math.max(0, (now - cur.startAt) / MIN);
-          const stints = [...s.stints];
-          stints[idx] = {
-            ...stints[idx]!,
-            duration: Math.max(elapsedMin, s.config.minPitDuration),
+          const min = s.config.minPitDuration;
+          const stints = s.stints.map((x) => ({ ...x }));
+          if (elapsedMin >= min) {
+            stints[idx]!.duration = elapsedMin;
+          } else {
+            // Registo tardio da entrada na box: a box conta sempre o mínimo
+            // regulamentar e a diferença sai do turno de condução anterior
+            // (que na realidade começou mais cedo).
+            const shortfall = min - elapsedMin;
+            stints[idx]!.duration = min;
+            const prev = stints[idx - 1];
+            if (prev) prev.duration = Math.max(0, prev.duration - shortfall);
+          }
+          return {
+            ...s,
+            stints: rebalanceFrom(stints, s.drivers, s.config, idx),
+            liveIndex: idx + 1,
           };
-          return { ...s, stints: rebalanceFrom(stints, s.drivers, s.config, idx) };
         }),
       boxNow: () =>
         patch((s) => {
           if (s.startedAt === null) return s;
           const now = Date.now();
           const computed = computeStints(s);
-          const idx = currentStintIndex(computed, now);
-          if (idx < 0) return s;
+          const idx = s.liveIndex ?? currentStintIndex(computed, now);
+          if (idx < 0 || idx >= computed.length) return s;
           const cur = computed[idx]!;
           // já está nas boxes: não encurtar a paragem
           if (cur.isPit) return s;
