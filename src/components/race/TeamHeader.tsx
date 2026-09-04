@@ -25,12 +25,14 @@ export function TeamHeader({
   return (
     <header className="flex items-center justify-between gap-2 border-b border-border bg-sidebar/80 px-4 py-3 backdrop-blur">
       <div className="min-w-0">
-        <h1 className="truncate font-display text-lg font-bold uppercase tracking-[0.12em]">
-          Team Manager <span className="text-primary">24H</span>
-        </h1>
-        {teamName ? (
-          <p className="truncate text-xs text-muted-foreground">{teamName}</p>
-        ) : null}
+        <Link to="/" className="block">
+          <h1 className="truncate font-display text-lg font-bold uppercase tracking-[0.12em]">
+            Team Manager <span className="text-primary">24H</span>
+          </h1>
+          {teamName ? (
+            <p className="truncate text-xs text-muted-foreground">{teamName}</p>
+          ) : null}
+        </Link>
       </div>
       <div className="flex items-center gap-2">
         {isAdmin ? (
