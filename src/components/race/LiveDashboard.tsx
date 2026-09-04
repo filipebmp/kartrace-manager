@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Flag, Square, Timer, Weight } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Check, Flag, Square, Timer, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,6 +36,7 @@ import {
   totalPlanned,
 
 } from "@/lib/race/engine";
+import { toast } from "sonner";
 import { useNow, useRace } from "@/lib/race/store";
 import type { ComputedStint, RaceState } from "@/lib/race/types";
 
@@ -113,7 +114,7 @@ function actionTooltipContent(
 
 export function LiveDashboard() {
 
-  const { state, start, stop, boxNow, endBoxNow } = useRace();
+  const { state, start, stop, boxNow, endBoxNow, setBallast } = useRace();
   const now = useNow();
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmBox, setConfirmBox] = useState(false);
@@ -131,8 +132,9 @@ export function LiveDashboard() {
   const idx = running ? (state.liveIndex ?? currentStintIndex(computed, now)) : -1;
   const current = idx >= 0 && idx < computed.length ? computed[idx] : undefined;
   const next = computed.slice(idx + 1).find((c) => !c.isPit);
+  // Durante uma box mostramos a balança do piloto que vai entrar em pista
   const currentRacer = current?.isPit
-    ? computed.slice(0, idx).reverse().find((c) => !c.isPit)
+    ? next ?? computed.slice(0, idx).reverse().find((c) => !c.isPit)
     : current;
   const nextAction =
     running && idx >= 0
@@ -314,10 +316,36 @@ export function LiveDashboard() {
                               : "Gere o plano e clica em Partida"}
                         </p>
                         {nextAction && !nextIsPit && nextAction.suggestedBallast > 0 && (
-                          <p className="mt-1 text-xs text-warning">
-                            Precisa de {nextAction.suggestedBallast} kg de lastro para os{" "}
-                            {state.config.minDriverWeight} kg
-                          </p>
+                          <>
+                            <p className="mt-1 text-xs text-warning">
+                              Precisa de {nextAction.suggestedBallast} kg de lastro para os{" "}
+                              {state.config.minDriverWeight} kg
+                            </p>
+                            {nextAction.ballast >= nextAction.suggestedBallast ? (
+                              <Badge
+                                variant="outline"
+                                className="mt-2 gap-1 border-success/50 text-success"
+                              >
+                                <Check className="size-3" /> Lastro confirmado ·{" "}
+                                {nextAction.ballast} kg
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="mt-2 h-8 gap-1 border-warning/60 text-warning"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBallast(nextAction.id, nextAction.suggestedBallast);
+                                  toast.success(
+                                    `Lastro confirmado: ${nextAction.suggestedBallast} kg para ${nextAction.driver?.name ?? "o piloto"}`,
+                                  );
+                                }}
+                              >
+                                <Check className="size-4" /> Confirmar lastro
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -372,8 +400,20 @@ export function LiveDashboard() {
                 : "Sem lastro"
               : "—"
           }
-          hint={next ? `Próximo: ${next.driver?.name ?? "—"}` : undefined}
-          tone={next && next.suggestedBallast > 0 ? "warning" : "default"}
+          hint={
+            next
+              ? next.suggestedBallast > 0 && next.ballast >= next.suggestedBallast
+                ? `Confirmado · ${next.driver?.name ?? "—"}`
+                : `Próximo: ${next.driver?.name ?? "—"}`
+              : undefined
+          }
+          tone={
+            next && next.suggestedBallast > 0
+              ? next.ballast >= next.suggestedBallast
+                ? "success"
+                : "warning"
+              : "default"
+          }
         />
         <Stat
           label="Balança do piloto"
