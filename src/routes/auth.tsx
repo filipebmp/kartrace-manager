@@ -38,6 +38,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const { session, loading } = useSession();
   const [busy, setBusy] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
@@ -53,6 +54,11 @@ function AuthPage() {
     });
     setBusy(false);
     if (error) {
+      if (error.message.toLowerCase().includes("not confirmed")) {
+        setPendingEmail(String(form.get("email") ?? "").trim());
+        toast.error("Email por confirmar", { description: "Confirma o email antes de entrares." });
+        return;
+      }
       toast.error("Não foi possível entrar", { description: error.message });
       return;
     }
@@ -73,11 +79,11 @@ function AuthPage() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: window.location.origin + "/auth",
         data: { team_name: parsed.data.teamName, contact_name: parsed.data.contactName },
       },
     });
@@ -86,10 +92,57 @@ function AuthPage() {
       toast.error("Não foi possível registar", { description: error.message });
       return;
     }
+    if (!data.session) {
+      setPendingEmail(parsed.data.email);
+      toast.success("Confirma o teu email", {
+        description: "Enviámos uma mensagem para confirmares o endereço.",
+      });
+      return;
+    }
     toast.success("Registo enviado", {
       description: "A tua equipa fica à espera da aprovação do administrador.",
     });
     navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function resendConfirmation() {
+    if (!pendingEmail) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingEmail,
+      options: { emailRedirectTo: window.location.origin + "/auth" },
+    });
+    setBusy(false);
+    if (error) toast.error("Não foi possível reenviar", { description: error.message });
+    else toast.success("Email reenviado");
+  }
+
+  if (pendingEmail) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Confirma o teu email</CardTitle>
+            <CardDescription>
+              Enviámos uma mensagem para <strong>{pendingEmail}</strong>. Clica na ligação para confirmares o
+              endereço e depois entra na tua conta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Depois da confirmação, o acesso ao dashboard só fica ativo quando o administrador aprovar a equipa.
+            </p>
+            <Button variant="outline" className="w-full" onClick={resendConfirmation} disabled={busy}>
+              Reenviar email de confirmação
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setPendingEmail(null)}>
+              Voltar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
