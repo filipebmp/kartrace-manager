@@ -168,6 +168,7 @@ export function PlanPanel() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
   const [hidePitStints, setHidePitStints] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
   const idx = now === null ? -1 : (state.liveIndex ?? currentStintIndex(computed, now));
@@ -210,6 +211,15 @@ export function PlanPanel() {
     }
     setPendingEdit(null);
   };
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 300);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
     <div className="space-y-4">
@@ -281,6 +291,17 @@ export function PlanPanel() {
       <Button variant="secondary" className="w-full" onClick={() => insertStintAfter(null)}>
         <Plus className="size-4" /> Adicionar turno
       </Button>
+
+      {showBackToTop && (
+        <Button
+          size="icon"
+          className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg"
+          onClick={scrollToTop}
+          aria-label="Voltar para o topo"
+        >
+          <ArrowUp className="size-5" />
+        </Button>
+      )}
 
       <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
         <AlertDialogContent>
