@@ -17,7 +17,9 @@ export interface Stint {
   ballast: number;
   /** número do kart utilizado neste turno */
   kart?: string;
-  note?: string;
+  /** avaliação do kart utilizado neste turno */
+  kartRating?: "não sei" | "muito bom" | "bom" | "médio" | "mau" | "muito mau" | undefined;
+  note?: string | undefined;
 }
 
 export interface RaceConfig {

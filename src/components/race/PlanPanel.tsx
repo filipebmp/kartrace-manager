@@ -47,13 +47,33 @@ interface CardProps {
   onSave: (edit: PendingEdit) => void;
   onDelete: (id: string) => void;
   onSaveKart: (id: string, kart: string) => void;
+  onSaveKartRating: (id: string, rating: Stint["kartRating"]) => void;
 }
 
-function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete, onSaveKart }: CardProps) {
+const KART_RATINGS: Stint["kartRating"][] = [
+  "não sei",
+  "muito bom",
+  "bom",
+  "médio",
+  "mau",
+  "muito mau",
+];
+
+function PlanStintCard({
+  c,
+  displayNumber,
+  isCurrent,
+  drivers,
+  onSave,
+  onDelete,
+  onSaveKart,
+  onSaveKartRating,
+}: CardProps) {
   const [driverCode, setDriverCode] = useState<number | null>(c.driverCode);
   const [duration, setDuration] = useState<number>(c.duration);
   const [ballast, setBallast] = useState<number>(c.ballast);
   const [kart, setKart] = useState<string>(c.kart ?? "");
+  const [kartRating, setKartRating] = useState<Stint["kartRating"]>(c.kartRating);
 
   // Quando o turno muda por fora (recálculo do plano), repõe o rascunho.
   useEffect(() => {
@@ -61,7 +81,8 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete,
     setDuration(c.duration);
     setBallast(c.ballast);
     setKart(c.kart ?? "");
-  }, [c.id, c.driverCode, c.duration, c.ballast, c.kart]);
+    setKartRating(c.kartRating);
+  }, [c.id, c.driverCode, c.duration, c.ballast, c.kart, c.kartRating]);
 
   const dirty =
     driverCode !== c.driverCode ||
@@ -125,8 +146,27 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete,
 
       {!c.isPit && (
         <div className="mt-2 flex items-end gap-2">
+          <div className="w-32">
+            <Label className="text-[10px] uppercase text-muted-foreground">Tipo de kart</Label>
+            <select
+              className="h-9 w-full rounded-md border border-input bg-secondary px-2 py-1 text-sm"
+              value={kartRating ?? ""}
+              onChange={(e) =>
+                setKartRating(
+                  e.target.value === "" ? undefined : (e.target.value as Stint["kartRating"]),
+                )
+              }
+            >
+              <option value="">—</option>
+              {KART_RATINGS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex-1">
-            <Label className="text-[10px] uppercase text-muted-foreground">Kart utilizado</Label>
+            <Label className="text-[10px] uppercase text-muted-foreground">Nº do kart</Label>
             <Input
               value={kart}
               onChange={(e) => setKart(e.target.value)}
@@ -138,8 +178,11 @@ function PlanStintCard({ c, displayNumber, isCurrent, drivers, onSave, onDelete,
             size="sm"
             variant="secondary"
             className="h-9"
-            onClick={() => onSaveKart(c.id, kart.trim())}
-            disabled={kart.trim() === (c.kart ?? "")}
+            onClick={() => {
+              onSaveKart(c.id, kart.trim());
+              if (kartRating !== c.kartRating) onSaveKartRating(c.id, kartRating);
+            }}
+            disabled={kart.trim() === (c.kart ?? "") && kartRating === c.kartRating}
           >
             <Check className="size-4" /> Guardar kart
           </Button>
@@ -242,8 +285,16 @@ function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndi
 }
 
 export function PlanPanel() {
-  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers, setKart } =
-    useRace();
+  const {
+    state,
+    updateStint,
+    insertStintAfter,
+    removeStint,
+    setStints,
+    setDrivers,
+    setKart,
+    setKartRating,
+  } = useRace();
   const now = useNow(15000);
   const liveNow = useNow(1000);
   const [stintLength, setStintLength] = useState(60);
@@ -307,6 +358,11 @@ export function PlanPanel() {
   const saveKart = (id: string, kart: string) => {
     setKart(id, kart);
     toast.success(kart ? `Kart ${kart} registado no turno.` : "Kart removido do turno.");
+  };
+
+  const saveKartRating = (id: string, rating: Stint["kartRating"]) => {
+    setKartRating(id, rating);
+    toast.success(rating ? `Avaliação "${rating}" registada.` : "Avaliação removida.");
   };
 
   const scrollToActive = () => {
@@ -395,6 +451,7 @@ export function PlanPanel() {
             onSave={setPendingEdit}
             onDelete={setConfirmDelete}
             onSaveKart={saveKart}
+            onSaveKartRating={saveKartRating}
           />
         ))}
       </div>

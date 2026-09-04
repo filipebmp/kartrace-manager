@@ -38,6 +38,8 @@ interface Ctx {
   setBallast: (id: string, kg: number) => void;
   /** Regista o kart utilizado num turno sem recalcular horários */
   setKart: (id: string, kart: string) => void;
+  /** Regista a avaliação do kart num turno sem recalcular horários */
+  setKartRating: (id: string, rating: Stint["kartRating"]) => void;
   insertStintAfter: (id: string | null) => void;
   removeStint: (id: string) => void;
   moveStint: (id: string, dir: -1 | 1) => void;
@@ -172,6 +174,12 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         patch((s) => ({
           ...s,
           stints: s.stints.map((st) => (st.id === id ? { ...st, kart } : st)),
+        })),
+
+      setKartRating: (id, kartRating) =>
+        patch((s) => ({
+          ...s,
+          stints: s.stints.map((st) => (st.id === id ? { ...st, kartRating } : st)),
         })),
 
       insertStintAfter: (id) =>
