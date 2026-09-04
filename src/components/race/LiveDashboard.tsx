@@ -61,6 +61,7 @@ export function LiveDashboard() {
   const { state, start, stop, boxNow, endBoxNow } = useRace();
   const now = useNow();
   const [confirmStop, setConfirmStop] = useState(false);
+  const [confirmBox, setConfirmBox] = useState(false);
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
   const planned = totalPlanned(state.stints);
