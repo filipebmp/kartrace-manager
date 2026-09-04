@@ -136,56 +136,18 @@ export function SettingsPanel() {
         />
       </div>
 
-      <div className="panel grid grid-cols-2 gap-3 p-4">
-        <p className="col-span-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Combustível
-        </p>
-        <Field
-          label="Autonomia"
-          suffix="min"
-          value={c.fuelAutonomy}
-          onChange={(v) => setConfig({ fuelAutonomy: Number(v) || 0 })}
-        />
-        <Field
-          label="Depósito"
-          suffix="kg"
-          value={c.fuelWeight}
-          onChange={(v) => setConfig({ fuelWeight: Number(v) || 0 })}
-        />
-        <Field
-          label="Treinos gastos"
-          suffix="min"
-          value={c.practiceTime}
-          onChange={(v) => setConfig({ practiceTime: Number(v) || 0 })}
-        />
-        <div>
-          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Ordem em boxes
-          </Label>
-          <select
-            className="h-9 w-full rounded-md border border-input bg-secondary px-2 text-sm"
-            value={c.boxOrder}
-            onChange={(e) => setConfig({ boxOrder: e.target.value as BoxOrder })}
-          >
-            <option value="BGT">Balança / Gás / Troca</option>
-            <option value="BTG">Balança / Troca / Gás</option>
-            <option value="GBT">Gás / Balança / Troca</option>
-          </select>
-        </div>
-        <div className="col-span-2 flex items-center justify-between rounded-md bg-secondary/60 px-3 py-2">
-          <span className="text-sm">Combustível conta como lastro</span>
-          <Switch
-            checked={c.fuelCountsAsBallast}
-            onCheckedChange={(v) => setConfig({ fuelCountsAsBallast: v })}
-          />
-        </div>
-        <div className="col-span-2 flex items-center justify-between rounded-md bg-secondary/60 px-3 py-2">
-          <span className="text-sm">Abastece antes da partida</span>
-          <Switch
-            checked={c.refuelBeforeStart}
-            onCheckedChange={(v) => setConfig({ refuelBeforeStart: v })}
-          />
-        </div>
+      <div className="panel p-4">
+        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Ordem em boxes
+        </Label>
+        <select
+          className="mt-1 h-9 w-full rounded-md border border-input bg-secondary px-2 text-sm"
+          value={c.boxOrder}
+          onChange={(e) => setConfig({ boxOrder: e.target.value as BoxOrder })}
+        >
+          <option value="BT">Balança / Troca</option>
+          <option value="TB">Troca / Balança</option>
+        </select>
       </div>
 
       <div className="flex gap-2">
