@@ -392,3 +392,44 @@ export function planWarnings(state: RaceState, computed: ComputedStint[]): strin
   }
   return out;
 }
+
+/** Aplica a edição de um turno com as mesmas regras usadas ao guardar:
+ *  durante a corrida só recalcula turnos ainda não executados e a correção
+ *  de um turno passado não empurra a hora de fim do turno em curso. */
+export function applyStintEdit(
+  state: RaceState,
+  id: string,
+  patch: Partial<Stint>,
+): { stints: Stint[]; from: number; recalculated: number } {
+  const idx = state.stints.findIndex((st) => st.id === id);
+  if (idx < 0) return { stints: state.stints, from: 0, recalculated: 0 };
+  const before = state.stints[idx];
+  let next = state.stints.map((st) => (st.id === id ? { ...st, ...patch } : st));
+
+  let from = idx;
+  if (state.startedAt !== null) {
+    const computed = computeStints({ ...state, stints: next });
+    const cur = state.liveIndex ?? currentStintIndex(computed, Date.now());
+    if (cur > from) {
+      from = cur;
+      let delta = (next[idx]?.duration ?? 0) - (before?.duration ?? 0);
+      if (delta !== 0) {
+        const adjusted = [...next];
+        for (let i = cur - 1; i > idx && delta !== 0; i--) {
+          const st = adjusted[i];
+          if (!st) continue;
+          const take = delta > 0 ? Math.min(delta, st.duration) : delta;
+          adjusted[i] = { ...st, duration: st.duration - take };
+          delta -= take;
+        }
+        next = adjusted;
+      }
+    }
+  }
+
+  return {
+    stints: rebalanceFrom(next, state.drivers, state.config, from),
+    from,
+    recalculated: Math.max(0, next.length - from),
+  };
+}
