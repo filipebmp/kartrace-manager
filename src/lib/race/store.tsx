@@ -96,10 +96,9 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             name: `Piloto ${i + 1}`,
             weight,
           }));
-          const pit = s.drivers.find(isPitDriver);
           return {
             ...s,
-            drivers: pit ? [...racers, pit] : racers,
+            drivers: ensurePitDriver(racers),
             stints: [],
             startedAt: null,
             planSnapshot: null,
