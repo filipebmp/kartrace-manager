@@ -99,7 +99,9 @@ export function RaceEventLog() {
         <div className="divide-y divide-border border-t border-border">
           {groups.length === 0 && (
             <p className="px-4 py-3 text-sm text-muted-foreground">
-              Ainda não há eventos registados nesta corrida.
+              {!state.startedAt
+                ? "A corrida ainda não iniciou — sem eventos."
+                : "Ainda não há eventos registados nesta corrida."}
             </p>
           )}
           {groups.map((g, gi) => (
