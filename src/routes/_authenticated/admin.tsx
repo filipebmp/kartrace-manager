@@ -71,13 +71,20 @@ function AdminPage() {
     },
   });
 
-  async function setStatus(id: string, status: TeamProfile["status"]) {
-    const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
+  async function confirmStatus() {
+    if (!pendingChange) return;
+    const { team, status } = pendingChange;
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({ status }).eq("id", team.id);
+    setSaving(false);
     if (error) {
       toast.error("Não foi possível guardar", { description: error.message });
       return;
     }
-    toast.success(status === "approved" ? "Equipa aprovada" : "Equipa recusada");
+    setPendingChange(null);
+    toast.success(status === "approved" ? "Equipa aprovada" : "Equipa recusada", {
+      description: team.team_name,
+    });
     queryClient.invalidateQueries({ queryKey: ["all-teams"] });
   }
 
