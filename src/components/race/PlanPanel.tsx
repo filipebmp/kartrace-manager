@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Plus, Trash2, Wand2 } from "lucide-react";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,7 @@ import {
 import { useNow, useRace } from "@/lib/race/store";
 
 export function PlanPanel() {
-  const { state, updateStint, insertStintAfter, removeStint, moveStint, setStints, setDrivers } =
-    useRace();
+  const { state, updateStint, insertStintAfter, removeStint, setStints, setDrivers } = useRace();
   const now = useNow(15000);
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -168,7 +167,7 @@ export function PlanPanel() {
                 <Label className="text-[10px] uppercase text-muted-foreground">Duração</Label>
                 <Input
                   type="number"
-                  value={c.duration}
+                  value={Math.round(c.duration)}
                   onChange={(e) => updateStint(c.id, { duration: Number(e.target.value) || 0 })}
                   className="h-9"
                 />
@@ -204,15 +203,6 @@ export function PlanPanel() {
               )}
 
               <div className="ml-auto flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => moveStint(c.id, -1)}>
-                  <ArrowUp className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => moveStint(c.id, 1)}>
-                  <ArrowDown className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => insertStintAfter(c.id)}>
-                  <Plus className="size-4" />
-                </Button>
                 <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(c.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
