@@ -264,6 +264,29 @@ export function LiveDashboard() {
             ))}
         </ul>
       </div>
+
+      <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminar a corrida?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A cronometragem é interrompida e o plano volta ao estado anterior à partida. Esta
+              ação não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                stop();
+                setConfirmStop(false);
+              }}
+            >
+              Terminar corrida
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
