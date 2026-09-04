@@ -325,12 +325,21 @@ export function LiveDashboard() {
         <ul className="space-y-2">
           {computed
             .slice(running ? idx + 1 : 0, (running ? idx + 1 : 0) + 6)
-            .map((c) => (
+            .map((c, i) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded-md bg-secondary/60 px-3 py-2"
+                className={`flex items-center justify-between rounded-md px-3 py-2 ${
+                  i === 0
+                    ? "border border-primary/30 bg-primary/5"
+                    : "bg-secondary/60"
+                }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {i === 0 && (
+                    <Badge variant="default" className="text-[10px] uppercase">
+                      Próximo
+                    </Badge>
+                  )}
                   <span className="tabular text-xs text-muted-foreground">
                     {fmtTimeOfDay(c.startAt)}
                   </span>
@@ -350,6 +359,7 @@ export function LiveDashboard() {
               </li>
             ))}
         </ul>
+
       </div>
 
       <AlertDialog open={confirmBox} onOpenChange={setConfirmBox}>
