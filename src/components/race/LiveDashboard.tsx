@@ -431,7 +431,7 @@ export function LiveDashboard() {
                   <span className="text-sm font-medium">{c.driver?.name ?? "—"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {c.suggestedBallast > 0 && (
+                  {!c.isPit && c.suggestedBallast > 0 && (
                     <Badge variant="outline" className="gap-1 border-warning/50 text-warning">
                       <AlertTriangle className="size-3" />
                       {c.suggestedBallast} kg
