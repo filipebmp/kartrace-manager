@@ -235,8 +235,6 @@ function AuthPage() {
                   >
                     Esqueci-me da palavra-passe
                   </button>
-                    Entrar
-                  </Button>
                 </form>
               </TabsContent>
 
