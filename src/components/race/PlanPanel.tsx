@@ -394,6 +394,7 @@ export function PlanPanel() {
             drivers={state.drivers}
             onSave={setPendingEdit}
             onDelete={setConfirmDelete}
+            onSaveKart={saveKart}
           />
         ))}
       </div>
