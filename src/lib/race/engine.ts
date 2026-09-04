@@ -216,7 +216,9 @@ export function defaultDrivers(): Driver[] {
   return list;
 }
 
-/** Gera um plano rodando os pilotos, com paragem de box entre turnos. */
+/** Gera um plano rodando os pilotos, com paragem de box entre turnos.
+ *  Garante exatamente `mandatoryStops` paragens e `mandatoryStops + 1`
+ *  turnos de condução, com o tempo de condução distribuído uniformemente. */
 export function generatePlan(
   drivers: Driver[],
   config: RaceConfig,
@@ -225,47 +227,41 @@ export function generatePlan(
   const racers = drivers.filter((d) => !d.isPit);
   const pit = drivers.find((d) => d.isPit);
   if (racers.length === 0) return [];
-  const closeOffset = pitLaneCloseOffset(config);
+  if (!pit || config.mandatoryStops <= 0) {
+    return [
+      { id: uid(), driverCode: racers[0]!.code, duration: config.raceDuration, ballast: 0 },
+    ];
+  }
 
-  // Garantir as paragens obrigatórias antes do fecho do pitlane:
-  // limitar a duração do turno para que caibam N paragens (ciclo turno+box).
-  const maxLenForStops =
-    Math.floor(closeOffset / Math.max(1, config.mandatoryStops)) -
-    config.pitDuration;
-  const effLength = Math.max(
-    config.minStint,
-    Math.min(stintLength, maxLenForStops),
-  );
+  // Número de paragens: as obrigatórias, mais as que forem precisas para
+  // respeitar a duração máxima de turno e a duração base pedida.
+  let stops = Math.max(0, config.mandatoryStops);
+  const drivingFor = (n: number) => config.raceDuration - n * config.pitDuration;
+  const perStintFor = (n: number) => drivingFor(n) / (n + 1);
+  const limit = Math.max(config.minStint, Math.min(stintLength, config.maxStint));
+  while (perStintFor(stops) > limit) stops++;
+  // Segurança: as paragens têm de caber dentro da corrida.
+  while (stops > 0 && drivingFor(stops) < (stops + 1) * config.minStint) stops--;
+
+  const nDrive = stops + 1;
+  const totalDriving = drivingFor(stops);
+  const base = Math.floor(totalDriving / nDrive);
+  // Distribuir o resto pelos primeiros turnos (ex.: 1416/29 → 24×49 + 5×48).
+  let remainder = totalDriving - base * nDrive;
 
   const stints: Stint[] = [];
-  let elapsed = 0;
-  let i = 0;
-
-  while (elapsed < config.raceDuration) {
-    const duration = Math.min(effLength, config.raceDuration - elapsed);
-    if (duration <= 0) break;
+  for (let i = 0; i < nDrive; i++) {
+    const duration = base + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
     const driver = racers[i % racers.length]!;
-    stints.push({
-      id: uid(),
-      driverCode: driver.code,
-      duration,
-      ballast: 0,
-    });
-    elapsed += duration;
-    i++;
-    // Não agendar paragens obrigatórias depois do fecho do pitlane (24:30):
-    // a troca tem de estar concluída na totalidade antes do fecho.
-    if (elapsed < config.raceDuration && pit) {
-      const pitTime = Math.min(config.pitDuration, config.raceDuration - elapsed);
-      if (pitTime > 0 && elapsed + pitTime <= closeOffset) {
-        stints.push({
-          id: uid(),
-          driverCode: pit.code,
-          duration: pitTime,
-          ballast: 0,
-        });
-        elapsed += pitTime;
-      }
+    stints.push({ id: uid(), driverCode: driver.code, duration, ballast: 0 });
+    if (i < stops) {
+      stints.push({
+        id: uid(),
+        driverCode: pit.code,
+        duration: config.pitDuration,
+        ballast: 0,
+      });
     }
   }
   return stints;
