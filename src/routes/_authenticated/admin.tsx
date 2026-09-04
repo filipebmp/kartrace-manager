@@ -1,0 +1,117 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useProfile, useSession, type TeamProfile } from "@/hooks/use-session";
+import { TeamHeader } from "@/components/race/TeamHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+const title = "Administração de equipas — Team Manager 24H Karting";
+const description = "Aprova ou recusa os registos das equipas que pedem acesso à aplicação.";
+
+export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({
+    meta: [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: AdminPage,
+});
+
+const statusLabel: Record<TeamProfile["status"], string> = {
+  pending: "Pendente",
+  approved: "Aprovada",
+  rejected: "Recusada",
+};
+
+function AdminPage() {
+  const { user } = useSession();
+  const { data: me } = useProfile(user?.id);
+  const isAdmin = me?.isAdmin ?? false;
+  const queryClient = useQueryClient();
+
+  const { data: teams, isLoading } = useQuery({
+    queryKey: ["all-teams"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as TeamProfile[];
+    },
+  });
+
+  async function setStatus(id: string, status: TeamProfile["status"]) {
+    const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
+    if (error) {
+      toast.error("Não foi possível guardar", { description: error.message });
+      return;
+    }
+    toast.success(status === "approved" ? "Equipa aprovada" : "Equipa recusada");
+    queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-10">
+      <TeamHeader teamName={me?.profile?.team_name} isAdmin={isAdmin} />
+      <main className="mx-auto w-full max-w-3xl space-y-3 px-4 py-4">
+        {!isAdmin ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sem acesso</CardTitle>
+              <CardDescription>Esta área é só para o administrador.</CardDescription>
+            </CardHeader>
+          </Card>
+        ) : isLoading ? (
+          <p className="text-sm text-muted-foreground">A carregar equipas…</p>
+        ) : (
+          (teams ?? []).map((t) => (
+            <Card key={t.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate text-base">{t.team_name}</CardTitle>
+                    <CardDescription className="truncate">
+                      {t.contact_name} · {t.email}
+                    </CardDescription>
+                  </div>
+                  <Badge
+                    variant={t.status === "approved" ? "default" : t.status === "pending" ? "secondary" : "destructive"}
+                  >
+                    {statusLabel[t.status]}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={t.status === "approved"}
+                  onClick={() => setStatus(t.id, "approved")}
+                >
+                  Aprovar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={t.status === "rejected"}
+                  onClick={() => setStatus(t.id, "rejected")}
+                >
+                  Recusar
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </main>
+    </div>
+  );
+}

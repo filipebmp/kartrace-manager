@@ -1,15 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CalendarClock, Gauge, Settings, Users } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LiveDashboard } from "@/components/race/LiveDashboard";
-import { PlanPanel } from "@/components/race/PlanPanel";
-import { DriversPanel } from "@/components/race/DriversPanel";
-import { SettingsPanel } from "@/components/race/SettingsPanel";
-import { RaceProvider } from "@/lib/race/store";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Gauge, ShieldCheck, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSession } from "@/hooks/use-session";
 
 const title = "Team Manager 24H Karting";
 const description =
-  "Gestão de equipa em corridas de resistência de karts: turnos, lastro e tempos de condução em tempo real.";
+  "Gestão de equipa em corridas de resistência de karts: turnos, lastro e tempos de condução em tempo real, com área privada por equipa.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,54 +19,65 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Index,
+  component: Landing,
 });
 
-function Index() {
+function Landing() {
+  const { session, loading } = useSession();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && session) navigate({ to: "/dashboard", replace: true });
+  }, [loading, session, navigate]);
+
   return (
-    <RaceProvider>
-      <div className="min-h-screen bg-background pb-10">
-        <header className="border-b border-border bg-sidebar/80 px-4 py-3 backdrop-blur">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-sidebar/80 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between">
           <h1 className="font-display text-lg font-bold uppercase tracking-[0.12em]">
             Team Manager <span className="text-primary">24H</span>
           </h1>
-        </header>
+          <Button asChild size="sm">
+            <Link to="/auth">Entrar</Link>
+          </Button>
+        </div>
+      </header>
 
-        <main className="mx-auto w-full max-w-3xl px-4 py-4">
-          <Tabs defaultValue="live">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="live" aria-label="Corrida">
-                <Gauge className="size-4" />
-                <span className="hidden sm:inline">Corrida</span>
-              </TabsTrigger>
-              <TabsTrigger value="plan" aria-label="Plano">
-                <CalendarClock className="size-4" />
-                <span className="hidden sm:inline">Plano</span>
-              </TabsTrigger>
-              <TabsTrigger value="drivers" aria-label="Pilotos">
-                <Users className="size-4" />
-                <span className="hidden sm:inline">Pilotos</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" aria-label="Regras">
-                <Settings className="size-4" />
-                <span className="hidden sm:inline">Regras</span>
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="live" className="mt-4">
-              <LiveDashboard />
-            </TabsContent>
-            <TabsContent value="plan" className="mt-4">
-              <PlanPanel />
-            </TabsContent>
-            <TabsContent value="drivers" className="mt-4">
-              <DriversPanel />
-            </TabsContent>
-            <TabsContent value="settings" className="mt-4">
-              <SettingsPanel />
-            </TabsContent>
-          </Tabs>
-        </main>
-      </div>
-    </RaceProvider>
+      <main className="mx-auto w-full max-w-3xl px-4 py-12">
+        <h2 className="font-display text-3xl font-bold uppercase leading-tight tracking-tight">
+          Estratégia de resistência, equipa a equipa
+        </h2>
+        <p className="mt-3 max-w-xl text-muted-foreground">
+          Plano de turnos, boxes, lastro e avisos do regulamento em tempo real. Cada equipa tem a sua
+          área privada e só vê a sua própria estratégia.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Button asChild>
+            <Link to="/auth">Entrar na área da equipa</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/auth">Registar equipa</Link>
+          </Button>
+        </div>
+
+        <ul className="mt-10 grid gap-4 sm:grid-cols-3">
+          <li className="rounded-lg border border-border p-4">
+            <Gauge className="size-5 text-primary" />
+            <p className="mt-2 font-semibold">Corrida ao vivo</p>
+            <p className="text-sm text-muted-foreground">Turno atual, próxima box e tempos restantes.</p>
+          </li>
+          <li className="rounded-lg border border-border p-4">
+            <Users className="size-5 text-primary" />
+            <p className="mt-2 font-semibold">Pilotos e lastro</p>
+            <p className="text-sm text-muted-foreground">Pesos, lastro sugerido e confirmação na troca.</p>
+          </li>
+          <li className="rounded-lg border border-border p-4">
+            <ShieldCheck className="size-5 text-primary" />
+            <p className="mt-2 font-semibold">Acesso validado</p>
+            <p className="text-sm text-muted-foreground">Só equipas aprovadas pelo administrador entram.</p>
+          </li>
+        </ul>
+      </main>
+    </div>
   );
 }
