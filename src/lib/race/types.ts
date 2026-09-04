@@ -1,9 +1,10 @@
-export type BoxOrder = "BT" | "TB";
+export type Category = "PRO" | "AM";
 
 export interface Driver {
   id: string;
   code: number;
   name: string;
+  /** peso do piloto totalmente equipado (kg) */
   weight: number;
   isPit?: boolean;
 }
@@ -13,7 +14,7 @@ export interface Stint {
   driverCode: number | null;
   /** duração em minutos */
   duration: number;
-  /** lastro colocado no kart (kg) */
+  /** lastro que o piloto leva consigo para a pesagem (kg) */
   ballast: number;
   note?: string;
 }
@@ -21,16 +22,26 @@ export interface Stint {
 export interface RaceConfig {
   teamName: string;
   eventName: string;
+  category: Category;
   /** duração total da prova em minutos */
   raceDuration: number;
-  minTotalWeight: number;
-  kartWeight: number;
+  /** peso mínimo do piloto equipado à saída do kart (kg) */
+  minDriverWeight: number;
+  /** turno mínimo / máximo em minutos */
+  minStint: number;
   maxStint: number;
-  maxTotalDriving: number;
+  /** condução mínima por piloto em todo o evento (min) */
   minTotalDriving: number;
-  restBetweenStints: number;
-  boxOrder: BoxOrder;
+  /** alvo máximo de condução por piloto (gestão interna da equipa) */
+  maxTotalDriving: number;
+  /** paragens obrigatórias (troca de kart) */
+  mandatoryStops: number;
+  /** tempo mínimo de permanência nas boxes (min) */
+  minPitDuration: number;
+  /** duração planeada de cada paragem (min) */
   pitDuration: number;
+  /** minutos finais em que o pitlane está encerrado */
+  pitLaneClosesBefore: number;
 }
 
 export interface RaceState {
@@ -51,9 +62,13 @@ export interface ComputedStint extends Stint {
   endOffset: number;
   startAt: number;
   endAt: number;
-  combinedWeight: number;
+  /** peso do piloto equipado + lastro, à passagem pela balança */
+  weighInWeight: number;
+  /** diferença para o mínimo regulamentar */
   weightDiff: number;
   suggestedBallast: number;
+  /** penalização estimada (segundos) por falta de peso */
+  weightPenalty: number;
   warnings: string[];
 }
 
@@ -63,4 +78,15 @@ export interface DriverTotals {
   stints: number;
   belowMin: boolean;
   aboveMax: boolean;
+}
+
+export interface RaceSummary {
+  plannedMinutes: number;
+  stops: number;
+  requiredStops: number;
+  missingStops: number;
+  /** penalização estimada em voltas por paragens em falta */
+  lapPenalty: number;
+  /** paragens planeadas depois do fecho do pitlane */
+  stopsAfterPitClose: number;
 }
