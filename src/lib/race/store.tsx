@@ -190,9 +190,10 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           const stints = s.stints.map((x) => ({ ...x }));
           const currentStint = stints[idx];
           if (!currentStint) return s;
-          // A duração da box é sempre exatamente a definida no regulamento.
-          // Não acumular nem transferir diferenças de tempo entre paragens.
-          currentStint.duration = s.config.minPitDuration;
+          // A paragem já terminada regista o tempo real decorrido, para o
+          // cronómetro seguinte arrancar exatamente agora. As paragens futuras
+          // mantêm sempre a duração do regulamento (ver rebalanceFrom).
+          currentStint.duration = Math.max(0, (now - cur.startAt) / MIN);
           return {
             ...s,
             stints: rebalanceFrom(stints, s.drivers, s.config, idx),
