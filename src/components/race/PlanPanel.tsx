@@ -105,9 +105,14 @@ export function PlanPanel() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="tabular">
-                Peso: {Math.round(c.combinedWeight)} kg
-              </Badge>
+              {!c.isPit && (
+                <Badge
+                  variant="outline"
+                  className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}
+                >
+                  Balança: {c.weighInWeight.toFixed(1)} kg
+                </Badge>
+              )}
               {c.suggestedBallast > 0 && c.suggestedBallast !== c.ballast && !c.isPit && (
                 <button
                   type="button"
@@ -117,6 +122,7 @@ export function PlanPanel() {
                   Sugerir {c.suggestedBallast} kg
                 </button>
               )}
+
               <div className="ml-auto flex gap-1">
                 <Button size="icon" variant="ghost" onClick={() => moveStint(c.id, -1)}>
                   <ArrowUp className="size-4" />

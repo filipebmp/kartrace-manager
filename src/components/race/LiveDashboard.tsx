@@ -10,7 +10,9 @@ import {
   fmtTimeOfDay,
   MIN,
   raceStartTs,
+  raceSummary,
   totalPlanned,
+
 } from "@/lib/race/engine";
 import { useNow, useRace } from "@/lib/race/store";
 
@@ -48,6 +50,8 @@ export function LiveDashboard() {
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
   const planned = totalPlanned(state.stints);
+  const summary = raceSummary(state, computed);
+
 
   if (now === null) {
     return <div className="panel h-64 animate-pulse" aria-hidden />;
