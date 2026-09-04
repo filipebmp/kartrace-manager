@@ -171,6 +171,38 @@ function AdminPage() {
         )}
       </main>
 
+      <AlertDialog
+        open={pendingChange !== null}
+        onOpenChange={(open) => !open && setPendingChange(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingChange?.status === "approved" ? "Aprovar equipa?" : "Recusar equipa?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingChange
+                ? pendingChange.status === "approved"
+                  ? `A equipa ${pendingChange.team.team_name} (${pendingChange.team.email}) passa a ter acesso ao dashboard e aos dados da sua corrida.`
+                  : `A equipa ${pendingChange.team.team_name} (${pendingChange.team.email}) fica sem acesso ao dashboard. Podes voltar a aprovar mais tarde.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmStatus();
+              }}
+              disabled={saving}
+            >
+              {saving ? "A guardar…" : pendingChange?.status === "approved" ? "Aprovar" : "Recusar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
