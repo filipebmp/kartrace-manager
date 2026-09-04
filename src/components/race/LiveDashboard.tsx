@@ -349,7 +349,7 @@ export function LiveDashboard() {
                         )}
                       </div>
                     </div>
-                    {nextAction && (
+                    {nextAction && running && (
                       <Badge variant="outline" className="shrink-0 tabular">
                         em {fmtClock(nextAction.startAt - now)}
                       </Badge>
