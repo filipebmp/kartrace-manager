@@ -48,6 +48,7 @@ interface CardProps {
   onDelete: (id: string) => void;
   onSaveKart: (id: string, kart: string) => void;
   onSaveKartRating: (id: string, rating: Stint["kartRating"]) => void;
+  onSaveBallastConfirmed: (id: string, confirmed: boolean) => void;
 }
 
 const KART_RATINGS: Stint["kartRating"][] = [
@@ -300,7 +301,7 @@ export function PlanPanel() {
   const [stintLength, setStintLength] = useState(60);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
-  const [hidePitStints, setHidePitStints] = useState(false);
+  const [hidePitStints, setHidePitStints] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const hasScrolled = useRef(false);
   const computed = computeStints(state);
