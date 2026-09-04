@@ -83,6 +83,13 @@ export function LiveDashboard() {
   const raceElapsed = now - startTs;
   const raceRemaining = startTs + planned * MIN - now;
   const stintRemaining = current ? current.endAt - now : 0;
+  const stintElapsedMin = current ? (now - current.startAt) / MIN : 0;
+  const belowMinStint =
+    !!current && !current.isPit && stintElapsedMin < state.config.minStint;
+  const handleBoxClick = () => {
+    if (belowMinStint) setConfirmBox(true);
+    else boxNow();
+  };
   const alerts = [...(current?.warnings ?? []), ...planWarnings(state, computed)];
   // Paragens concluídas (e válidas: terminadas antes do fecho do pitlane)
   const closeOffset = state.config.raceDuration - state.config.pitLaneClosesBefore;
