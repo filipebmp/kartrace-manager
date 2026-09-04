@@ -48,7 +48,12 @@ export function RaceEventLog() {
   }, []);
 
   // Recarrega ao montar e sempre que a corrida avança de turno (novo evento).
+  // Sem corrida iniciada não há eventos a mostrar (limpa registos de corridas anteriores).
   useEffect(() => {
+    if (!state.startedAt) {
+      setEvents([]);
+      return;
+    }
     void load();
   }, [load, state.liveIndex, state.startedAt]);
 
