@@ -108,7 +108,7 @@ export function PlanPanel() {
 
 
       <div className="space-y-2">
-        {visibleComputed.map((c) => (
+        {visibleComputed.map((c, visiblePos) => (
           <div
             key={c.id}
             className={`panel p-3 ${idx === c.index ? "ring-2 ring-primary" : ""} ${
