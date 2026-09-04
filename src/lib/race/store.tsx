@@ -158,7 +158,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
             stints.splice(idx + 1, 0, {
               id: uid(),
               driverCode: pitDriver.code,
-              duration: s.config.pitDuration,
+              duration: s.config.minPitDuration,
               ballast: 0,
             });
           }
