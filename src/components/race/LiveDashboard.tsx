@@ -61,6 +61,7 @@ export function LiveDashboard() {
   const { state, start, stop, boxNow, endBoxNow } = useRace();
   const now = useNow();
   const [confirmStop, setConfirmStop] = useState(false);
+  const [confirmBox, setConfirmBox] = useState(false);
   const computed = computeStints(state);
   const startTs = raceStartTs(state);
   const planned = totalPlanned(state.stints);
@@ -82,6 +83,13 @@ export function LiveDashboard() {
   const raceElapsed = now - startTs;
   const raceRemaining = startTs + planned * MIN - now;
   const stintRemaining = current ? current.endAt - now : 0;
+  const stintElapsedMin = current ? (now - current.startAt) / MIN : 0;
+  const belowMinStint =
+    !!current && !current.isPit && stintElapsedMin < state.config.minStint;
+  const handleBoxClick = () => {
+    if (belowMinStint) setConfirmBox(true);
+    else boxNow();
+  };
   const alerts = [...(current?.warnings ?? []), ...planWarnings(state, computed)];
   // Paragens concluídas (e válidas: terminadas antes do fecho do pitlane)
   const closeOffset = state.config.raceDuration - state.config.pitLaneClosesBefore;
@@ -115,7 +123,7 @@ export function LiveDashboard() {
                   variant="outline"
                   size="sm"
                   className="border-warning/50 text-warning"
-                  onClick={boxNow}
+                  onClick={handleBoxClick}
                   disabled={!current}
                 >
                   <ArrowDownToLine className="size-4" /> Box
@@ -266,6 +274,29 @@ export function LiveDashboard() {
             ))}
         </ul>
       </div>
+
+      <AlertDialog open={confirmBox} onOpenChange={setConfirmBox}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Turno abaixo do mínimo</AlertDialogTitle>
+            <AlertDialogDescription>
+              O piloto ainda não cumpriu o tempo mínimo de turno ({state.config.minStint} min).
+              Queres mesmo assim mandar o piloto para a box?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                boxNow();
+                setConfirmBox(false);
+              }}
+            >
+              Fazer box
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
         <AlertDialogContent>
