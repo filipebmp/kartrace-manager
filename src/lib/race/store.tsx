@@ -34,6 +34,8 @@ interface Ctx {
   removeDriver: (id: string) => void;
   setStints: (stints: Stint[]) => void;
   updateStint: (id: string, patch: Partial<Stint>) => number;
+  /** Define o lastro de um turno sem recalcular horários (confirmação via rádio) */
+  setBallast: (id: string, kg: number) => void;
   insertStintAfter: (id: string | null) => void;
   removeStint: (id: string) => void;
   moveStint: (id: string, dir: -1 | 1) => void;
