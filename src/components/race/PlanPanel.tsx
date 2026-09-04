@@ -81,7 +81,8 @@ function PlanStintCard({
     setDuration(c.duration);
     setBallast(c.ballast);
     setKart(c.kart ?? "");
-  }, [c.id, c.driverCode, c.duration, c.ballast, c.kart]);
+    setKartRating(c.kartRating);
+  }, [c.id, c.driverCode, c.duration, c.ballast, c.kart, c.kartRating]);
 
   const dirty =
     driverCode !== c.driverCode ||
