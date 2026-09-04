@@ -353,9 +353,49 @@ export function PlanPanel() {
     setConfirmDelete(null);
   };
 
+  const labelFor = (c: ComputedStint) =>
+    c.isPit ? "Box" : `Turno ${driveStintNumber(computed, c.index)}`;
+
+  const preview = (() => {
+    if (!pendingEdit) return null;
+    const res = applyStintEdit(state, pendingEdit.id, pendingEdit.patch);
+    const after = computeStints({ ...state, stints: res.stints });
+    const rows = computed
+      .map((old, i) => ({ old, next: after[i] }))
+      .filter(
+        (r) => r.next && (r.next.duration !== r.old.duration || r.next.endAt !== r.old.endAt),
+      );
+    const edited = computed.find((c) => c.id === pendingEdit.id) ?? null;
+    return { rows, edited, after, count: res.recalculated };
+  })();
+
+  const logEdit = async (edit: PendingEdit) => {
+    const target = state.stints.find((st) => st.id === edit.id);
+    const computedTarget = computed.find((c) => c.id === edit.id);
+    if (!target) return;
+    const { data } = await supabase.auth.getUser();
+    const uid = data.user?.id;
+    if (!uid) return;
+    const fields = Object.keys(edit.patch) as (keyof Stint)[];
+    const changes = {
+      before: Object.fromEntries(fields.map((f) => [f, target[f] ?? null])),
+      after: Object.fromEntries(fields.map((f) => [f, edit.patch[f] ?? null])),
+      recalculated: preview?.count ?? 0,
+      race_started_at: state.startedAt,
+    };
+    await supabase.from("stint_audit_log").insert({
+      user_id: uid,
+      stint_id: edit.id,
+      stint_label: computedTarget ? labelFor(computedTarget) : "",
+      changes,
+    });
+  };
+
   const confirmSave = () => {
     if (pendingEdit) {
-      const count = updateStint(pendingEdit.id, pendingEdit.patch);
+      const edit = pendingEdit;
+      void logEdit(edit);
+      const count = updateStint(edit.id, edit.patch);
       toast.success(
         count === 1
           ? "Plano guardado. 1 turno recalculado."
@@ -364,6 +404,7 @@ export function PlanPanel() {
     }
     setPendingEdit(null);
   };
+
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 300);
