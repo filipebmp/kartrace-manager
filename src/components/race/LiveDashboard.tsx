@@ -208,6 +208,20 @@ export function LiveDashboard() {
   const planned = totalPlanned(state.stints);
   const summary = raceSummary(state, computed);
 
+  // Terminar box automaticamente: quando a paragem em curso chega ao fim do
+  // tempo planeado, o turno seguinte começa sem intervenção do utilizador.
+  useEffect(() => {
+    if (now === null || state.startedAt === null || !state.config.autoEndBox) return;
+    const i = state.liveIndex ?? currentStintIndex(computed, now);
+    const cur = i >= 0 && i < computed.length ? computed[i] : undefined;
+    if (cur?.isPit && now >= cur.endAt) {
+      endBoxNow();
+      toast.success("Box terminada automaticamente");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, state.startedAt, state.config.autoEndBox, state.liveIndex, endBoxNow]);
+
+
 
   if (now === null) {
     return <div className="panel h-64 animate-pulse" aria-hidden />;

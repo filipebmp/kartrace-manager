@@ -143,6 +143,22 @@ export function SettingsPanel() {
           value={c.pitLaneClosesBefore}
           onChange={(v) => setConfig({ pitLaneClosesBefore: v })}
         />
+        <div className="col-span-2 flex items-center justify-between gap-3 rounded-md border border-border p-3">
+          <div>
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Terminar box automaticamente
+            </Label>
+            <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+              Quando o tempo da box chega ao fim, o turno seguinte começa sozinho. Pode ligar
+              ou desligar a qualquer momento, mesmo durante a corrida.
+            </p>
+          </div>
+          <Switch
+            checked={c.autoEndBox}
+            onCheckedChange={(v) => setConfig({ autoEndBox: v })}
+            aria-label="Terminar box automaticamente"
+          />
+        </div>
 
       </div>
 

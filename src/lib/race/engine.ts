@@ -252,6 +252,7 @@ export function defaultConfig(): RaceConfig {
     minPitDuration: 3,
     pitDuration: 3,
     pitLaneClosesBefore: 30,
+    autoEndBox: false,
   };
 }
 
