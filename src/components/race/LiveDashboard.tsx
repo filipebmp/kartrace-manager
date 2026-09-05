@@ -45,6 +45,55 @@ import { RaceEventLog } from "./RaceEventLog";
 
 
 
+const KART_RATING_ORDER = [
+  { key: "não sei", label: "Não sei", plural: "Não sei" },
+  { key: "muito bom", label: "Muito bons", plural: "Muito bons" },
+  { key: "bom", label: "Bons", plural: "Bons" },
+  { key: "médio", label: "Médios", plural: "Médios" },
+  { key: "mau", label: "Maus", plural: "Maus" },
+  { key: "muito mau", label: "Muito maus", plural: "Muito maus" },
+] as const;
+
+function KartsSummary() {
+  const { state } = useRace();
+
+  const groups = new Map<string, Set<string>>();
+  for (const st of state.stints) {
+    const kart = st.kart?.trim();
+    if (!kart) continue;
+    const rating = st.kartRating ?? "não sei";
+    if (!groups.has(rating)) groups.set(rating, new Set());
+    groups.get(rating)!.add(kart);
+  }
+  const used = [...groups.values()].reduce((acc, s) => acc + s.size, 0);
+  if (used === 0) return null;
+
+  const sortKarts = (a: string, b: string) =>
+    a.localeCompare(b, "pt", { numeric: true, sensitivity: "base" });
+
+  return (
+    <div className="panel overflow-hidden">
+      <div className="border-b border-border px-4 py-3">
+        <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <Flag className="size-4" /> Karts utilizados
+        </span>
+      </div>
+      <ul className="space-y-3 px-4 py-4">
+        {KART_RATING_ORDER.map(({ key, label }) => {
+          const karts = [...(groups.get(key) ?? [])].sort(sortKarts);
+          if (karts.length === 0) return null;
+          return (
+            <li key={key} className="text-sm">
+              <span className="font-medium">{label}: </span>
+              <span className="text-muted-foreground">{karts.join(", ")}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function Stat({
   label,
   value,
@@ -771,6 +820,8 @@ export function LiveDashboard() {
           )}
         </div>
       )}
+
+      <KartsSummary />
 
       <RaceEventLog />
 
