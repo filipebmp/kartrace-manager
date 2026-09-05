@@ -48,6 +48,8 @@ export interface RaceConfig {
   pitDuration: number;
   /** minutos finais em que o pitlane está encerrado */
   pitLaneClosesBefore: number;
+  /** terminar a box automaticamente quando o tempo planeado chega ao fim */
+  autoEndBox: boolean;
 }
 
 export interface RaceState {
