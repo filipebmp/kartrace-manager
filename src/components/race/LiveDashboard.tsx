@@ -772,6 +772,8 @@ export function LiveDashboard() {
         </div>
       )}
 
+      <KartsSummary />
+
       <RaceEventLog />
 
       <AlertDialog open={confirmBox} onOpenChange={setConfirmBox}>
