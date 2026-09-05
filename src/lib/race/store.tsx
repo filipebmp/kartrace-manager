@@ -23,6 +23,7 @@ import {
 import type { Driver, RaceConfig, RaceState, Stint } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 const KEY = "kart24h-state-v3";
 
@@ -179,6 +180,42 @@ export function RaceProvider({ children }: { children: ReactNode }) {
     }, 800);
     return () => clearTimeout(t);
   }, [state, hydrated, userId]);
+
+  // Sincronização em tempo real entre dispositivos da mesma equipa:
+  // uma ação no telemóvel aparece de imediato no computador da box (e vice-versa).
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    if (!userId || !hydrated) return;
+    const channel = supabase
+      .channel(`race_states_sync:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "race_states",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const remote = (payload.new as { state?: Partial<RaceState> } | null)?.state;
+          if (!remote || Object.keys(remote).length === 0) return;
+          const merged = merge(remote);
+          // Ignora o eco das nossas próprias gravações.
+          if (JSON.stringify(merged) === JSON.stringify(stateRef.current)) return;
+          setState(merged);
+          toast.info("Atualizado a partir de outro dispositivo");
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId, hydrated]);
+
 
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
