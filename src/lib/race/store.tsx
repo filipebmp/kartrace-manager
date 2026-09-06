@@ -20,7 +20,7 @@ import {
 
   uid,
 } from "./engine";
-import type { Driver, RaceConfig, RaceState, Stint } from "./types";
+import type { Driver, Kart, KartRating, RaceConfig, RaceState, Stint } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -47,6 +47,12 @@ interface Ctx {
   setKart: (id: string, kart: string) => void;
   /** Regista a avaliação do kart num turno sem recalcular horários */
   setKartRating: (id: string, rating: Stint["kartRating"]) => void;
+  /** Adiciona um kart à lista manual de karts */
+  addKart: (number: string, rating: KartRating) => void;
+  /** Atualiza um kart da lista manual */
+  updateKart: (id: string, patch: Partial<Kart>) => void;
+  /** Remove um kart da lista manual */
+  removeKart: (id: string) => void;
   insertStintAfter: (id: string | null) => void;
   removeStint: (id: string) => void;
   moveStint: (id: string, dir: -1 | 1) => void;
@@ -71,6 +77,7 @@ function merge(saved: Partial<RaceState> | null | undefined): RaceState {
     ...saved,
     config: { ...base.config, ...(saved.config ?? {}) },
     drivers: ensurePitDriver(Array.isArray(saved.drivers) ? saved.drivers : base.drivers),
+    karts: Array.isArray(saved.karts) ? saved.karts : base.karts,
   };
 }
 
@@ -354,6 +361,18 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           stints: s.stints.map((st) => (st.id === id ? { ...st, kartRating } : st)),
         })),
 
+      addKart: (number, rating) =>
+        patch((s) => ({
+          ...s,
+          karts: [...(s.karts ?? []), { id: uid(), number: number.trim(), rating }],
+        })),
+      updateKart: (id, kartPatch) =>
+        patch((s) => ({
+          ...s,
+          karts: (s.karts ?? []).map((k) => (k.id === id ? { ...k, ...kartPatch } : k)),
+        })),
+      removeKart: (id) =>
+        patch((s) => ({ ...s, karts: (s.karts ?? []).filter((k) => k.id !== id) })),
       insertStintAfter: (id) =>
         patch((s) => {
           const entry: Stint = {

@@ -26,6 +26,16 @@ export interface Stint {
   note?: string | undefined;
 }
 
+export type KartRating = "não sei" | "muito bom" | "bom" | "médio" | "mau" | "muito mau";
+
+export interface Kart {
+  id: string;
+  /** número do kart */
+  number: string;
+  rating: KartRating;
+  note?: string | undefined;
+}
+
 export interface RaceConfig {
   teamName: string;
   eventName: string;
@@ -60,6 +70,8 @@ export interface RaceState {
   startedAt: number | null;
   /** índice do turno/box em curso durante a corrida (avança só por ação do utilizador) */
   liveIndex: number | null;
+  /** karts registados manualmente pela equipa */
+  karts: Kart[];
   /** cópia do plano no momento da partida, reposta ao terminar */
   planSnapshot: Stint[] | null;
 }

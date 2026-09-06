@@ -65,6 +65,14 @@ function KartsSummary() {
     if (!groups.has(rating)) groups.set(rating, new Set());
     groups.get(rating)!.add(kart);
   }
+  for (const k of state.karts ?? []) {
+    const kart = k.number.trim();
+    if (!kart) continue;
+    // A classificação manual do separador Karts tem prioridade.
+    for (const set of groups.values()) set.delete(kart);
+    if (!groups.has(k.rating)) groups.set(k.rating, new Set());
+    groups.get(k.rating)!.add(kart);
+  }
   const used = [...groups.values()].reduce((acc, s) => acc + s.size, 0);
   if (used === 0) return null;
 
