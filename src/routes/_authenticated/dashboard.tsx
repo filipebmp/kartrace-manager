@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarClock, Gauge, Settings, Users, Clock } from "lucide-react";
+import { CalendarClock, Flag, Gauge, Settings, Users, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LiveDashboard } from "@/components/race/LiveDashboard";
 import { PlanPanel } from "@/components/race/PlanPanel";
 import { DriversPanel } from "@/components/race/DriversPanel";
 import { SettingsPanel } from "@/components/race/SettingsPanel";
+import { KartsPanel } from "@/components/race/KartsPanel";
 import { TeamHeader } from "@/components/race/TeamHeader";
 import { RaceProvider } from "@/lib/race/store";
 import { useProfile, useSession } from "@/hooks/use-session";
@@ -63,7 +64,7 @@ function DashboardPage() {
         ) : (
           <RaceProvider>
             <Tabs defaultValue="live">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="live" aria-label="Corrida">
                   <Gauge className="size-4" />
                   <span className="hidden sm:inline">Corrida</span>
@@ -75,6 +76,10 @@ function DashboardPage() {
                 <TabsTrigger value="drivers" aria-label="Pilotos">
                   <Users className="size-4" />
                   <span className="hidden sm:inline">Pilotos</span>
+                </TabsTrigger>
+                <TabsTrigger value="karts" aria-label="Karts">
+                  <Flag className="size-4" />
+                  <span className="hidden sm:inline">Karts</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" aria-label="Regras">
                   <Settings className="size-4" />
@@ -89,6 +94,9 @@ function DashboardPage() {
               </TabsContent>
               <TabsContent value="drivers" className="mt-4">
                 <DriversPanel />
+              </TabsContent>
+              <TabsContent value="karts" className="mt-4">
+                <KartsPanel />
               </TabsContent>
               <TabsContent value="settings" className="mt-4">
                 <SettingsPanel />
