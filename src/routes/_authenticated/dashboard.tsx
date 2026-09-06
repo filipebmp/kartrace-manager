@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarClock, Car, Gauge, Settings, Users, Clock } from "lucide-react";
+import { CalendarClock, Gauge, Settings, Users, Clock } from "lucide-react";
+import { KartIcon } from "@/components/race/KartIcon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LiveDashboard } from "@/components/race/LiveDashboard";
 import { PlanPanel } from "@/components/race/PlanPanel";
@@ -78,7 +79,7 @@ function DashboardPage() {
                   <span className="hidden sm:inline">Pilotos</span>
                 </TabsTrigger>
                 <TabsTrigger value="karts" aria-label="Karts">
-                  <Car className="size-4" />
+                  <KartIcon className="size-4" />
                   <span className="hidden sm:inline">Karts</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" aria-label="Regras">
