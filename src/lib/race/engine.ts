@@ -327,6 +327,7 @@ export function defaultState(): RaceState {
     config,
     drivers,
     stints: generatePlan(drivers, config),
+    karts: [],
     startedAt: null,
     liveIndex: null,
     planSnapshot: null,
