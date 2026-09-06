@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Flag, Plus, Trash2 } from "lucide-react";
+import { Car, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +42,7 @@ export function KartsPanel() {
     <div className="space-y-4">
       <div className="panel p-4">
         <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          <Flag className="size-4" /> Adicionar kart
+          <Car className="size-4" /> Adicionar kart
         </span>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="w-28">
