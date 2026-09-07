@@ -60,6 +60,33 @@ export interface FilaDTO {
   tamanho: number;
 }
 
+export interface KartRatingDTO {
+  kart_id: string;
+  grade: number | null;
+  confianca: "sem_dados" | "baixa" | "media" | "alta";
+  avg_delta_seconds: number | null;
+  sample_count: number;
+  distinct_teams: number;
+}
+
+export interface PrevisaoEntryDTO {
+  kart_id: string;
+  status: "disponivel_agora" | "em_pista";
+  minutos_ate_disponivel: number;
+  grade: number | null;
+  confianca_tempo: "baixa" | "media" | "alta";
+}
+
+export type TeamSkillTier = "TOPO" | "MEDIA" | "DESCONHECIDA";
+
+export interface EquipaParaClassificarDTO {
+  numero_equipa: string;
+  nome: string;
+  melhor_tempo_seconds: number | null;
+  total_voltas: number;
+  tier_atual: TeamSkillTier | null;
+}
+
 export interface KartFeedSnapshot {
   karts: Record<string, KartDTO>;
   equipas: Record<string, EquipaDTO>;
@@ -270,4 +297,72 @@ export function useKartFeedActions() {
   );
 
   return { triarKart, sortearKart, marcarForaDeServico, reintegrarKart, confirmarPitout };
+}
+
+// --- Ratings e previsão (polling REST — derivados, não eventos push) ----
+
+async function getJson<T>(path: string): Promise<T> {
+  const base = backendHttpUrl();
+  if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
+  const res = await fetch(`${base}${path}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => res.statusText);
+    throw new Error(detail || `Falha ao chamar ${path}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Faz polling a um endpoint REST a um intervalo fixo, enquanto o
+ * componente que usa o hook estiver montado. Usado para dados derivados
+ * (ratings, previsão) que não vêm como eventos push pelo WebSocket —
+ * evita recalcular/duplicar essa lógica em TypeScript. */
+function usePolledEndpoint<T>(path: string, intervalMs: number, enabled = true) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+
+    async function fetchOnce() {
+      try {
+        const result = await getJson<T>(path);
+        if (!cancelled) {
+          setData(result);
+          setError(null);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      }
+    }
+
+    fetchOnce();
+    const interval = setInterval(fetchOnce, intervalMs);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [path, intervalMs, enabled]);
+
+  return { data, error };
+}
+
+export function useKartRatings(enabled = true) {
+  return usePolledEndpoint<Record<string, KartRatingDTO>>("/karts/ratings", 5000, enabled);
+}
+
+export function useKartForecast(enabled = true) {
+  return usePolledEndpoint<PrevisaoEntryDTO[]>("/karts/previsao", 5000, enabled);
+}
+
+export function useEquipasParaClassificar(enabled = true) {
+  return usePolledEndpoint<EquipaParaClassificarDTO[]>("/staff/equipas", 4000, enabled);
+}
+
+export function useDefinirEquipaTier() {
+  return useCallback(
+    (numeroEquipa: string, tier: TeamSkillTier | null) =>
+      postJson("/staff/equipa_tier", { numero_equipa: numeroEquipa, tier }),
+    [],
+  );
 }

@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowRight, Radio, RotateCcw, Shuffle, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, Radio, RotateCcw, Shuffle, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useKartFeed, useKartFeedActions, type KartDTO } from "@/lib/kartFeed/kartFeedClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  useKartFeed,
+  useKartFeedActions,
+  useKartRatings,
+  useKartForecast,
+  type KartDTO,
+  type KartRatingDTO,
+} from "@/lib/kartFeed/kartFeedClient";
+import { TeamClassificationPanel } from "@/components/race/TeamClassificationPanel";
 
 const CATEGORY_BADGE_CLASS: Record<string, string> = {
   BOM: "border-emerald-500/40 text-emerald-500",
@@ -14,7 +23,30 @@ const CATEGORY_BADGE_CLASS: Record<string, string> = {
   SEM_DADOS: "border-muted-foreground/30 text-muted-foreground",
 };
 
-function KartChip({ kart }: { kart: KartDTO | undefined }) {
+const GRADE_BADGE_CLASS: Record<number, string> = {
+  5: "border-emerald-500/40 text-emerald-500",
+  4: "border-emerald-500/30 text-emerald-400",
+  3: "border-amber-500/40 text-amber-500",
+  2: "border-red-500/30 text-red-400",
+  1: "border-red-500/40 text-red-500",
+};
+
+function GradeBadge({ grade }: { grade: number | null | undefined }) {
+  if (grade === null || grade === undefined) return null;
+  return (
+    <Badge variant="outline" className={`text-[10px] ${GRADE_BADGE_CLASS[grade] ?? ""}`}>
+      ★ {grade}/5
+    </Badge>
+  );
+}
+
+function KartChip({
+  kart,
+  grade,
+}: {
+  kart: KartDTO | undefined;
+  grade?: number | null | undefined;
+}) {
   if (!kart) return null;
   return (
     <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
@@ -25,6 +57,7 @@ function KartChip({ kart }: { kart: KartDTO | undefined }) {
       >
         {kart.ultima_categoria}
       </Badge>
+      <GradeBadge grade={grade} />
       {kart.notas ? (
         <span className="text-xs text-muted-foreground" title={kart.notas}>
           <AlertTriangle className="size-3.5" />
@@ -41,6 +74,7 @@ function KartChip({ kart }: { kart: KartDTO | undefined }) {
 export function StaffQueuePanel() {
   const { snapshot, status } = useKartFeed();
   const { triarKart, sortearKart, marcarForaDeServico, reintegrarKart } = useKartFeedActions();
+  const { data: ratings } = useKartRatings(status === "online");
   const [numeroEquipaSorteio, setNumeroEquipaSorteio] = useState("");
   const [motivoAvaria, setMotivoAvaria] = useState<Record<string, string>>({});
 
@@ -76,6 +110,7 @@ export function StaffQueuePanel() {
     );
   }
 
+  const gradeOf = (kartId: string): number | null | undefined => ratings?.[kartId]?.grade;
   const kartsEspera = snapshot.fila_espera.map((id) => snapshot.karts[id]);
 
   async function handleTriar(kartId: string, cor: "VERMELHA" | "AZUL") {
@@ -138,130 +173,222 @@ export function StaffQueuePanel() {
         Live Timing ligado — {karts.length} karts monitorizados
       </div>
 
-      {/* Fila de Espera / Triagem */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Fila de Espera / Triagem</CardTitle>
-          <CardDescription>
-            Karts que acabaram de entrar em PITIN. Classifica cada um em Vermelha ou Azul.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {kartsEspera.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem karts à espera de triagem.</p>
-          ) : (
-            kartsEspera.map(
-              (kart) =>
-                kart && (
+      <Tabs defaultValue="fila">
+        <TabsList>
+          <TabsTrigger value="fila">Fila</TabsTrigger>
+          <TabsTrigger value="previsao">Previsão</TabsTrigger>
+          <TabsTrigger value="classificar">Classificar Equipas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="fila" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fila de Espera / Triagem</CardTitle>
+              <CardDescription>
+                Karts que acabaram de entrar em PITIN. Classifica cada um em Vermelha ou Azul.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {kartsEspera.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem karts à espera de triagem.</p>
+              ) : (
+                kartsEspera.map(
+                  (kart) =>
+                    kart && (
+                      <div
+                        key={kart.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                      >
+                        <KartChip kart={kart} grade={gradeOf(kart.id)} />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => handleTriar(kart.id, "VERMELHA")}
+                          >
+                            Fila Vermelha
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleTriar(kart.id, "AZUL")}
+                          >
+                            Fila Azul
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleForaDeServico(kart.id)}
+                          >
+                            <Wrench className="size-3.5" /> Avariado
+                          </Button>
+                        </div>
+                      </div>
+                    ),
+                )
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shuffle className="size-4" /> Sortear kart para equipa
+              </CardTitle>
+              <CardDescription>
+                Indica o número da equipa que está a sair da box, depois escolhe a fila. Sem
+                selecionar um kart específico, usa-se sempre o primeiro da fila (FIFO).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input
+                value={numeroEquipaSorteio}
+                onChange={(e) => setNumeroEquipaSorteio(e.target.value)}
+                placeholder="Número da equipa (ex: 12)"
+                inputMode="numeric"
+                className="max-w-[12rem]"
+              />
+            </CardContent>
+          </Card>
+
+          <QueueCard
+            titulo="Fila Vermelha"
+            cor="VERMELHA"
+            corClasse="bg-red-600 hover:bg-red-700"
+            kartIds={snapshot.fila_vermelha.kart_ids}
+            karts={snapshot.karts}
+            ratings={ratings}
+            onSortear={(kartId) => handleSortear("VERMELHA", kartId)}
+          />
+
+          <QueueCard
+            titulo="Fila Azul"
+            cor="AZUL"
+            corClasse="bg-blue-600 hover:bg-blue-700"
+            kartIds={snapshot.fila_azul.kart_ids}
+            karts={snapshot.karts}
+            ratings={ratings}
+            onSortear={(kartId) => handleSortear("AZUL", kartId)}
+          />
+
+          {foraDeServico.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="size-4" /> Fora de serviço
+                </CardTitle>
+                <CardDescription>
+                  Karts retirados por avaria/dano. Reintegra quando reparados.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {foraDeServico.map((kart) => (
                   <div
                     key={kart.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                   >
-                    <KartChip kart={kart} />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-red-600 hover:bg-red-700"
-                        onClick={() => handleTriar(kart.id, "VERMELHA")}
-                      >
-                        Fila Vermelha
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => handleTriar(kart.id, "AZUL")}
-                      >
-                        Fila Azul
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleForaDeServico(kart.id)}
-                      >
-                        <Wrench className="size-3.5" /> Avariado
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-semibold">{kart.label}</span>
+                      {kart.notas ? (
+                        <span className="text-xs text-muted-foreground">{kart.notas}</span>
+                      ) : null}
                     </div>
+                    <Button size="sm" variant="outline" onClick={() => handleReintegrar(kart.id)}>
+                      <RotateCcw className="size-3.5" /> Reintegrar
+                    </Button>
                   </div>
-                ),
-            )
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+        </TabsContent>
 
-      {/* Sorteio: número da equipa a receber kart */}
+        <TabsContent value="previsao">
+          <ForecastPanel />
+        </TabsContent>
+
+        <TabsContent value="classificar">
+          <TeamClassificationPanel />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function ForecastPanel() {
+  const { data: previsao, error } = useKartForecast();
+
+  if (error) {
+    return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shuffle className="size-4" /> Sortear kart para equipa
-          </CardTitle>
-          <CardDescription>
-            Indica o número da equipa que está a sair da box, depois escolhe a fila. Sem selecionar
-            um kart específico, usa-se sempre o primeiro da fila (FIFO).
-          </CardDescription>
+          <CardTitle>Sem ligação ao backend</CardTitle>
+          <CardDescription>{error}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Input
-            value={numeroEquipaSorteio}
-            onChange={(e) => setNumeroEquipaSorteio(e.target.value)}
-            placeholder="Número da equipa (ex: 12)"
-            inputMode="numeric"
-            className="max-w-[12rem]"
-          />
-        </CardContent>
       </Card>
+    );
+  }
 
-      {/* Fila Vermelha */}
-      <QueueCard
-        titulo="Fila Vermelha"
-        cor="VERMELHA"
-        corClasse="bg-red-600 hover:bg-red-700"
-        kartIds={snapshot.fila_vermelha.kart_ids}
-        karts={snapshot.karts}
-        onSortear={(kartId) => handleSortear("VERMELHA", kartId)}
-      />
+  if (!previsao) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>A carregar previsão…</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
 
-      {/* Fila Azul */}
-      <QueueCard
-        titulo="Fila Azul"
-        cor="AZUL"
-        corClasse="bg-blue-600 hover:bg-blue-700"
-        kartIds={snapshot.fila_azul.kart_ids}
-        karts={snapshot.karts}
-        onSortear={(kartId) => handleSortear("AZUL", kartId)}
-      />
+  const ordenados = [...previsao].sort((a, b) => {
+    if (a.minutos_ate_disponivel !== b.minutos_ate_disponivel) {
+      return a.minutos_ate_disponivel - b.minutos_ate_disponivel;
+    }
+    return (b.grade ?? 0) - (a.grade ?? 0);
+  });
 
-      {/* Fora de serviço */}
-      {foraDeServico.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="size-4" /> Fora de serviço
-            </CardTitle>
-            <CardDescription>
-              Karts retirados por avaria/dano. Reintegra quando reparados.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {foraDeServico.map((kart) => (
-              <div
-                key={kart.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-semibold">{kart.label}</span>
-                  {kart.notas ? (
-                    <span className="text-xs text-muted-foreground">{kart.notas}</span>
-                  ) : null}
-                </div>
-                <Button size="sm" variant="outline" onClick={() => handleReintegrar(kart.id)}>
-                  <RotateCcw className="size-3.5" /> Reintegrar
-                </Button>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="size-4" /> Previsão de disponibilidade
+        </CardTitle>
+        <CardDescription>
+          Quando cada kart fica livre, e se vale a pena esperar por ele. Karts fora de serviço não
+          aparecem aqui.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {ordenados.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Sem karts em pista ou em fila neste momento.
+          </p>
+        ) : (
+          ordenados.map((p) => (
+            <div
+              key={p.kart_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-semibold">{p.kart_id}</span>
+                <GradeBadge grade={p.grade} />
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-    </div>
+              <div className="flex items-center gap-2 text-sm">
+                {p.status === "disponivel_agora" ? (
+                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-500">
+                    Disponível agora
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">
+                    ~{p.minutos_ate_disponivel} min
+                    {p.confianca_tempo === "baixa" ? " (estimativa pouco fiável ainda)" : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -270,6 +397,7 @@ function QueueCard({
   corClasse,
   kartIds,
   karts,
+  ratings,
   onSortear,
 }: {
   titulo: string;
@@ -277,6 +405,7 @@ function QueueCard({
   corClasse: string;
   kartIds: string[];
   karts: Record<string, KartDTO>;
+  ratings: Record<string, KartRatingDTO> | null;
   onSortear: (kartId: string) => void;
 }) {
   return (
@@ -296,7 +425,7 @@ function QueueCard({
             >
               <div className="flex items-center gap-2">
                 <span className="w-6 text-center text-xs text-muted-foreground">{i + 1}º</span>
-                <KartChip kart={karts[id]} />
+                <KartChip kart={karts[id]} grade={ratings?.[id]?.grade} />
               </div>
               {i === 0 ? (
                 <Button size="sm" className={corClasse} onClick={() => onSortear(id)}>
