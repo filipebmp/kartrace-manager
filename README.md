@@ -1,6 +1,6 @@
 # Kart Race Manager
 
-Analisa este ficheiro Excel (contém macros com programação) e cria uma versão web melhorada. Isto é um ficheiro que serve que gerir uma equipa numa corrida de 24h de Karts. Depois quando tiveres uma versão estável começamos as melhoras.
+Webapp para gerir uma equipa numa corrida de Endurance de Karts.
 
 This project was built with [Lovable](https://lovable.dev).
 
