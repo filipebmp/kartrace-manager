@@ -1,14 +1,18 @@
-# Welcome to your Lovable project
+# Kart Race Manager
+
+Analisa este ficheiro Excel (contém macros com programação) e cria uma versão web melhorada. Isto é um ficheiro que serve que gerir uma equipa numa corrida de 24h de Karts. Depois quando tiveres uma versão estável começamos as melhoras.
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://kartrace-manager.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/cd5b869b-b7a9-4d76-9de8-ea4b21134c34).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +24,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
