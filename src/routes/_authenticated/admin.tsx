@@ -78,6 +78,24 @@ function AdminPage() {
     queryClient.invalidateQueries({ queryKey: ["profile", team.id] });
   }
 
+  async function toggleTeam(team: TeamProfile, enabled: boolean) {
+    setTogglingId(team.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ team_feature: enabled })
+      .eq("id", team.id);
+    setTogglingId(null);
+    if (error) {
+      toast.error("Não foi possível guardar", { description: error.message });
+      return;
+    }
+    toast.success(enabled ? "Gestão de equipa ativada" : "Gestão de equipa desativada", {
+      description: team.team_name,
+    });
+    queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    queryClient.invalidateQueries({ queryKey: ["profile", team.id] });
+  }
+
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
     enabled: isAdmin,
