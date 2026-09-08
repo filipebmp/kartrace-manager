@@ -109,7 +109,11 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <TeamHeader teamName={me?.profile?.team_name} isAdmin={isAdmin} />
+      <TeamHeader
+        teamName={me?.profile?.team_name}
+        isAdmin={isAdmin}
+        kartsFeature={me?.profile?.karts_feature ?? false}
+      />
       <main className="w-full space-y-3 px-4 py-4">
         {!isAdmin ? (
           <Card>
@@ -138,7 +142,22 @@ function AdminPage() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="flex gap-2">
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Gestão de karts</p>
+                    <p className="text-xs text-muted-foreground">
+                      Dá acesso ao separador Karts a esta equipa.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={t.karts_feature}
+                    disabled={togglingId === t.id}
+                    onCheckedChange={(v) => void toggleKarts(t, v)}
+                    aria-label={`Gestão de karts para ${t.team_name}`}
+                  />
+                </div>
+                <div className="flex gap-2">
                 <Button
                   size="sm"
                   disabled={t.status === "approved"}
