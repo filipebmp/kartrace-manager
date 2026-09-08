@@ -48,6 +48,15 @@ function DashboardPage() {
       <main className="w-full px-4 py-4">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">A carregar…</p>
+        ) : !isAdmin && profile?.team_feature === false ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sem acesso</CardTitle>
+              <CardDescription>
+                O administrador desativou a Gestão de equipa para esta conta.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         ) : !approved ? (
           <Card>
             <CardHeader>
