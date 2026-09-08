@@ -151,6 +151,7 @@ function AdminPage() {
         teamName={me?.profile?.team_name}
         isAdmin={isAdmin}
         kartsFeature={me?.profile?.karts_feature ?? false}
+        teamFeature={me?.profile?.team_feature ?? true}
       />
       <main className="w-full space-y-3 px-4 py-4">
         {!isAdmin ? (
