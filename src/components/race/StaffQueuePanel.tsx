@@ -466,7 +466,7 @@ function StaffQueueContent({
             </CardContent>
           </Card>
 
-          <div className="scrollbar-slim flex gap-3 overflow-x-auto pb-3">
+          <div className="flex flex-wrap justify-center gap-3">
             {snapshot.filas.map((fila) => (
               <QueueCard
                 key={fila.fila_id}
