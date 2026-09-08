@@ -56,6 +56,7 @@ import {
   useLiveTimingStatus,
   useSetLiveTimingTarget,
   useDisconnectLiveTimingTarget,
+  useResetSessionData,
   useDemoStatus,
   useStartDemo,
   useStopDemo,
@@ -168,6 +169,7 @@ function LiveTimingConnectionCard() {
   const { data: liveStatus, error } = useLiveTimingStatus();
   const setTarget = useSetLiveTimingTarget();
   const disconnect = useDisconnectLiveTimingTarget();
+  const resetSessionData = useResetSessionData();
   const [eventUrl, setEventUrl] = useState("");
 
   async function handleLigar() {
@@ -192,6 +194,19 @@ function LiveTimingConnectionCard() {
       toast.success("Ligação ao live timing terminada.");
     } catch (e) {
       toast.error("Não foi possível desligar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleLimparSessao() {
+    try {
+      const resumo = await resetSessionData();
+      toast.success(
+        `Dados antigos limpos: ${resumo.equipas_removidas} equipa(s), ${resumo.karts_removidos} kart(s).`,
+      );
+    } catch (e) {
+      toast.error("Não foi possível limpar os dados", {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -238,6 +253,27 @@ function LiveTimingConnectionCard() {
               </AlertDialogContent>
             </AlertDialog>
           ) : null}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline">Limpar dados da sessão</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Limpar dados da sessão anterior?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Remove todas as equipas/karts detetados automaticamente pelo Live Timing (os que
+                  aparecem como "r80", "r81", etc.) e o respetivo histórico de rating — usa isto
+                  quando o Apex Timing muda de sessão e os dados antigos ainda aparecem. Isto tenta
+                  fazer-se sozinho quando deteta o fim de uma sessão, mas nem sempre é possível
+                  confirmar automaticamente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLimparSessao}>Limpar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {error ? (
@@ -868,14 +904,6 @@ function DashboardPanel({
     SEM_DADOS: "text-muted-foreground",
   };
 
-  const ESTADO_LABEL: Record<string, string> = {
-    EM_PISTA: "Em pista",
-    DROP_OFF: "Em triagem",
-    EM_FILA: "Em fila",
-    SORTEADO: "A caminho da pista",
-    FORA_DE_SERVICO: "Fora de serviço",
-  };
-
   const linhas = Object.values(snapshot.equipas)
     .filter((eq) => eq.total_voltas > 0)
     .sort((a, b) => {
@@ -901,9 +929,8 @@ function DashboardPanel({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">#</TableHead>
-                <TableHead>Equipa</TableHead>
                 <TableHead>Kart</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>Equipa</TableHead>
                 <TableHead className="text-right">Última volta</TableHead>
                 <TableHead className="text-right">Melhor volta</TableHead>
                 <TableHead className="text-right">Rating</TableHead>
@@ -917,15 +944,12 @@ function DashboardPanel({
                 return (
                   <TableRow key={eq.numero_equipa}>
                     <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell className="font-mono font-semibold">
+                    <TableCell className="font-mono font-semibold">{kart?.label ?? "—"}</TableCell>
+                    <TableCell className="font-mono">
                       {eq.numero_equipa}
                       {eq.nome ? (
                         <span className="ml-1 text-muted-foreground">{eq.nome}</span>
                       ) : null}
-                    </TableCell>
-                    <TableCell className="font-mono">{kart?.label ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {kart ? ESTADO_LABEL[kart.state] : "—"}
                     </TableCell>
                     <TableCell className={`text-right font-mono ${LAP_COLOR[eq.ultima_categoria]}`}>
                       {formatLapTime(eq.ultimo_tempo_seconds)}

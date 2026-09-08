@@ -474,6 +474,32 @@ export function useDefinirEquipaTier() {
   );
 }
 
+// --- Corrida de demonstração embutida --------------------------------------
+
+export interface DemoStatusDTO {
+  running: boolean;
+}
+
+export function useDemoStatus(enabled = true) {
+  return usePolledEndpoint<DemoStatusDTO>("/demo/status", 3000, enabled);
+}
+
+export interface DemoStartParams {
+  speed: number;
+  leader_pace: number;
+  field_spread: number;
+  stint_minutes: number;
+  manual: boolean;
+}
+
+export function useStartDemo() {
+  return useCallback((params: DemoStartParams) => postJson("/demo/start", params), []);
+}
+
+export function useStopDemo() {
+  return useCallback(() => postJson("/demo/stop", {}), []);
+}
+
 // --- Alvo de Live Timing ligável em runtime -------------------------------
 
 export function useLiveTimingStatus(enabled = true) {
@@ -489,4 +515,15 @@ export function useSetLiveTimingTarget() {
 
 export function useDisconnectLiveTimingTarget() {
   return useCallback(() => postJson("/admin/live_timing_target/disconnect", {}), []);
+}
+
+export function useResetSessionData() {
+  return useCallback(
+    (prefixo = "r") =>
+      postJsonWithResponse<{
+        equipas_removidas: number;
+        karts_removidos: number;
+      }>("/admin/reset_session_data", { prefixo }),
+    [],
+  );
 }
