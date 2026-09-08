@@ -30,18 +30,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type PerformanceCategory = "BOM" | "MEDIO" | "MAU" | "SEM_DADOS";
 
-export type KartState =
-  "EM_PISTA" | "DROP_OFF" | "FILA_VERMELHA" | "FILA_AZUL" | "SORTEADO" | "FORA_DE_SERVICO";
+export type KartState = "EM_PISTA" | "DROP_OFF" | "EM_FILA" | "SORTEADO" | "FORA_DE_SERVICO";
 
 export interface KartDTO {
   id: string;
   label: string;
   state: KartState;
   equipa_atual: string | null;
-  fila_cor: "VERMELHA" | "AZUL" | null;
+  fila_id: string | null;
   ultima_categoria: PerformanceCategory;
   ultimo_tempo_seconds: number | null;
   notas: string;
+  rating_manual: number | null;
 }
 
 export interface EquipaDTO {
@@ -55,7 +55,9 @@ export interface EquipaDTO {
 }
 
 export interface FilaDTO {
-  cor: "VERMELHA" | "AZUL";
+  fila_id: string;
+  nome: string;
+  cor: string; // cor livre (hex, ex: "#dc2626")
   kart_ids: string[];
   tamanho: number;
 }
@@ -63,7 +65,7 @@ export interface FilaDTO {
 export interface KartRatingDTO {
   kart_id: string;
   grade: number | null;
-  confianca: "sem_dados" | "baixa" | "media" | "alta";
+  confianca: "sem_dados" | "baixa" | "media" | "alta" | "manual";
   avg_delta_seconds: number | null;
   sample_count: number;
   distinct_teams: number;
@@ -99,8 +101,7 @@ export interface KartFeedSnapshot {
   karts: Record<string, KartDTO>;
   equipas: Record<string, EquipaDTO>;
   fila_espera: string[];
-  fila_vermelha: FilaDTO;
-  fila_azul: FilaDTO;
+  filas: FilaDTO[];
   thresholds: { bom_max_seconds: number; medio_max_seconds: number };
   last_event_seq: number;
 }
@@ -218,12 +219,17 @@ function applyIncrementalEvent(
     karts: { ...prev.karts },
     equipas: { ...prev.equipas },
     fila_espera: [...prev.fila_espera],
-    fila_vermelha: { ...prev.fila_vermelha, kart_ids: [...prev.fila_vermelha.kart_ids] },
-    fila_azul: { ...prev.fila_azul, kart_ids: [...prev.fila_azul.kart_ids] },
+    filas: prev.filas.map((f) => ({ ...f, kart_ids: [...f.kart_ids] })),
     last_event_seq: frame.seq,
   };
 
   const payload = frame.payload as Record<string, unknown>;
+
+  function substituirFila(fila: FilaDTO) {
+    const idx = next.filas.findIndex((f) => f.fila_id === fila.fila_id);
+    if (idx >= 0) next.filas[idx] = fila;
+    else next.filas.push(fila);
+  }
 
   switch (frame.type) {
     case "LAP_UPDATE": {
@@ -236,19 +242,44 @@ function applyIncrementalEvent(
     case "KART_SORTEADO":
     case "KART_EM_PISTA":
     case "KART_FORA_DE_SERVICO":
-    case "KART_REINTEGRADO": {
-      const kart = payload["kart"] as KartDTO;
-      next.karts[kart.id] = kart;
+    case "KART_REINTEGRADO":
+    case "KART_RENOMEADO":
+    case "KART_RATING_MANUAL_DEFINIDO": {
+      if (payload["kart"]) {
+        const kart = payload["kart"] as KartDTO;
+        next.karts[kart.id] = kart;
+      }
       if (Array.isArray(payload["fila_espera"])) {
         next.fila_espera = payload["fila_espera"] as string[];
       }
-      if (payload["fila_vermelha"]) next.fila_vermelha = payload["fila_vermelha"] as FilaDTO;
-      if (payload["fila_azul"]) next.fila_azul = payload["fila_azul"] as FilaDTO;
-      if (payload["fila_atualizada"]) {
-        const fila = payload["fila_atualizada"] as FilaDTO;
-        if (fila.cor === "VERMELHA") next.fila_vermelha = fila;
-        else next.fila_azul = fila;
+      if (Array.isArray(payload["filas"])) {
+        next.filas = payload["filas"] as FilaDTO[];
       }
+      if (payload["fila_atualizada"]) {
+        substituirFila(payload["fila_atualizada"] as FilaDTO);
+      }
+      break;
+    }
+    case "KART_REMOVIDO": {
+      const kartId = payload["kart_id"] as string;
+      delete next.karts[kartId];
+      next.fila_espera = next.fila_espera.filter((id) => id !== kartId);
+      next.filas = next.filas.map((f) => ({
+        ...f,
+        kart_ids: f.kart_ids.filter((id) => id !== kartId),
+      }));
+      break;
+    }
+    case "FILA_CRIADA": {
+      const fila = payload["fila"] as FilaDTO;
+      if (!next.filas.some((f) => f.fila_id === fila.fila_id)) {
+        next.filas.push(fila);
+      }
+      break;
+    }
+    case "FILA_REMOVIDA": {
+      const filaId = payload["fila_id"] as string;
+      next.filas = next.filas.filter((f) => f.fila_id !== filaId);
       break;
     }
     default:
@@ -274,16 +305,45 @@ async function postJson(path: string, body: unknown): Promise<void> {
   }
 }
 
+async function postJsonWithResponse<T>(path: string, body: unknown): Promise<T> {
+  const base = backendHttpUrl();
+  if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => res.statusText);
+    throw new Error(detail || `Falha ao chamar ${path}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function deleteRequest(path: string): Promise<void> {
+  const base = backendHttpUrl();
+  if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
+  const res = await fetch(`${base}${path}`, { method: "DELETE" });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => res.statusText);
+    throw new Error(detail || `Falha ao chamar ${path}`);
+  }
+}
+
 export function useKartFeedActions() {
   const triarKart = useCallback(
-    (kartId: string, cor: "VERMELHA" | "AZUL") =>
-      postJson("/staff/triar", { kart_id: kartId, cor }),
+    (kartId: string, filaId: string) =>
+      postJson("/staff/triar", { kart_id: kartId, fila_id: filaId }),
     [],
   );
 
   const sortearKart = useCallback(
-    (cor: "VERMELHA" | "AZUL", numeroEquipa: string, kartId?: string) =>
-      postJson("/staff/sortear", { cor, numero_equipa: numeroEquipa, kart_id: kartId ?? null }),
+    (filaId: string, numeroEquipa: string, kartId?: string) =>
+      postJson("/staff/sortear", {
+        fila_id: filaId,
+        numero_equipa: numeroEquipa,
+        kart_id: kartId ?? null,
+      }),
     [],
   );
 
@@ -294,8 +354,8 @@ export function useKartFeedActions() {
   );
 
   const reintegrarKart = useCallback(
-    (kartId: string, destino: "fila_espera" | "fila_cor", cor?: "VERMELHA" | "AZUL") =>
-      postJson("/staff/reintegrar", { kart_id: kartId, destino, cor: cor ?? null }),
+    (kartId: string, destino: "fila_espera" | "fila", filaId?: string) =>
+      postJson("/staff/reintegrar", { kart_id: kartId, destino, fila_id: filaId ?? null }),
     [],
   );
 
@@ -304,7 +364,46 @@ export function useKartFeedActions() {
     [],
   );
 
-  return { triarKart, sortearKart, marcarForaDeServico, reintegrarKart, confirmarPitout };
+  const criarFila = useCallback(
+    (nome: string, cor: string) =>
+      postJsonWithResponse<{ fila_id: string }>("/staff/filas", { nome, cor }),
+    [],
+  );
+
+  const removerFila = useCallback(
+    (filaId: string) => deleteRequest(`/staff/filas/${encodeURIComponent(filaId)}`),
+    [],
+  );
+
+  const renomearKart = useCallback(
+    (kartId: string, label: string) =>
+      postJson(`/staff/karts/${encodeURIComponent(kartId)}/renomear`, { label }),
+    [],
+  );
+
+  const definirRatingManual = useCallback(
+    (kartId: string, grade: number | null) =>
+      postJson(`/staff/karts/${encodeURIComponent(kartId)}/rating_manual`, { grade }),
+    [],
+  );
+
+  const removerKart = useCallback(
+    (kartId: string) => deleteRequest(`/staff/karts/${encodeURIComponent(kartId)}`),
+    [],
+  );
+
+  return {
+    triarKart,
+    sortearKart,
+    marcarForaDeServico,
+    reintegrarKart,
+    confirmarPitout,
+    criarFila,
+    removerFila,
+    renomearKart,
+    definirRatingManual,
+    removerKart,
+  };
 }
 
 // --- Ratings e previsão (polling REST — derivados, não eventos push) ----

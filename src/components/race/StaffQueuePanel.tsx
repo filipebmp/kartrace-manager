@@ -5,16 +5,40 @@ import {
   ArrowRight,
   Clock,
   Link2,
+  Pencil,
+  Plus,
   Radio,
   RotateCcw,
   Shuffle,
+  Trash2,
+  Wand2,
   Wrench,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   useKartFeed,
   useKartFeedActions,
@@ -27,6 +51,7 @@ import {
   type KartRatingDTO,
   type KartFeedStatus,
   type KartFeedSnapshot,
+  type FilaDTO,
 } from "@/lib/kartFeed/kartFeedClient";
 import { TeamClassificationPanel } from "@/components/race/TeamClassificationPanel";
 
@@ -45,11 +70,22 @@ const GRADE_BADGE_CLASS: Record<number, string> = {
   1: "border-red-500/40 text-red-500",
 };
 
-function GradeBadge({ grade }: { grade: number | null | undefined }) {
+const CORES_SUGERIDAS = [
+  "#dc2626",
+  "#2563eb",
+  "#16a34a",
+  "#ca8a04",
+  "#9333ea",
+  "#ea580c",
+  "#db2777",
+  "#0891b2",
+];
+
+function GradeBadge({ grade, manual }: { grade: number | null | undefined; manual?: boolean }) {
   if (grade === null || grade === undefined) return null;
   return (
     <Badge variant="outline" className={`text-[10px] ${GRADE_BADGE_CLASS[grade] ?? ""}`}>
-      ★ {grade}/5
+      {manual ? "✎" : "★"} {grade}/5
     </Badge>
   );
 }
@@ -57,9 +93,11 @@ function GradeBadge({ grade }: { grade: number | null | undefined }) {
 function KartChip({
   kart,
   grade,
+  onEditar,
 }: {
   kart: KartDTO | undefined;
   grade?: number | null | undefined;
+  onEditar?: () => void;
 }) {
   if (!kart) return null;
   return (
@@ -71,19 +109,29 @@ function KartChip({
       >
         {kart.ultima_categoria}
       </Badge>
-      <GradeBadge grade={grade} />
+      <GradeBadge grade={grade} manual={kart.rating_manual !== null} />
       {kart.notas ? (
         <span className="text-xs text-muted-foreground" title={kart.notas}>
           <AlertTriangle className="size-3.5" />
         </span>
       ) : null}
+      {onEditar ? (
+        <button
+          type="button"
+          onClick={onEditar}
+          className="text-muted-foreground hover:text-foreground"
+          aria-label={`Editar kart ${kart.label}`}
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      ) : null}
     </div>
   );
 }
 
-/** Painel de gestão do sorteio de karts entre todas as equipas — Fila de
- * Espera/Triagem, Fila Vermelha e Fila Azul, tal como no regulamento do
- * evento. Consome o backend Python (`kart-endurance/`) que processa a
+/** Painel de gestão do sorteio de karts entre todas as equipas — filas
+ * customizáveis (criar/remover, nome+cor livres), tal como no regulamento
+ * do evento. Consome o backend Python (`kart-endurance/`) que processa a
  * telemetria do Live Timing; ver `kartFeedClient.ts`. */
 export function StaffQueuePanel() {
   const { snapshot, status } = useKartFeed();
@@ -172,9 +220,24 @@ function LiveTimingConnectionCard() {
           />
           <Button onClick={handleLigar}>Ligar</Button>
           {liveStatus?.event_url ? (
-            <Button variant="outline" onClick={handleDesligar}>
-              Desligar
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline">Desligar</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Desligar do Live Timing?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isto para a ligação a <span className="font-mono">{liveStatus.event_url}</span>.
+                    O sistema deixa de receber tempos e pits até ligares outra vez.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDesligar}>Desligar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           ) : null}
         </div>
 
@@ -208,10 +271,6 @@ function LiveTimingConnectionCard() {
   );
 }
 
-/** Painel de gestão do sorteio de karts entre todas as equipas — Fila de
- * Espera/Triagem, Fila Vermelha e Fila Azul, tal como no regulamento do
- * evento. Consome o backend Python (`kart-endurance/`) que processa a
- * telemetria do Live Timing; ver `kartFeedClient.ts`. */
 function StaffQueueContent({
   status,
   snapshot,
@@ -223,9 +282,22 @@ function StaffQueueContent({
   ratings: Record<string, KartRatingDTO> | null;
   actions: ReturnType<typeof useKartFeedActions>;
 }) {
-  const { triarKart, sortearKart, marcarForaDeServico, reintegrarKart } = actions;
+  const {
+    triarKart,
+    sortearKart,
+    marcarForaDeServico,
+    reintegrarKart,
+    criarFila,
+    removerFila,
+    renomearKart,
+    definirRatingManual,
+    removerKart,
+  } = actions;
   const [numeroEquipaSorteio, setNumeroEquipaSorteio] = useState("");
-  const [motivoAvaria, setMotivoAvaria] = useState<Record<string, string>>({});
+  const [motivoAvaria] = useState<Record<string, string>>({});
+  const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
+  const [novaFilaNome, setNovaFilaNome] = useState("");
+  const [novaFilaCor, setNovaFilaCor] = useState<string>(CORES_SUGERIDAS[0] ?? "#dc2626");
 
   if (status !== "online" || !snapshot) {
     return (
@@ -248,9 +320,9 @@ function StaffQueueContent({
   const gradeOf = (kartId: string): number | null | undefined => ratings?.[kartId]?.grade;
   const kartsEspera = snapshot.fila_espera.map((id) => snapshot.karts[id]);
 
-  async function handleTriar(kartId: string, cor: "VERMELHA" | "AZUL") {
+  async function handleTriar(kartId: string, filaId: string) {
     try {
-      await triarKart(kartId, cor);
+      await triarKart(kartId, filaId);
     } catch (e) {
       toast.error("Não foi possível triar o kart", {
         description: e instanceof Error ? e.message : undefined,
@@ -258,14 +330,14 @@ function StaffQueueContent({
     }
   }
 
-  async function handleSortear(cor: "VERMELHA" | "AZUL", kartId?: string) {
+  async function handleSortear(filaId: string, kartId?: string) {
     const numero = numeroEquipaSorteio.trim();
     if (!numero) {
       toast.error("Indica o número da equipa que está a sair da box");
       return;
     }
     try {
-      await sortearKart(cor, numero, kartId);
+      await sortearKart(filaId, numero, kartId);
       toast.success(`Kart atribuído à equipa ${numero}`);
       setNumeroEquipaSorteio("");
     } catch (e) {
@@ -298,8 +370,37 @@ function StaffQueueContent({
     }
   }
 
+  async function handleCriarFila() {
+    const nome = novaFilaNome.trim();
+    if (!nome) {
+      toast.error("Dá um nome à fila");
+      return;
+    }
+    try {
+      await criarFila(nome, novaFilaCor);
+      toast.success(`Fila "${nome}" criada`);
+      setNovaFilaNome("");
+    } catch (e) {
+      toast.error("Não foi possível criar a fila", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleRemoverFila(filaId: string, nome: string) {
+    try {
+      await removerFila(filaId);
+      toast.success(`Fila "${nome}" removida`);
+    } catch (e) {
+      toast.error("Não foi possível remover a fila", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   const karts = Object.values(snapshot.karts);
   const foraDeServico = karts.filter((k) => k.state === "FORA_DE_SERVICO");
+  const kartEditando = kartEmEdicao ? (snapshot.karts[kartEmEdicao] ?? null) : null;
 
   return (
     <div className="space-y-4">
@@ -320,7 +421,7 @@ function StaffQueueContent({
             <CardHeader>
               <CardTitle>Fila de Espera / Triagem</CardTitle>
               <CardDescription>
-                Karts que acabaram de entrar em PITIN. Classifica cada um em Vermelha ou Azul.
+                Karts que acabaram de entrar em PITIN. Classifica cada um numa fila.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -334,22 +435,23 @@ function StaffQueueContent({
                         key={kart.id}
                         className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                       >
-                        <KartChip kart={kart} grade={gradeOf(kart.id)} />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() => handleTriar(kart.id, "VERMELHA")}
-                          >
-                            Fila Vermelha
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={() => handleTriar(kart.id, "AZUL")}
-                          >
-                            Fila Azul
-                          </Button>
+                        <KartChip
+                          kart={kart}
+                          grade={gradeOf(kart.id)}
+                          onEditar={() => setKartEmEdicao(kart.id)}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          {snapshot.filas.map((fila) => (
+                            <Button
+                              key={fila.fila_id}
+                              size="sm"
+                              style={{ backgroundColor: fila.cor }}
+                              className="text-white hover:opacity-90"
+                              onClick={() => handleTriar(kart.id, fila.fila_id)}
+                            >
+                              {fila.nome}
+                            </Button>
+                          ))}
                           <Button
                             size="sm"
                             variant="outline"
@@ -386,25 +488,49 @@ function StaffQueueContent({
             </CardContent>
           </Card>
 
-          <QueueCard
-            titulo="Fila Vermelha"
-            cor="VERMELHA"
-            corClasse="bg-red-600 hover:bg-red-700"
-            kartIds={snapshot.fila_vermelha.kart_ids}
-            karts={snapshot.karts}
-            ratings={ratings}
-            onSortear={(kartId) => handleSortear("VERMELHA", kartId)}
-          />
+          {snapshot.filas.map((fila) => (
+            <QueueCard
+              key={fila.fila_id}
+              fila={fila}
+              karts={snapshot.karts}
+              ratings={ratings}
+              onSortear={(kartId) => handleSortear(fila.fila_id, kartId)}
+              onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
+              onEditarKart={(kartId) => setKartEmEdicao(kartId)}
+            />
+          ))}
 
-          <QueueCard
-            titulo="Fila Azul"
-            cor="AZUL"
-            corClasse="bg-blue-600 hover:bg-blue-700"
-            kartIds={snapshot.fila_azul.kart_ids}
-            karts={snapshot.karts}
-            ratings={ratings}
-            onSortear={(kartId) => handleSortear("AZUL", kartId)}
-          />
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Plus className="size-4" /> Nova fila
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-end gap-3">
+              <div className="min-w-[10rem] flex-1">
+                <Input
+                  value={novaFilaNome}
+                  onChange={(e) => setNovaFilaNome(e.target.value)}
+                  placeholder="Nome da fila (ex: Verde)"
+                />
+              </div>
+              <div className="flex gap-1.5">
+                {CORES_SUGERIDAS.map((cor) => (
+                  <button
+                    key={cor}
+                    type="button"
+                    onClick={() => setNovaFilaCor(cor)}
+                    className={`size-7 rounded-full border-2 ${
+                      novaFilaCor === cor ? "border-foreground" : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: cor }}
+                    aria-label={`Cor ${cor}`}
+                  />
+                ))}
+              </div>
+              <Button onClick={handleCriarFila}>Criar fila</Button>
+            </CardContent>
+          </Card>
 
           {foraDeServico.length > 0 ? (
             <Card>
@@ -446,7 +572,158 @@ function StaffQueueContent({
           <TeamClassificationPanel />
         </TabsContent>
       </Tabs>
+
+      <KartEditDialog
+        kart={kartEditando}
+        onClose={() => setKartEmEdicao(null)}
+        onRenomear={renomearKart}
+        onDefinirRatingManual={definirRatingManual}
+        onRemover={removerKart}
+      />
     </div>
+  );
+}
+
+function KartEditDialog({
+  kart,
+  onClose,
+  onRenomear,
+  onDefinirRatingManual,
+  onRemover,
+}: {
+  kart: KartDTO | null;
+  onClose: () => void;
+  onRenomear: (kartId: string, label: string) => Promise<void>;
+  onDefinirRatingManual: (kartId: string, grade: number | null) => Promise<void>;
+  onRemover: (kartId: string) => Promise<void>;
+}) {
+  const [novoLabel, setNovoLabel] = useState("");
+
+  async function handleGuardarNome() {
+    if (!kart) return;
+    try {
+      await onRenomear(kart.id, novoLabel.trim() || kart.id);
+      toast.success("Kart renomeado");
+    } catch (e) {
+      toast.error("Não foi possível renomear", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleRating(grade: number | null) {
+    if (!kart) return;
+    try {
+      await onDefinirRatingManual(kart.id, grade);
+      toast.success(
+        grade === null ? "Rating voltou a automático" : `Rating manual definido: ${grade}`,
+      );
+    } catch (e) {
+      toast.error("Não foi possível definir o rating", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleRemover() {
+    if (!kart) return;
+    try {
+      await onRemover(kart.id);
+      toast.success("Kart removido");
+      onClose();
+    } catch (e) {
+      toast.error("Não foi possível remover o kart", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  return (
+    <Dialog
+      open={kart !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+        else setNovoLabel(kart?.label ?? "");
+      }}
+    >
+      <DialogContent>
+        {kart ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Editar kart {kart.id}</DialogTitle>
+              <DialogDescription>
+                Renomear, ajustar o rating manualmente, ou remover.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs uppercase text-muted-foreground">Nome / etiqueta</label>
+                <div className="mt-1 flex gap-2">
+                  <Input
+                    value={novoLabel}
+                    onChange={(e) => setNovoLabel(e.target.value)}
+                    placeholder={kart.label}
+                  />
+                  <Button onClick={handleGuardarNome}>Guardar</Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs uppercase text-muted-foreground">
+                  Rating manual (substitui o automático)
+                </label>
+                <div className="mt-1 flex gap-1.5">
+                  {[5, 4, 3, 2, 1].map((g) => (
+                    <Button
+                      key={g}
+                      size="sm"
+                      variant={kart.rating_manual === g ? "default" : "outline"}
+                      onClick={() => handleRating(g)}
+                    >
+                      {g}
+                    </Button>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant={kart.rating_manual === null ? "default" : "outline"}
+                    onClick={() => handleRating(null)}
+                  >
+                    <Wand2 className="size-3.5" /> Auto
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex items-center justify-between sm:justify-between">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="size-3.5" /> Apagar kart
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apagar o kart {kart.id}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isto remove o kart por completo do sistema (diferente de "fora de serviço").
+                      Usa isto só para corrigir um kart criado por engano.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemover}>Apagar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button variant="outline" size="sm" onClick={onClose}>
+                <X className="size-3.5" /> Fechar
+              </Button>
+            </DialogFooter>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -528,42 +805,67 @@ function ForecastPanel() {
 }
 
 function QueueCard({
-  titulo,
-  corClasse,
-  kartIds,
+  fila,
   karts,
   ratings,
   onSortear,
+  onRemover,
+  onEditarKart,
 }: {
-  titulo: string;
-  cor: "VERMELHA" | "AZUL";
-  corClasse: string;
-  kartIds: string[];
+  fila: FilaDTO;
   karts: Record<string, KartDTO>;
   ratings: Record<string, KartRatingDTO> | null;
   onSortear: (kartId: string) => void;
+  onRemover: () => void;
+  onEditarKart: (kartId: string) => void;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{titulo}</CardTitle>
-        <CardDescription>{kartIds.length} kart(s) em espera de sorteio, por ordem.</CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="size-3 rounded-full" style={{ backgroundColor: fila.cor }} />
+            <CardTitle>{fila.nome}</CardTitle>
+          </div>
+          {fila.kart_ids.length === 0 ? (
+            <button
+              type="button"
+              onClick={onRemover}
+              className="text-muted-foreground hover:text-destructive"
+              aria-label={`Remover fila ${fila.nome}`}
+            >
+              <Trash2 className="size-4" />
+            </button>
+          ) : null}
+        </div>
+        <CardDescription>
+          {fila.kart_ids.length} kart(s) em espera de sorteio, por ordem.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        {kartIds.length === 0 ? (
+        {fila.kart_ids.length === 0 ? (
           <p className="text-sm text-muted-foreground">Fila vazia.</p>
         ) : (
-          kartIds.map((id, i) => (
+          fila.kart_ids.map((id, i) => (
             <div
               key={id}
               className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
             >
               <div className="flex items-center gap-2">
                 <span className="w-6 text-center text-xs text-muted-foreground">{i + 1}º</span>
-                <KartChip kart={karts[id]} grade={ratings?.[id]?.grade} />
+                <KartChip
+                  kart={karts[id]}
+                  grade={ratings?.[id]?.grade}
+                  onEditar={() => onEditarKart(id)}
+                />
               </div>
               {i === 0 ? (
-                <Button size="sm" className={corClasse} onClick={() => onSortear(id)}>
+                <Button
+                  size="sm"
+                  style={{ backgroundColor: fila.cor }}
+                  className="text-white hover:opacity-90"
+                  onClick={() => onSortear(id)}
+                >
                   <ArrowRight className="size-3.5" /> Atribuir
                 </Button>
               ) : null}
