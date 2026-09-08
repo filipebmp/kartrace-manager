@@ -53,6 +53,14 @@ export function TeamHeader({
             </Link>
           </Button>
         ) : null}
+        {isAdmin || teamFeature !== false ? (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dashboard">
+              <Gauge className="size-4" />
+              <span className="hidden sm:inline">Gestão</span>
+            </Link>
+          </Button>
+        ) : null}
         <Badge variant="outline" className="hidden sm:inline-flex">
           Sessão iniciada
         </Badge>
