@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS team_feature boolean NOT NULL DEFAULT true;

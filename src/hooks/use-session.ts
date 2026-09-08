@@ -33,6 +33,8 @@ export interface TeamProfile {
   contact_name: string;
   email: string;
   status: "pending" | "approved" | "rejected";
+  karts_feature: boolean;
+  team_feature: boolean;
   created_at: string;
 }
 

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, ShieldCheck, Radio } from "lucide-react";
+import { LogOut, ShieldCheck, Radio, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +8,13 @@ import { Badge } from "@/components/ui/badge";
 export function TeamHeader({
   teamName,
   isAdmin,
+  kartsFeature,
+  teamFeature,
 }: {
   teamName?: string | undefined;
   isAdmin?: boolean | undefined;
+  kartsFeature?: boolean | undefined;
+  teamFeature?: boolean | undefined;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -41,11 +45,19 @@ export function TeamHeader({
             </Link>
           </Button>
         ) : null}
-        {isAdmin ? (
+        {isAdmin || kartsFeature ? (
           <Button asChild variant="outline" size="sm">
             <Link to="/staff-queue">
               <Radio className="size-4" />
               <span className="hidden sm:inline">Karts</span>
+            </Link>
+          </Button>
+        ) : null}
+        {isAdmin || teamFeature !== false ? (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dashboard">
+              <Gauge className="size-4" />
+              <span className="hidden sm:inline">Gestão</span>
             </Link>
           </Button>
         ) : null}

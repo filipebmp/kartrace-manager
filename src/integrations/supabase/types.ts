@@ -47,7 +47,9 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          karts_feature: boolean
           status: Database["public"]["Enums"]["team_status"]
+          team_feature: boolean
           team_name: string
           updated_at: string
         }
@@ -56,7 +58,9 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          karts_feature?: boolean
           status?: Database["public"]["Enums"]["team_status"]
+          team_feature?: boolean
           team_name: string
           updated_at?: string
         }
@@ -65,7 +69,9 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          karts_feature?: boolean
           status?: Database["public"]["Enums"]["team_status"]
+          team_feature?: boolean
           team_name?: string
           updated_at?: string
         }
