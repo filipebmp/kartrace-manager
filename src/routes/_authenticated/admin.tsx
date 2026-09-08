@@ -11,6 +11,7 @@ import { deleteTeam } from "@/lib/admin.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -184,6 +185,7 @@ function AdminPage() {
                     Eliminar
                   </Button>
                 ) : null}
+                </div>
               </CardContent>
             </Card>
           ))
