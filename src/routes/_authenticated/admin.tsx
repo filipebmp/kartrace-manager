@@ -78,6 +78,24 @@ function AdminPage() {
     queryClient.invalidateQueries({ queryKey: ["profile", team.id] });
   }
 
+  async function toggleTeam(team: TeamProfile, enabled: boolean) {
+    setTogglingId(team.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ team_feature: enabled })
+      .eq("id", team.id);
+    setTogglingId(null);
+    if (error) {
+      toast.error("Não foi possível guardar", { description: error.message });
+      return;
+    }
+    toast.success(enabled ? "Gestão de equipa ativada" : "Gestão de equipa desativada", {
+      description: team.team_name,
+    });
+    queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    queryClient.invalidateQueries({ queryKey: ["profile", team.id] });
+  }
+
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
     enabled: isAdmin,
@@ -133,6 +151,7 @@ function AdminPage() {
         teamName={me?.profile?.team_name}
         isAdmin={isAdmin}
         kartsFeature={me?.profile?.karts_feature ?? false}
+        teamFeature={me?.profile?.team_feature ?? true}
       />
       <main className="w-full space-y-3 px-4 py-4">
         {!isAdmin ? (
@@ -175,6 +194,20 @@ function AdminPage() {
                     disabled={togglingId === t.id}
                     onCheckedChange={(v) => void toggleKarts(t, v)}
                     aria-label={`Gestão de karts para ${t.team_name}`}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Gestão de equipa</p>
+                    <p className="text-xs text-muted-foreground">
+                      Dá acesso ao painel de turnos, plano e pilotos.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={t.team_feature}
+                    disabled={togglingId === t.id}
+                    onCheckedChange={(v) => void toggleTeam(t, v)}
+                    aria-label={`Gestão de equipa para ${t.team_name}`}
                   />
                 </div>
                 <div className="flex gap-2">
