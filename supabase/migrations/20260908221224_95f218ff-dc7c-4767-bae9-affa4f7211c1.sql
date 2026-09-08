@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS karts_feature boolean NOT NULL DEFAULT false;
