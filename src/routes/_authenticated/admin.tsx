@@ -58,6 +58,25 @@ function AdminPage() {
     { team: TeamProfile; status: "approved" | "rejected" } | null
   >(null);
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  async function toggleKarts(team: TeamProfile, enabled: boolean) {
+    setTogglingId(team.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ karts_feature: enabled })
+      .eq("id", team.id);
+    setTogglingId(null);
+    if (error) {
+      toast.error("Não foi possível guardar", { description: error.message });
+      return;
+    }
+    toast.success(enabled ? "Gestão de karts ativada" : "Gestão de karts desativada", {
+      description: team.team_name,
+    });
+    queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    queryClient.invalidateQueries({ queryKey: ["profile", team.id] });
+  }
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
