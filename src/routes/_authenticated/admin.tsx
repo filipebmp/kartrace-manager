@@ -110,7 +110,7 @@ function AdminPage() {
   return (
     <div className="min-h-screen bg-background pb-10">
       <TeamHeader teamName={me?.profile?.team_name} isAdmin={isAdmin} />
-      <main className="mx-auto w-full max-w-3xl space-y-3 px-4 py-4">
+      <main className="w-full space-y-3 px-4 py-4">
         {!isAdmin ? (
           <Card>
             <CardHeader>
