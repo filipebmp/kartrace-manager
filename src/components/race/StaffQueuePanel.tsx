@@ -54,13 +54,6 @@ import {
 } from "@/lib/kartFeed/kartFeedClient";
 import { TeamClassificationPanel } from "@/components/race/TeamClassificationPanel";
 
-const CATEGORY_BADGE_CLASS: Record<string, string> = {
-  BOM: "border-emerald-500/40 text-emerald-500",
-  MEDIO: "border-amber-500/40 text-amber-500",
-  MAU: "border-red-500/40 text-red-500",
-  SEM_DADOS: "border-muted-foreground/30 text-muted-foreground",
-};
-
 const GRADE_BADGE_CLASS: Record<number, string> = {
   5: "border-emerald-500/40 text-emerald-500",
   4: "border-emerald-500/30 text-emerald-400",
@@ -102,12 +95,6 @@ function KartChip({
   return (
     <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
       <span className="font-mono text-sm font-semibold">{kart.label}</span>
-      <Badge
-        variant="outline"
-        className={`text-[10px] ${CATEGORY_BADGE_CLASS[kart.ultima_categoria]}`}
-      >
-        {kart.ultima_categoria}
-      </Badge>
       <GradeBadge grade={grade} manual={kart.rating_manual !== null} />
       {kart.notas ? (
         <span className="text-xs text-muted-foreground" title={kart.notas}>
