@@ -26,12 +26,17 @@ function StaffQueuePage() {
   const { user } = useSession();
   const { data } = useProfile(user?.id);
   const isAdmin = data?.isAdmin ?? false;
+  const kartsFeature = data?.profile?.karts_feature ?? false;
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <TeamHeader teamName={data?.profile?.team_name} isAdmin={isAdmin} />
+      <TeamHeader
+        teamName={data?.profile?.team_name}
+        isAdmin={isAdmin}
+        kartsFeature={kartsFeature}
+      />
       <main className="w-full space-y-3 px-4 py-4">
-        {!isAdmin ? (
+        {!isAdmin && !kartsFeature ? (
           <Card>
             <CardHeader>
               <CardTitle>Sem acesso</CardTitle>

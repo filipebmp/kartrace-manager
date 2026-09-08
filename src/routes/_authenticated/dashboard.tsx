@@ -38,7 +38,11 @@ function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <TeamHeader teamName={profile?.team_name} isAdmin={isAdmin} />
+      <TeamHeader
+        teamName={profile?.team_name}
+        isAdmin={isAdmin}
+        kartsFeature={profile?.karts_feature ?? false}
+      />
 
       <main className="w-full px-4 py-4">
         {isLoading ? (

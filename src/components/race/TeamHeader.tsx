@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 export function TeamHeader({
   teamName,
   isAdmin,
+  kartsFeature,
 }: {
   teamName?: string | undefined;
   isAdmin?: boolean | undefined;
+  kartsFeature?: boolean | undefined;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -41,7 +43,7 @@ export function TeamHeader({
             </Link>
           </Button>
         ) : null}
-        {isAdmin ? (
+        {isAdmin || kartsFeature ? (
           <Button asChild variant="outline" size="sm">
             <Link to="/staff-queue">
               <Radio className="size-4" />
