@@ -60,11 +60,18 @@ import {
   useDemoStatus,
   useStartDemo,
   useStopDemo,
+  useRatingConfig,
+  useSetRatingTiers,
+  useSetRatingBestNLaps,
+  useBoxConfig,
+  useSetNumeroFilasPadrao,
+  useAplicarNumeroFilasPadrao,
   type KartDTO,
   type KartRatingDTO,
   type KartFeedStatus,
   type KartFeedSnapshot,
   type FilaDTO,
+  type RatingTierDTO,
 } from "@/lib/kartFeed/kartFeedClient";
 import { TeamClassificationPanel } from "@/components/race/TeamClassificationPanel";
 
@@ -450,6 +457,7 @@ function StaffQueueContent({
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="classificar">Classificar Equipas</TabsTrigger>
           <TabsTrigger value="demo">Demo</TabsTrigger>
+          <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
@@ -601,6 +609,10 @@ function StaffQueueContent({
 
         <TabsContent value="demo">
           <DemoPanel />
+        </TabsContent>
+
+        <TabsContent value="config">
+          <ConfiguracoesPanel />
         </TabsContent>
       </Tabs>
 
@@ -755,6 +767,230 @@ function KartEditDialog({
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function parseTempoParaSegundos(texto: string): number | null {
+  const m = texto.trim().match(/^(\d+):(\d{1,2})\.(\d{1,3})$/);
+  if (!m || !m[1] || !m[2] || !m[3]) return null;
+  const milissegundos = m[3].padEnd(3, "0");
+  return Number(m[1]) * 60 + Number(m[2]) + Number(milissegundos) / 1000;
+}
+
+function formatarSegundosParaTempo(segundos: number): string {
+  const minutos = Math.floor(segundos / 60);
+  const resto = (segundos - minutos * 60).toFixed(3).padStart(6, "0");
+  return `${minutos}:${resto}`;
+}
+
+function ConfiguracoesPanel() {
+  const { data: ratingConfig } = useRatingConfig();
+  const setRatingTiers = useSetRatingTiers();
+  const setBestNLaps = useSetRatingBestNLaps();
+  const { data: boxConfig } = useBoxConfig();
+  const setNumeroFilasPadrao = useSetNumeroFilasPadrao();
+  const aplicarNumeroFilasPadrao = useAplicarNumeroFilasPadrao();
+
+  // Campos de texto por grau (5→1), inicializados quando a config chega.
+  const [campos, setCampos] = useState<Record<number, { min: string; max: string }> | null>(null);
+  const [bestN, setBestN] = useState("8");
+  const [numeroFilas, setNumeroFilas] = useState("2");
+
+  if (ratingConfig && campos === null) {
+    const iniciais: Record<number, { min: string; max: string }> = {};
+    for (const t of ratingConfig.tiers) {
+      iniciais[t.grade] = {
+        min: formatarSegundosParaTempo(t.min_seconds),
+        max: formatarSegundosParaTempo(t.max_seconds),
+      };
+    }
+    setCampos(iniciais);
+    setBestN(String(ratingConfig.best_n_laps));
+  }
+  if (boxConfig && numeroFilas === "2" && boxConfig.numero_filas_padrao !== 2) {
+    setNumeroFilas(String(boxConfig.numero_filas_padrao));
+  }
+
+  async function handleGuardarTemposAlvo() {
+    if (!campos) return;
+    const tiers: RatingTierDTO[] = [];
+    for (const grade of [5, 4, 3, 2, 1]) {
+      const par = campos[grade];
+      const min = par ? parseTempoParaSegundos(par.min) : null;
+      const max = par ? parseTempoParaSegundos(par.max) : null;
+      if (min === null || max === null) {
+        toast.error(`Rating ${grade}: tempo inválido — usa o formato M:SS.mmm (ex.: 1:03.500)`);
+        return;
+      }
+      tiers.push({ grade, min_seconds: min, max_seconds: max });
+    }
+    try {
+      await setRatingTiers(tiers);
+      toast.success("Tempos-alvo atualizados");
+    } catch (e) {
+      toast.error("Não foi possível guardar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleGuardarBestN() {
+    const n = Number(bestN);
+    if (!Number.isInteger(n) || n < 1) {
+      toast.error("Tem de ser um número inteiro, pelo menos 1");
+      return;
+    }
+    try {
+      await setBestNLaps(n);
+      toast.success("Atualizado");
+    } catch (e) {
+      toast.error("Não foi possível guardar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleGuardarNumeroFilas() {
+    const n = Number(numeroFilas);
+    if (!Number.isInteger(n) || n < 1) {
+      toast.error("Tem de ser um número inteiro, pelo menos 1");
+      return;
+    }
+    try {
+      await setNumeroFilasPadrao(n);
+      toast.success("Número de filas por defeito atualizado");
+    } catch (e) {
+      toast.error("Não foi possível guardar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleAplicarNumeroFilas() {
+    try {
+      const resultado = await aplicarNumeroFilasPadrao();
+      toast.success(`Filas recriadas: ${resultado.filas.map((f) => f.nome).join(", ")}`);
+    } catch (e) {
+      toast.error("Não foi possível aplicar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>I. Tempos Alvo</CardTitle>
+          <CardDescription>
+            Define os intervalos de tempo que determinam o rating automático (1-5) de cada kart.
+            Podes ajustar isto a qualquer momento durante a corrida — as condições de pista mudam.
+            Formato dos tempos: <code>M:SS.mmm</code> (ex.: <code>1:03.500</code>).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {campos === null ? (
+            <p className="text-sm text-muted-foreground">A carregar...</p>
+          ) : (
+            <div className="space-y-2">
+              {[5, 4, 3, 2, 1].map((grade) => (
+                <div key={grade} className="flex items-center gap-2">
+                  <Badge variant="outline" className="w-20 justify-center shrink-0">
+                    Rating {grade}
+                  </Badge>
+                  <Input
+                    value={campos[grade]?.min ?? ""}
+                    onChange={(e) =>
+                      setCampos((prev) => ({
+                        ...prev,
+                        [grade]: { min: e.target.value, max: prev?.[grade]?.max ?? "" },
+                      }))
+                    }
+                    placeholder="1:03.000"
+                    className="max-w-[9rem]"
+                  />
+                  <span className="text-muted-foreground">até</span>
+                  <Input
+                    value={campos[grade]?.max ?? ""}
+                    onChange={(e) =>
+                      setCampos((prev) => ({
+                        ...prev,
+                        [grade]: { min: prev?.[grade]?.min ?? "", max: e.target.value },
+                      }))
+                    }
+                    placeholder="1:03.499"
+                    className="max-w-[9rem]"
+                  />
+                </div>
+              ))}
+              <Button onClick={handleGuardarTemposAlvo}>Guardar tabela</Button>
+            </div>
+          )}
+
+          <div className="border-t border-border pt-4">
+            <label className="text-xs uppercase text-muted-foreground">
+              Média das X melhores voltas do turno atual
+            </label>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Ignora voltas de dobragem/tráfego — usa só as X mais rápidas do turno em curso.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={bestN}
+                onChange={(e) => setBestN(e.target.value)}
+                inputMode="numeric"
+                className="max-w-[6rem]"
+              />
+              <Button variant="outline" onClick={handleGuardarBestN}>
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>II. Box</CardTitle>
+          <CardDescription>
+            Quantas filas de sorteio existem por defeito. "Aplicar" substitui as filas atuais por
+            este número (só funciona se estiverem todas vazias).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-2">
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Nº Filas</label>
+            <Input
+              value={numeroFilas}
+              onChange={(e) => setNumeroFilas(e.target.value)}
+              inputMode="numeric"
+              className="max-w-[6rem]"
+            />
+          </div>
+          <Button variant="outline" onClick={handleGuardarNumeroFilas}>
+            Guardar número
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button>Aplicar agora (recriar filas)</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Recriar as filas?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isto substitui todas as filas atuais por {numeroFilas} fila(s) novas, com nomes e
+                  cores genéricas. Só funciona se as filas atuais estiverem vazias.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleAplicarNumeroFilas}>Aplicar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

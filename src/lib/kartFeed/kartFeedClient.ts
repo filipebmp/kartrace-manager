@@ -65,10 +65,10 @@ export interface FilaDTO {
 export interface KartRatingDTO {
   kart_id: string;
   grade: number | null;
-  confianca: "sem_dados" | "baixa" | "media" | "alta" | "manual";
-  avg_delta_seconds: number | null;
-  sample_count: number;
-  distinct_teams: number;
+  confianca: "sem_dados" | "automatica" | "manual";
+  media_melhores_voltas_seconds: number | null;
+  amostras_usadas: number;
+  total_voltas_turno: number;
 }
 
 export interface PrevisaoEntryDTO {
@@ -470,6 +470,60 @@ export function useDefinirEquipaTier() {
   return useCallback(
     (numeroEquipa: string, tier: TeamSkillTier | null) =>
       postJson("/staff/equipa_tier", { numero_equipa: numeroEquipa, tier }),
+    [],
+  );
+}
+
+// --- Configurações — Tempos Alvo (rating) e Box (filas) --------------------
+
+export interface RatingTierDTO {
+  grade: number;
+  min_seconds: number;
+  max_seconds: number;
+}
+
+export interface RatingConfigDTO {
+  tiers: RatingTierDTO[];
+  best_n_laps: number;
+}
+
+export function useRatingConfig() {
+  return usePolledEndpoint<RatingConfigDTO>("/config/rating", 10000, true);
+}
+
+export function useSetRatingTiers() {
+  return useCallback(
+    (tiers: RatingTierDTO[]) =>
+      postJsonWithResponse<RatingConfigDTO>("/config/rating/tiers", { tiers }),
+    [],
+  );
+}
+
+export function useSetRatingBestNLaps() {
+  return useCallback(
+    (n: number) => postJsonWithResponse<RatingConfigDTO>("/config/rating/best_n_laps", { n }),
+    [],
+  );
+}
+
+export interface BoxConfigDTO {
+  numero_filas_padrao: number;
+}
+
+export function useBoxConfig() {
+  return usePolledEndpoint<BoxConfigDTO>("/config/box", 10000, true);
+}
+
+export function useSetNumeroFilasPadrao() {
+  return useCallback(
+    (n: number) => postJsonWithResponse<BoxConfigDTO>("/config/box/numero_filas_padrao", { n }),
+    [],
+  );
+}
+
+export function useAplicarNumeroFilasPadrao() {
+  return useCallback(
+    () => postJsonWithResponse<{ filas: FilaDTO[] }>("/config/box/aplicar_numero_filas_padrao", {}),
     [],
   );
 }
