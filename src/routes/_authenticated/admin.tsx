@@ -177,6 +177,20 @@ function AdminPage() {
                     aria-label={`Gestão de karts para ${t.team_name}`}
                   />
                 </div>
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Gestão de equipa</p>
+                    <p className="text-xs text-muted-foreground">
+                      Dá acesso ao painel de turnos, plano e pilotos.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={t.team_feature}
+                    disabled={togglingId === t.id}
+                    onCheckedChange={(v) => void toggleTeam(t, v)}
+                    aria-label={`Gestão de equipa para ${t.team_name}`}
+                  />
+                </div>
                 <div className="flex gap-2">
                 <Button
                   size="sm"
