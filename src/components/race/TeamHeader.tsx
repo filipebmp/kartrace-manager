@@ -9,10 +9,12 @@ export function TeamHeader({
   teamName,
   isAdmin,
   kartsFeature,
+  teamFeature,
 }: {
   teamName?: string | undefined;
   isAdmin?: boolean | undefined;
   kartsFeature?: boolean | undefined;
+  teamFeature?: boolean | undefined;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
