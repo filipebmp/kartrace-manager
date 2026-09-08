@@ -6,9 +6,11 @@ import {
   Clock,
   Link2,
   Pencil,
+  Play,
   Plus,
   Radio,
   RotateCcw,
+  Square,
   Trash2,
   Wand2,
   Wrench,
@@ -18,6 +20,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -46,6 +56,9 @@ import {
   useLiveTimingStatus,
   useSetLiveTimingTarget,
   useDisconnectLiveTimingTarget,
+  useDemoStatus,
+  useStartDemo,
+  useStopDemo,
   type KartDTO,
   type KartRatingDTO,
   type KartFeedStatus,
@@ -398,8 +411,9 @@ function StaffQueueContent({
       <Tabs defaultValue="fila">
         <TabsList>
           <TabsTrigger value="fila">Fila</TabsTrigger>
-          <TabsTrigger value="previsao">Previsão</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="classificar">Classificar Equipas</TabsTrigger>
+          <TabsTrigger value="demo">Demo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
@@ -536,12 +550,21 @@ function StaffQueueContent({
           ) : null}
         </TabsContent>
 
-        <TabsContent value="previsao">
+        <TabsContent value="dashboard" className="space-y-4">
+          <DashboardPanel
+            snapshot={snapshot}
+            ratings={ratings}
+            onEditarKart={(kartId) => setKartEmEdicao(kartId)}
+          />
           <ForecastPanel />
         </TabsContent>
 
         <TabsContent value="classificar">
           <TeamClassificationPanel />
+        </TabsContent>
+
+        <TabsContent value="demo">
+          <DemoPanel />
         </TabsContent>
       </Tabs>
 
@@ -696,6 +719,243 @@ function KartEditDialog({
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DemoPanel() {
+  const { data: status } = useDemoStatus();
+  const startDemo = useStartDemo();
+  const stopDemo = useStopDemo();
+
+  const [speed, setSpeed] = useState("20");
+  const [leaderPace, setLeaderPace] = useState("55");
+  const [fieldSpread, setFieldSpread] = useState("4");
+  const [stintMinutes, setStintMinutes] = useState("15");
+  const [manual, setManual] = useState(false);
+
+  const running = status?.running ?? false;
+
+  async function handleIniciar() {
+    try {
+      await startDemo({
+        speed: Number(speed) || 20,
+        leader_pace: Number(leaderPace) || 55,
+        field_spread: Number(fieldSpread) || 4,
+        stint_minutes: Number(stintMinutes) || 15,
+        manual,
+      });
+      toast.success("Corrida de demonstração iniciada");
+    } catch (e) {
+      toast.error("Não foi possível iniciar a demo", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleParar() {
+    try {
+      await stopDemo();
+      toast.success("Demo terminada");
+    } catch (e) {
+      toast.error("Não foi possível parar a demo", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Play className="size-4" /> Corrida de demonstração
+        </CardTitle>
+        <CardDescription>
+          Gera equipas e karts falsos, com voltas, PITINs e turnos, para testares ou mostrares o
+          sistema sem depender de karts reais em pista. Usa os karts já registados no backend.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {running ? (
+          <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-500">
+            <Radio className="size-3.5 animate-pulse" /> Demo em curso
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Velocidade</label>
+            <Input
+              value={speed}
+              onChange={(e) => setSpeed(e.target.value)}
+              disabled={running}
+              inputMode="numeric"
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Ritmo líder (s)</label>
+            <Input
+              value={leaderPace}
+              onChange={(e) => setLeaderPace(e.target.value)}
+              disabled={running}
+              inputMode="numeric"
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Espalhamento (s)</label>
+            <Input
+              value={fieldSpread}
+              onChange={(e) => setFieldSpread(e.target.value)}
+              disabled={running}
+              inputMode="numeric"
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Turno (min)</label>
+            <Input
+              value={stintMinutes}
+              onChange={(e) => setStintMinutes(e.target.value)}
+              disabled={running}
+              inputMode="numeric"
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={manual}
+            onChange={(e) => setManual(e.target.checked)}
+            disabled={running}
+          />
+          Modo manual — a demo gera voltas e PITINs, mas deixa a triagem e o sorteio para cliques na
+          interface (útil para praticares o fluxo com calma)
+        </label>
+
+        {running ? (
+          <Button variant="destructive" onClick={handleParar}>
+            <Square className="size-3.5" /> Parar demo
+          </Button>
+        ) : (
+          <Button onClick={handleIniciar}>
+            <Play className="size-3.5" /> Iniciar demo
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DashboardPanel({
+  snapshot,
+  ratings,
+  onEditarKart,
+}: {
+  snapshot: KartFeedSnapshot;
+  ratings: Record<string, KartRatingDTO> | null;
+  onEditarKart: (kartId: string) => void;
+}) {
+  function formatLapTime(seconds: number | null): string {
+    if (seconds === null) return "—";
+    const minutos = Math.floor(seconds / 60);
+    const resto = (seconds - minutos * 60).toFixed(3).padStart(6, "0");
+    return `${minutos}:${resto}`;
+  }
+
+  const LAP_COLOR: Record<string, string> = {
+    BOM: "text-emerald-500",
+    MEDIO: "text-amber-500",
+    MAU: "text-red-500",
+    SEM_DADOS: "text-muted-foreground",
+  };
+
+  const ESTADO_LABEL: Record<string, string> = {
+    EM_PISTA: "Em pista",
+    DROP_OFF: "Em triagem",
+    EM_FILA: "Em fila",
+    SORTEADO: "A caminho da pista",
+    FORA_DE_SERVICO: "Fora de serviço",
+  };
+
+  const linhas = Object.values(snapshot.equipas)
+    .filter((eq) => eq.total_voltas > 0)
+    .sort((a, b) => {
+      const A = a.melhor_tempo_seconds ?? Infinity;
+      const B = b.melhor_tempo_seconds ?? Infinity;
+      return A - B;
+    });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Dashboard ao vivo</CardTitle>
+        <CardDescription>
+          Classificação por melhor volta, com a categorização automática do nosso sistema. Clica no
+          lápis para ajustar o rating de um kart manualmente.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {linhas.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Ainda não há voltas registadas.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">#</TableHead>
+                <TableHead>Equipa</TableHead>
+                <TableHead>Kart</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Última volta</TableHead>
+                <TableHead className="text-right">Melhor volta</TableHead>
+                <TableHead className="text-right">Rating</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linhas.map((eq, i) => {
+                const kartId = eq.kart_atual_id;
+                const kart = kartId ? snapshot.karts[kartId] : undefined;
+                const grade = kartId ? ratings?.[kartId]?.grade : undefined;
+                return (
+                  <TableRow key={eq.numero_equipa}>
+                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell className="font-mono font-semibold">
+                      {eq.numero_equipa}
+                      {eq.nome ? (
+                        <span className="ml-1 text-muted-foreground">{eq.nome}</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="font-mono">{kart?.label ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {kart ? ESTADO_LABEL[kart.state] : "—"}
+                    </TableCell>
+                    <TableCell className={`text-right font-mono ${LAP_COLOR[eq.ultima_categoria]}`}>
+                      {formatLapTime(eq.ultimo_tempo_seconds)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatLapTime(eq.melhor_tempo_seconds)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <GradeBadge grade={grade} manual={kart?.rating_manual != null} />
+                        {kartId ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditarKart(kartId)}
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label={`Editar kart ${kartId}`}
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
