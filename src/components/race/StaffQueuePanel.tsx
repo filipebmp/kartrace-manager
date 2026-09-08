@@ -9,7 +9,6 @@ import {
   Plus,
   Radio,
   RotateCcw,
-  Shuffle,
   Trash2,
   Wand2,
   Wrench,
@@ -293,7 +292,11 @@ function StaffQueueContent({
     definirRatingManual,
     removerKart,
   } = actions;
-  const [numeroEquipaSorteio, setNumeroEquipaSorteio] = useState("");
+  const [atribuirAlvo, setAtribuirAlvo] = useState<{
+    filaId: string;
+    kartId: string;
+    corFila: string;
+  } | null>(null);
   const [motivoAvaria] = useState<Record<string, string>>({});
   const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
   const [novaFilaNome, setNovaFilaNome] = useState("");
@@ -330,18 +333,14 @@ function StaffQueueContent({
     }
   }
 
-  async function handleSortear(filaId: string, kartId?: string) {
-    const numero = numeroEquipaSorteio.trim();
-    if (!numero) {
-      toast.error("Indica o número da equipa que está a sair da box");
-      return;
-    }
+  async function handleConfirmarAtribuicao(numeroEquipa: string) {
+    if (!atribuirAlvo) return;
     try {
-      await sortearKart(filaId, numero, kartId);
-      toast.success(`Kart atribuído à equipa ${numero}`);
-      setNumeroEquipaSorteio("");
+      await sortearKart(atribuirAlvo.filaId, numeroEquipa, atribuirAlvo.kartId);
+      toast.success(`Kart atribuído à equipa ${numeroEquipa}`);
+      setAtribuirAlvo(null);
     } catch (e) {
-      toast.error("Não foi possível sortear", {
+      toast.error("Não foi possível atribuir", {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -467,60 +466,38 @@ function StaffQueueContent({
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shuffle className="size-4" /> Sortear kart para equipa
-              </CardTitle>
-              <CardDescription>
-                Indica o número da equipa que está a sair da box, depois escolhe a fila. Sem
-                selecionar um kart específico, usa-se sempre o primeiro da fila (FIFO).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Input
-                value={numeroEquipaSorteio}
-                onChange={(e) => setNumeroEquipaSorteio(e.target.value)}
-                placeholder="Número da equipa (ex: 12)"
-                inputMode="numeric"
-                className="max-w-[12rem]"
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {snapshot.filas.map((fila) => (
+              <QueueCard
+                key={fila.fila_id}
+                fila={fila}
+                karts={snapshot.karts}
+                ratings={ratings}
+                onAtribuir={(kartId) =>
+                  setAtribuirAlvo({ filaId: fila.fila_id, kartId, corFila: fila.cor })
+                }
+                onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
+                onEditarKart={(kartId) => setKartEmEdicao(kartId)}
               />
-            </CardContent>
-          </Card>
+            ))}
 
-          {snapshot.filas.map((fila) => (
-            <QueueCard
-              key={fila.fila_id}
-              fila={fila}
-              karts={snapshot.karts}
-              ratings={ratings}
-              onSortear={(kartId) => handleSortear(fila.fila_id, kartId)}
-              onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
-              onEditarKart={(kartId) => setKartEmEdicao(kartId)}
-            />
-          ))}
-
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+            <div className="min-w-[220px] rounded-lg border border-dashed border-border p-3">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
                 <Plus className="size-4" /> Nova fila
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[10rem] flex-1">
-                <Input
-                  value={novaFilaNome}
-                  onChange={(e) => setNovaFilaNome(e.target.value)}
-                  placeholder="Nome da fila (ex: Verde)"
-                />
               </div>
-              <div className="flex gap-1.5">
+              <Input
+                value={novaFilaNome}
+                onChange={(e) => setNovaFilaNome(e.target.value)}
+                placeholder="Nome (ex: Verde)"
+                className="mb-2"
+              />
+              <div className="mb-2 flex flex-wrap gap-1.5">
                 {CORES_SUGERIDAS.map((cor) => (
                   <button
                     key={cor}
                     type="button"
                     onClick={() => setNovaFilaCor(cor)}
-                    className={`size-7 rounded-full border-2 ${
+                    className={`size-6 rounded-full border-2 ${
                       novaFilaCor === cor ? "border-foreground" : "border-transparent"
                     }`}
                     style={{ backgroundColor: cor }}
@@ -528,9 +505,17 @@ function StaffQueueContent({
                   />
                 ))}
               </div>
-              <Button onClick={handleCriarFila}>Criar fila</Button>
-            </CardContent>
-          </Card>
+              <Button size="sm" className="w-full" onClick={handleCriarFila}>
+                Criar fila
+              </Button>
+            </div>
+          </div>
+
+          <AtribuirDialog
+            alvo={atribuirAlvo}
+            onCancel={() => setAtribuirAlvo(null)}
+            onConfirmar={handleConfirmarAtribuicao}
+          />
 
           {foraDeServico.length > 0 ? (
             <Card>
@@ -808,51 +793,47 @@ function QueueCard({
   fila,
   karts,
   ratings,
-  onSortear,
+  onAtribuir,
   onRemover,
   onEditarKart,
 }: {
   fila: FilaDTO;
   karts: Record<string, KartDTO>;
   ratings: Record<string, KartRatingDTO> | null;
-  onSortear: (kartId: string) => void;
+  onAtribuir: (kartId: string) => void;
   onRemover: () => void;
   onEditarKart: (kartId: string) => void;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full" style={{ backgroundColor: fila.cor }} />
-            <CardTitle>{fila.nome}</CardTitle>
-          </div>
+    <div className="flex min-w-[220px] max-w-[260px] flex-1 flex-col overflow-hidden rounded-lg border border-border">
+      <div
+        className="flex items-center justify-between px-3 py-2"
+        style={{ backgroundColor: fila.cor }}
+      >
+        <span className="font-semibold text-white">{fila.nome}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/80">{fila.kart_ids.length}</span>
           {fila.kart_ids.length === 0 ? (
             <button
               type="button"
               onClick={onRemover}
-              className="text-muted-foreground hover:text-destructive"
+              className="text-white/80 hover:text-white"
               aria-label={`Remover fila ${fila.nome}`}
             >
               <Trash2 className="size-4" />
             </button>
           ) : null}
         </div>
-        <CardDescription>
-          {fila.kart_ids.length} kart(s) em espera de sorteio, por ordem.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
+      </div>
+
+      <div className="flex-1 space-y-2 bg-card p-2">
         {fila.kart_ids.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Fila vazia.</p>
+          <p className="px-1 py-3 text-center text-xs text-muted-foreground">Fila vazia</p>
         ) : (
           fila.kart_ids.map((id, i) => (
-            <div
-              key={id}
-              className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-6 text-center text-xs text-muted-foreground">{i + 1}º</span>
+            <div key={id} className="rounded-md border border-border p-2">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">{i + 1}º</span>
                 <KartChip
                   kart={karts[id]}
                   grade={ratings?.[id]?.grade}
@@ -863,8 +844,8 @@ function QueueCard({
                 <Button
                   size="sm"
                   style={{ backgroundColor: fila.cor }}
-                  className="text-white hover:opacity-90"
-                  onClick={() => onSortear(id)}
+                  className="w-full text-white hover:opacity-90"
+                  onClick={() => onAtribuir(id)}
                 >
                   <ArrowRight className="size-3.5" /> Atribuir
                 </Button>
@@ -872,7 +853,59 @@ function QueueCard({
             </div>
           ))
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+function AtribuirDialog({
+  alvo,
+  onCancel,
+  onConfirmar,
+}: {
+  alvo: { filaId: string; kartId: string; corFila: string } | null;
+  onCancel: () => void;
+  onConfirmar: (numeroEquipa: string) => void;
+}) {
+  const [numero, setNumero] = useState("");
+
+  return (
+    <Dialog open={alvo !== null} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent>
+        {alvo ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Atribuir kart {alvo.kartId}</DialogTitle>
+              <DialogDescription>
+                A que equipa vai este kart? (a que está a sair da box agora)
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              autoFocus
+              value={numero}
+              onChange={(e) => setNumero(e.target.value)}
+              placeholder="Número da equipa (ex: 12)"
+              inputMode="numeric"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && numero.trim()) onConfirmar(numero.trim());
+              }}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={onCancel}>
+                Cancelar
+              </Button>
+              <Button
+                style={{ backgroundColor: alvo.corFila }}
+                className="text-white hover:opacity-90"
+                disabled={!numero.trim()}
+                onClick={() => onConfirmar(numero.trim())}
+              >
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
