@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 export function TeamHeader({
   teamName,
   isAdmin,
+  kartsFeature,
 }: {
   teamName?: string | undefined;
   isAdmin?: boolean | undefined;
+  kartsFeature?: boolean | undefined;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
