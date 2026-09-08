@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowRight, Clock, Radio, RotateCcw, Shuffle, Wrench } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Clock,
+  Link2,
+  Radio,
+  RotateCcw,
+  Shuffle,
+  Wrench,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,8 +20,13 @@ import {
   useKartFeedActions,
   useKartRatings,
   useKartForecast,
+  useLiveTimingStatus,
+  useSetLiveTimingTarget,
+  useDisconnectLiveTimingTarget,
   type KartDTO,
   type KartRatingDTO,
+  type KartFeedStatus,
+  type KartFeedSnapshot,
 } from "@/lib/kartFeed/kartFeedClient";
 import { TeamClassificationPanel } from "@/components/race/TeamClassificationPanel";
 
@@ -73,10 +87,8 @@ function KartChip({
  * telemetria do Live Timing; ver `kartFeedClient.ts`. */
 export function StaffQueuePanel() {
   const { snapshot, status } = useKartFeed();
-  const { triarKart, sortearKart, marcarForaDeServico, reintegrarKart } = useKartFeedActions();
+  const actions = useKartFeedActions();
   const { data: ratings } = useKartRatings(status === "online");
-  const [numeroEquipaSorteio, setNumeroEquipaSorteio] = useState("");
-  const [motivoAvaria, setMotivoAvaria] = useState<Record<string, string>>({});
 
   if (status === "disabled") {
     return (
@@ -91,6 +103,129 @@ export function StaffQueuePanel() {
       </Card>
     );
   }
+
+  return (
+    <div className="space-y-4">
+      <LiveTimingConnectionCard />
+      <StaffQueueContent
+        status={status}
+        snapshot={snapshot}
+        ratings={ratings ?? null}
+        actions={actions}
+      />
+    </div>
+  );
+}
+
+function LiveTimingConnectionCard() {
+  const { data: liveStatus, error } = useLiveTimingStatus();
+  const setTarget = useSetLiveTimingTarget();
+  const disconnect = useDisconnectLiveTimingTarget();
+  const [eventUrl, setEventUrl] = useState("");
+
+  async function handleLigar() {
+    const url = eventUrl.trim();
+    if (!url) {
+      toast.error("Cola o link do live timing (ex: http://live.apex-timing.com/kip-palmela/)");
+      return;
+    }
+    try {
+      await setTarget(url);
+      toast.success("Pedido de ligação enviado — o adapter liga-se em poucos segundos.");
+    } catch (e) {
+      toast.error("Não foi possível definir o alvo", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleDesligar() {
+    try {
+      await disconnect();
+      toast.success("Ligação ao live timing terminada.");
+    } catch (e) {
+      toast.error("Não foi possível desligar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="size-4" /> Ligação ao Live Timing
+        </CardTitle>
+        <CardDescription>
+          Cola o link normal da página de live timing da pista (ex.:{" "}
+          <code>http://live.apex-timing.com/kip-palmela/</code>). Fica ligado até desligares
+          manualmente — não precisas de mexer no servidor para trocar de pista.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Input
+            value={eventUrl}
+            onChange={(e) => setEventUrl(e.target.value)}
+            placeholder="http://live.apex-timing.com/kip-palmela/"
+            className="max-w-md"
+          />
+          <Button onClick={handleLigar}>Ligar</Button>
+          {liveStatus?.event_url ? (
+            <Button variant="outline" onClick={handleDesligar}>
+              Desligar
+            </Button>
+          ) : null}
+        </div>
+
+        {error ? (
+          <p className="text-sm text-muted-foreground">
+            Sem ligação ao backend para consultar o estado.
+          </p>
+        ) : !liveStatus ? (
+          <p className="text-sm text-muted-foreground">A carregar estado…</p>
+        ) : !liveStatus.event_url ? (
+          <p className="text-sm text-muted-foreground">Nenhuma pista definida neste momento.</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {liveStatus.connected ? (
+              <Badge variant="outline" className="border-emerald-500/40 text-emerald-500">
+                <Radio className="size-3 animate-pulse" /> Ligado
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-amber-500/40 text-amber-500">
+                A ligar…
+              </Badge>
+            )}
+            <span className="font-mono text-xs text-muted-foreground">{liveStatus.event_url}</span>
+            {liveStatus.detail ? (
+              <span className="text-xs text-muted-foreground">— {liveStatus.detail}</span>
+            ) : null}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Painel de gestão do sorteio de karts entre todas as equipas — Fila de
+ * Espera/Triagem, Fila Vermelha e Fila Azul, tal como no regulamento do
+ * evento. Consome o backend Python (`kart-endurance/`) que processa a
+ * telemetria do Live Timing; ver `kartFeedClient.ts`. */
+function StaffQueueContent({
+  status,
+  snapshot,
+  ratings,
+  actions,
+}: {
+  status: KartFeedStatus;
+  snapshot: KartFeedSnapshot | null;
+  ratings: Record<string, KartRatingDTO> | null;
+  actions: ReturnType<typeof useKartFeedActions>;
+}) {
+  const { triarKart, sortearKart, marcarForaDeServico, reintegrarKart } = actions;
+  const [numeroEquipaSorteio, setNumeroEquipaSorteio] = useState("");
+  const [motivoAvaria, setMotivoAvaria] = useState<Record<string, string>>({});
 
   if (status !== "online" || !snapshot) {
     return (

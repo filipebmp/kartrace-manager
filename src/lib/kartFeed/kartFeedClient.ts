@@ -87,6 +87,14 @@ export interface EquipaParaClassificarDTO {
   tier_atual: TeamSkillTier | null;
 }
 
+export interface LiveTimingStatusDTO {
+  connected: boolean;
+  event_url: string | null;
+  ws_url: string | null;
+  detail: string | null;
+  updated_at: string | null;
+}
+
 export interface KartFeedSnapshot {
   karts: Record<string, KartDTO>;
   equipas: Record<string, EquipaDTO>;
@@ -365,4 +373,21 @@ export function useDefinirEquipaTier() {
       postJson("/staff/equipa_tier", { numero_equipa: numeroEquipa, tier }),
     [],
   );
+}
+
+// --- Alvo de Live Timing ligável em runtime -------------------------------
+
+export function useLiveTimingStatus(enabled = true) {
+  return usePolledEndpoint<LiveTimingStatusDTO>("/admin/live_timing_status", 3000, enabled);
+}
+
+export function useSetLiveTimingTarget() {
+  return useCallback(
+    (eventUrl: string) => postJson("/admin/live_timing_target", { event_url: eventUrl }),
+    [],
+  );
+}
+
+export function useDisconnectLiveTimingTarget() {
+  return useCallback(() => postJson("/admin/live_timing_target/disconnect", {}), []);
 }
