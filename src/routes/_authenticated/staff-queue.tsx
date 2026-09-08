@@ -27,6 +27,7 @@ function StaffQueuePage() {
   const { data } = useProfile(user?.id);
   const isAdmin = data?.isAdmin ?? false;
   const kartsFeature = data?.profile?.karts_feature ?? false;
+  const teamFeature = data?.profile?.team_feature ?? true;
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -34,6 +35,7 @@ function StaffQueuePage() {
         teamName={data?.profile?.team_name}
         isAdmin={isAdmin}
         kartsFeature={kartsFeature}
+        teamFeature={teamFeature}
       />
       <main className="w-full space-y-3 px-4 py-4">
         {!isAdmin && !kartsFeature ? (

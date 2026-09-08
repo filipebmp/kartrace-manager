@@ -42,6 +42,7 @@ function DashboardPage() {
         teamName={profile?.team_name}
         isAdmin={isAdmin}
         kartsFeature={profile?.karts_feature ?? false}
+        teamFeature={profile?.team_feature ?? true}
       />
 
       <main className="w-full px-4 py-4">
