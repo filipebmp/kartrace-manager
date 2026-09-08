@@ -490,3 +490,29 @@ export function useSetLiveTimingTarget() {
 export function useDisconnectLiveTimingTarget() {
   return useCallback(() => postJson("/admin/live_timing_target/disconnect", {}), []);
 }
+
+// --- Corrida de demonstração ---------------------------------------------
+
+export interface DemoStatusDTO {
+  running: boolean;
+}
+
+export interface DemoStartOptions {
+  speed: number;
+  leader_pace: number;
+  field_spread: number;
+  stint_minutes: number;
+  manual: boolean;
+}
+
+export function useDemoStatus(enabled = true) {
+  return usePolledEndpoint<DemoStatusDTO>("/demo/status", 3000, enabled);
+}
+
+export function useStartDemo() {
+  return useCallback((options: DemoStartOptions) => postJson("/demo/start", options), []);
+}
+
+export function useStopDemo() {
+  return useCallback(() => postJson("/demo/stop", {}), []);
+}
