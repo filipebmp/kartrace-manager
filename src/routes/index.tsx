@@ -33,7 +33,7 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-sidebar/80 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
+        <div className="flex items-center justify-between">
           <h1 className="font-display text-lg font-bold uppercase tracking-[0.12em]">
             Team Manager <span className="text-primary">24H</span>
           </h1>
@@ -43,7 +43,7 @@ function Landing() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-12">
+      <main className="w-full px-4 py-12">
         <h2 className="font-display text-3xl font-bold uppercase leading-tight tracking-tight">
           Estratégia de resistência, equipa a equipa
         </h2>

@@ -40,7 +40,7 @@ function DashboardPage() {
     <div className="min-h-screen bg-background pb-10">
       <TeamHeader teamName={profile?.team_name} isAdmin={isAdmin} />
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-4">
+      <main className="w-full px-4 py-4">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">A carregar…</p>
         ) : !approved ? (
