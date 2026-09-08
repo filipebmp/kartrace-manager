@@ -43,7 +43,7 @@ export function TeamHeader({
             </Link>
           </Button>
         ) : null}
-        {isAdmin ? (
+        {isAdmin || kartsFeature ? (
           <Button asChild variant="outline" size="sm">
             <Link to="/staff-queue">
               <Radio className="size-4" />
