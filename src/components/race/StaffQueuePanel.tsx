@@ -341,50 +341,83 @@ function StaffQueueContent({
     moverKart,
     definirCapacidadeFila,
   } = actions;
-  // Arrastar karts entre filas: baseado em eventos de ponteiro (não HTML5
-  // drag nativo, que não funciona em touch no Safari/iPhone e mostrou-se
-  // pouco fiável mesmo em desktop) — funciona igual com rato e dedo.
-  const [dragInfo, setDragInfo] = useState<{ kartId: string; x: number; y: number } | null>(null);
+  // Arrastar karts entre filas: baseado em eventos de ponteiro nativos do
+  // document (não sintéticos do React nem HTML5 drag) — mais fiável entre
+  // browsers, e funciona igual com rato e dedo (touch). Usamos refs para
+  // ler os valores mais recentes dentro dos listeners (evita o problema
+  // clássico de "closure antigo" com o React).
+  const [dragInfo, setDragInfo] = useState<{
+    kartId: string;
+    filaOrigemId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [dropTarget, setDropTarget] = useState<{ filaId: string; index: number } | null>(null);
-  const dragStartRef = useRef<{ kartId: string; x: number; y: number } | null>(null);
+  const dropTargetRef = useRef<{ filaId: string; index: number } | null>(null);
+  const dragInfoRef = useRef<{ kartId: string; filaOrigemId: string } | null>(null);
 
-  function handlePointerDownOnHandle(e: ReactPointerEvent, kartId: string) {
+  function handlePointerDownOnHandle(e: ReactPointerEvent, kartId: string, filaOrigemId: string) {
     e.preventDefault();
-    dragStartRef.current = { kartId, x: e.clientX, y: e.clientY };
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
-  }
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let comecouArrastar = false;
 
-  function handlePointerMoveOnHandle(e: ReactPointerEvent) {
-    const inicio = dragStartRef.current;
-    if (!inicio) return;
-    const dx = e.clientX - inicio.x;
-    const dy = e.clientY - inicio.y;
-    // Só passa a "arrastar" de facto depois de um pequeno limiar de
-    // movimento — evita que um simples toque/clique seja interpretado
-    // como arrasto.
-    if (!dragInfo && Math.hypot(dx, dy) < 6) return;
+    function aoMover(ev: PointerEvent) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!comecouArrastar) {
+        if (Math.hypot(dx, dy) < 6) return; // limiar — evita confundir um toque com arrasto
+        comecouArrastar = true;
+        dragInfoRef.current = { kartId, filaOrigemId };
+        setDragInfo({ kartId, filaOrigemId, x: ev.clientX, y: ev.clientY });
+      } else {
+        setDragInfo({ kartId, filaOrigemId, x: ev.clientX, y: ev.clientY });
+      }
 
-    setDragInfo({ kartId: inicio.kartId, x: e.clientX, y: e.clientY });
+      const elemento = document.elementFromPoint(ev.clientX, ev.clientY);
+      const alvo = elemento?.closest("[data-drop-fila]") as HTMLElement | null;
+      let novoAlvo = alvo
+        ? { filaId: alvo.dataset["dropFila"] as string, index: Number(alvo.dataset["dropIndex"]) }
+        : null;
 
-    const elemento = document.elementFromPoint(e.clientX, e.clientY);
-    const alvo = elemento?.closest("[data-drop-fila]") as HTMLElement | null;
-    if (alvo) {
-      setDropTarget({
-        filaId: alvo.dataset["dropFila"] as string,
-        index: Number(alvo.dataset["dropIndex"]),
-      });
-    } else {
+      // Se estamos a reordenar DENTRO da mesma fila, o kart vai ser
+      // removido da posição atual ANTES de ser reinserido — o que desloca
+      // tudo o que vem depois uma posição para trás. Corrigimos aqui para
+      // a pré-visualização (e o pedido final) apontarem para o sítio
+      // certo, não para "uma posição a mais".
+      if (novoAlvo && novoAlvo.filaId === filaOrigemId) {
+        const filaAtual = snapshot?.filas.find((f) => f.fila_id === filaOrigemId);
+        const indiceAtual = filaAtual?.kart_ids.indexOf(kartId) ?? -1;
+        if (indiceAtual !== -1 && novoAlvo.index > indiceAtual) {
+          novoAlvo = { ...novoAlvo, index: novoAlvo.index - 1 };
+        }
+      }
+
+      dropTargetRef.current = novoAlvo;
+      setDropTarget(novoAlvo);
+    }
+
+    function aoLargar() {
+      document.removeEventListener("pointermove", aoMover);
+      document.removeEventListener("pointerup", aoLargar);
+      document.removeEventListener("pointercancel", aoLargar);
+
+      if (dragInfoRef.current && dropTargetRef.current) {
+        handleMoverKart(
+          dragInfoRef.current.kartId,
+          dropTargetRef.current.filaId,
+          dropTargetRef.current.index,
+        );
+      }
+      dragInfoRef.current = null;
+      dropTargetRef.current = null;
+      setDragInfo(null);
       setDropTarget(null);
     }
-  }
 
-  function handlePointerUpOnHandle() {
-    if (dragInfo && dropTarget) {
-      handleMoverKart(dragInfo.kartId, dropTarget.filaId, dropTarget.index);
-    }
-    dragStartRef.current = null;
-    setDragInfo(null);
-    setDropTarget(null);
+    document.addEventListener("pointermove", aoMover);
+    document.addEventListener("pointerup", aoLargar);
+    document.addEventListener("pointercancel", aoLargar);
   }
   const [pendingRelocacao, setPendingRelocacao] = useState<{
     kartId: string;
@@ -646,8 +679,6 @@ function StaffQueueContent({
                 dragInfo={dragInfo}
                 dropTarget={dropTarget}
                 onPointerDownOnHandle={handlePointerDownOnHandle}
-                onPointerMoveOnHandle={handlePointerMoveOnHandle}
-                onPointerUpOnHandle={handlePointerUpOnHandle}
               />
             ))}
 
@@ -1484,8 +1515,6 @@ function QueueCard({
   dragInfo,
   dropTarget,
   onPointerDownOnHandle,
-  onPointerMoveOnHandle,
-  onPointerUpOnHandle,
 }: {
   fila: FilaDTO;
   karts: Record<string, KartDTO>;
@@ -1496,13 +1525,28 @@ function QueueCard({
   onRetirarDaFila: (kartId: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
   onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
-  dragInfo: { kartId: string; x: number; y: number } | null;
+  dragInfo: { kartId: string; filaOrigemId: string; x: number; y: number } | null;
   dropTarget: { filaId: string; index: number } | null;
-  onPointerDownOnHandle: (e: ReactPointerEvent, kartId: string) => void;
-  onPointerMoveOnHandle: (e: ReactPointerEvent) => void;
-  onPointerUpOnHandle: () => void;
+  onPointerDownOnHandle: (e: ReactPointerEvent, kartId: string, filaOrigemId: string) => void;
 }) {
   const [novoKartId, setNovoKartId] = useState("");
+
+  // Pré-visualização em tempo real: enquanto se arrasta um kart PARA
+  // dentro desta fila, mostra logo "o espaço a abrir-se" na posição onde
+  // vai cair — tal como o Pit Helper faz. Só se aplica à fila que está
+  // mesmo a ser sobrevoada agora; as outras mostram a lista tal como está.
+  const kartIdsParaMostrar =
+    dragInfo && dropTarget?.filaId === fila.fila_id
+      ? (() => {
+          const semArrastado = fila.kart_ids.filter((id) => id !== dragInfo.kartId);
+          const posicao = Math.min(dropTarget.index, semArrastado.length);
+          return [
+            ...semArrastado.slice(0, posicao),
+            dragInfo.kartId,
+            ...semArrastado.slice(posicao),
+          ];
+        })()
+      : fila.kart_ids;
 
   function handleAdicionar() {
     const id = novoKartId.trim();
@@ -1570,102 +1614,115 @@ function QueueCard({
 
       <div
         data-drop-fila={fila.fila_id}
-        data-drop-index={fila.kart_ids.length}
+        data-drop-index={kartIdsParaMostrar.length}
         className={`flex-1 space-y-1.5 bg-card p-2 ${
-          dropTarget?.filaId === fila.fila_id && dropTarget.index >= fila.kart_ids.length
+          dropTarget?.filaId === fila.fila_id && dropTarget.index >= kartIdsParaMostrar.length
             ? "bg-primary/10"
             : ""
         }`}
       >
-        {fila.kart_ids.length === 0 && vazios === 0 ? (
+        {fila.kart_ids.length === 0 && vazios === 0 && kartIdsParaMostrar.length === 0 ? (
           <p className="pointer-events-none px-1 py-3 text-center text-xs text-muted-foreground">
             Fila vazia — arrasta um kart para aqui (pega no ⠿)
           </p>
         ) : (
-          fila.kart_ids.map((id, i) => (
-            <div
-              key={id}
-              data-drop-fila={fila.fila_id}
-              data-drop-index={i}
-              className={`flex items-start gap-1 rounded-md border p-2 transition-colors ${
-                dragInfo?.kartId === id
-                  ? "border-border/50 bg-muted/30 opacity-50"
-                  : dropTarget?.filaId === fila.fila_id && dropTarget.index === i
-                    ? "border-primary bg-primary/10"
-                    : "border-border"
-              }`}
-            >
-              <button
-                type="button"
-                onPointerDown={(e) => onPointerDownOnHandle(e, id)}
-                onPointerMove={onPointerMoveOnHandle}
-                onPointerUp={onPointerUpOnHandle}
-                onPointerCancel={onPointerUpOnHandle}
-                className="mt-1 shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
-                style={{ touchAction: "none" }}
-                aria-label={`Arrastar kart ${karts[id]?.label ?? id}`}
-              >
-                <GripVertical className="size-4" />
-              </button>
-              <div className="flex-1">
-                <div className="mb-1.5 flex items-center justify-between gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">{i + 1}º</span>
-                    <KartChip
-                      kart={karts[id]}
-                      grade={ratings?.[id]?.grade}
-                      onEditar={() => onEditarKart(id)}
-                    />
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-destructive"
-                        aria-label={`Retirar kart ${karts[id]?.label ?? id} da fila`}
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          O kart {karts[id]?.label ?? id} volta para a Fila de Espera/Triagem, sem
-                          ficar atribuído a nenhuma fila.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onRetirarDaFila(id)}>
-                          Retirar da Fila
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+          kartIdsParaMostrar.map((id, i) => {
+            const ehFantasma = dragInfo?.kartId === id && dropTarget?.filaId === fila.fila_id;
+
+            if (ehFantasma) {
+              // O kart está a ser arrastado — a linha "verdadeira" dele
+              // segue o dedo/cursor (etiqueta flutuante); aqui só
+              // mostramos o espaço tracejado a abrir-se nesta posição,
+              // tal como o Pit Helper faz.
+              return (
+                <div
+                  key={id}
+                  data-drop-fila={fila.fila_id}
+                  data-drop-index={i}
+                  className="flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/10 p-2 py-4"
+                >
+                  <span className="text-xs text-primary">{karts[id]?.label ?? id}</span>
                 </div>
-                {i === 0 ? (
-                  <Button
-                    size="sm"
-                    style={{ backgroundColor: fila.cor }}
-                    className="w-full text-white hover:opacity-90"
-                    onClick={() => onAtribuir(id)}
-                  >
-                    <ArrowRight className="size-3.5" /> Atribuir
-                  </Button>
-                ) : null}
+              );
+            }
+
+            return (
+              <div
+                key={id}
+                data-drop-fila={fila.fila_id}
+                data-drop-index={i}
+                className="flex items-start gap-1 rounded-md border border-border p-2"
+              >
+                <button
+                  type="button"
+                  onPointerDown={(e) => onPointerDownOnHandle(e, id, fila.fila_id)}
+                  className="mt-1 shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                  style={{ touchAction: "none" }}
+                  aria-label={`Arrastar kart ${karts[id]?.label ?? id}`}
+                >
+                  <GripVertical className="size-4" />
+                </button>
+                <div className="flex-1">
+                  <div className="mb-1.5 flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">{i + 1}º</span>
+                      <KartChip
+                        kart={karts[id]}
+                        grade={ratings?.[id]?.grade}
+                        onEditar={() => onEditarKart(id)}
+                      />
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-destructive"
+                          aria-label={`Retirar kart ${karts[id]?.label ?? id} da fila`}
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            O kart {karts[id]?.label ?? id} volta para a Fila de Espera/Triagem, sem
+                            ficar atribuído a nenhuma fila.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onRetirarDaFila(id)}>
+                            Retirar da Fila
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  {i === 0 ? (
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: fila.cor }}
+                      className="w-full text-white hover:opacity-90"
+                      onClick={() => onAtribuir(id)}
+                    >
+                      <ArrowRight className="size-3.5" /> Atribuir
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
 
         {Array.from({ length: vazios }).map((_, i) => (
           <div
             key={`vazio-${i}`}
             data-drop-fila={fila.fila_id}
-            data-drop-index={fila.kart_ids.length + i}
+            data-drop-index={kartIdsParaMostrar.length + i}
             className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
-              dropTarget?.filaId === fila.fila_id && dropTarget.index === fila.kart_ids.length + i
+              dropTarget?.filaId === fila.fila_id &&
+              dropTarget.index === kartIdsParaMostrar.length + i
                 ? "border-primary bg-primary/10"
                 : "border-border"
             }`}
