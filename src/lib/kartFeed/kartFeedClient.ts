@@ -642,6 +642,17 @@ export interface DemoStartParams {
   field_spread: number;
   stint_minutes: number;
   manual: boolean;
+  num_teams: number;
+}
+
+export interface DemoStopResultDTO {
+  status: string;
+  limpeza: {
+    prefixo: string;
+    equipas_removidas: number;
+    karts_removidos: number;
+    equipas_com_historico_de_turnos_removido: number;
+  };
 }
 
 export function useStartDemo() {
@@ -649,7 +660,7 @@ export function useStartDemo() {
 }
 
 export function useStopDemo() {
-  return useCallback(() => postJson("/demo/stop", {}), []);
+  return useCallback(() => postJsonWithResponse<DemoStopResultDTO>("/demo/stop", {}), []);
 }
 
 // --- Alvo de Live Timing ligável em runtime -------------------------------

@@ -1207,6 +1207,7 @@ function DemoPanel() {
   const startDemo = useStartDemo();
   const stopDemo = useStopDemo();
 
+  const [numTeams, setNumTeams] = useState("20");
   const [speed, setSpeed] = useState("20");
   const [leaderPace, setLeaderPace] = useState("55");
   const [fieldSpread, setFieldSpread] = useState("4");
@@ -1223,6 +1224,7 @@ function DemoPanel() {
         field_spread: Number(fieldSpread) || 4,
         stint_minutes: Number(stintMinutes) || 15,
         manual,
+        num_teams: Number(numTeams) || 20,
       });
       toast.success("Corrida de demonstração iniciada");
     } catch (e) {
@@ -1234,8 +1236,11 @@ function DemoPanel() {
 
   async function handleParar() {
     try {
-      await stopDemo();
-      toast.success("Demo terminada");
+      const resultado = await stopDemo();
+      const { equipas_removidas, karts_removidos } = resultado.limpeza;
+      toast.success(
+        `Demo terminada — dados limpos automaticamente (${equipas_removidas} equipa(s), ${karts_removidos} kart(s))`,
+      );
     } catch (e) {
       toast.error("Não foi possível parar a demo", {
         description: e instanceof Error ? e.message : undefined,
@@ -1251,7 +1256,9 @@ function DemoPanel() {
         </CardTitle>
         <CardDescription>
           Gera equipas e karts falsos, com voltas, PITINs e turnos, para testares ou mostrares o
-          sistema sem depender de karts reais em pista. Usa os karts já registados no backend.
+          sistema sem depender de karts reais em pista. Cria os seus próprios karts/equipas (nunca
+          mistura com dados reais nem com os de arranque) — ao parar, tudo o que a demo criou é
+          limpo automaticamente.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1262,6 +1269,15 @@ function DemoPanel() {
         ) : null}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Nº equipas</label>
+            <Input
+              value={numTeams}
+              onChange={(e) => setNumTeams(e.target.value)}
+              disabled={running}
+              inputMode="numeric"
+            />
+          </div>
           <div>
             <label className="text-xs uppercase text-muted-foreground">Velocidade</label>
             <Input
