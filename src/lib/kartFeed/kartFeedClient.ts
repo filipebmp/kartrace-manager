@@ -556,6 +556,39 @@ export function useKartRatings(enabled = true) {
   return usePolledEndpoint<Record<string, KartRatingDTO>>("/karts/ratings", 5000, enabled);
 }
 
+export interface VoltaTurnoDTO {
+  numero: number;
+  tempo_seconds: number;
+  out_lap: boolean;
+  grade: number | null;
+}
+
+export interface HistoricoTurnoKartDTO {
+  kart_id: string;
+  label: string;
+  equipa_atual: string | null;
+  ultima_equipa_id: string | null;
+  state: KartState;
+  stint_started_at: string | null;
+  voltas: VoltaTurnoDTO[];
+  melhor_tempo_seconds: number | null;
+  media_melhores_voltas_seconds: number | null;
+  grade: number | null;
+  grade_manual: number | null;
+  amostras_usadas: number;
+  total_voltas_turno: number;
+}
+
+/** Poll enquanto o diálogo de detalhe do kart estiver aberto — passa
+ * `kartId: null` para desligar (ex.: diálogo fechado). */
+export function useKartTurnoAtual(kartId: string | null) {
+  return usePolledEndpoint<HistoricoTurnoKartDTO>(
+    kartId ? `/karts/${encodeURIComponent(kartId)}/turno_atual` : "",
+    3000,
+    kartId !== null,
+  );
+}
+
 export function useKartForecast(enabled = true) {
   return usePolledEndpoint<PrevisaoEntryDTO[]>("/karts/previsao", 5000, enabled);
 }

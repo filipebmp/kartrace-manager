@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowRight,
+  ChevronDown,
   Clock,
   GripVertical,
   Link2,
@@ -55,6 +56,8 @@ import {
   useKartFeedActions,
   useKartRatings,
   useKartForecast,
+  useKartTurnoAtual,
+  type HistoricoTurnoKartDTO,
   useLiveTimingStatus,
   useSetLiveTimingTarget,
   useDisconnectLiveTimingTarget,
@@ -432,6 +435,7 @@ function StaffQueueContent({
   } | null>(null);
   const [motivoAvaria] = useState<Record<string, string>>({});
   const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
+  const [kartDetalheId, setKartDetalheId] = useState<string | null>(null);
   const [novaFilaNome, setNovaFilaNome] = useState("");
   const [novaFilaCor, setNovaFilaCor] = useState<string>(CORES_SUGERIDAS[0] ?? "#dc2626");
 
@@ -756,7 +760,7 @@ function StaffQueueContent({
           <DashboardPanel
             snapshot={snapshot}
             ratings={ratings}
-            onEditarKart={(kartId) => setKartEmEdicao(kartId)}
+            onEditarKart={(kartId) => setKartDetalheId(kartId)}
           />
           <ForecastPanel />
         </TabsContent>
@@ -780,6 +784,13 @@ function StaffQueueContent({
         onRenomear={renomearKart}
         onDefinirRatingManual={definirRatingManual}
         onRemover={removerKart}
+        onMarcarForaDeServico={marcarForaDeServico}
+      />
+
+      <KartDetailDialog
+        kartId={kartDetalheId}
+        onClose={() => setKartDetalheId(null)}
+        onDefinirRatingManual={definirRatingManual}
         onMarcarForaDeServico={marcarForaDeServico}
       />
 
@@ -811,6 +822,197 @@ function StaffQueueContent({
         </div>
       ) : null}
     </div>
+  );
+}
+
+const GRADE_ROW_CLASS: Record<number, string> = {
+  5: "bg-emerald-500/15 text-emerald-400",
+  4: "bg-emerald-500/10 text-emerald-300",
+  3: "bg-amber-500/15 text-amber-400",
+  2: "bg-red-500/10 text-red-300",
+  1: "bg-red-500/15 text-red-400",
+};
+
+function KartDetailDialog({
+  kartId,
+  onClose,
+  onDefinirRatingManual,
+  onMarcarForaDeServico,
+}: {
+  kartId: string | null;
+  onClose: () => void;
+  onDefinirRatingManual: (kartId: string, grade: number | null) => Promise<void>;
+  onMarcarForaDeServico: (kartId: string, motivo: string) => Promise<void>;
+}) {
+  const { data: info } = useKartTurnoAtual(kartId);
+  const [mostrarVoltas, setMostrarVoltas] = useState(true);
+
+  async function handleRating(grade: number | null) {
+    if (!kartId) return;
+    try {
+      await onDefinirRatingManual(kartId, grade);
+      toast.success(
+        grade === null ? "Rating voltou a automático" : `Rating manual definido: ${grade}`,
+      );
+    } catch (e) {
+      toast.error("Não foi possível definir o rating", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleQuebrado() {
+    if (!kartId) return;
+    try {
+      await onMarcarForaDeServico(kartId, "Kart avariado — reportado via painel de detalhe");
+      toast.success("Kart marcado como fora de serviço");
+      onClose();
+    } catch (e) {
+      toast.error("Não foi possível marcar fora de serviço", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  return (
+    <Dialog open={kartId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        {info ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>{info.label}</DialogTitle>
+              <DialogDescription>
+                {info.ultima_equipa_id ? `Equipa ${info.ultima_equipa_id}` : "Equipa desconhecida"}{" "}
+                · turno atual
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border border-border p-2 text-center">
+                <div className="text-xs uppercase text-muted-foreground">
+                  Ø Top {info.amostras_usadas || "—"}
+                </div>
+                <div className="font-mono text-lg font-bold">
+                  {formatLapTime(info.media_melhores_voltas_seconds)}
+                </div>
+              </div>
+              <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-2 text-center">
+                <div className="text-xs uppercase text-emerald-500">Melhor volta</div>
+                <div className="font-mono text-lg font-bold text-emerald-500">
+                  {formatLapTime(info.melhor_tempo_seconds)}
+                </div>
+              </div>
+              <div className="rounded-md border border-border p-2 text-center">
+                <div className="text-xs uppercase text-muted-foreground">Voltas registadas</div>
+                <div className="text-lg font-bold">{info.total_voltas_turno}</div>
+              </div>
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-2 text-center">
+                <div className="text-xs uppercase text-primary">Tempo no turno</div>
+                <div className="font-mono text-lg font-bold text-primary">
+                  <EmPistaTimer stintStartedAt={info.stint_started_at} />
+                </div>
+              </div>
+            </div>
+
+            {info.grade !== null ? (
+              <div className="space-y-1">
+                <div className="relative h-2 w-full rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500">
+                  <div
+                    className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground"
+                    style={{ left: `${((info.grade - 1) / 4) * 100}%` }}
+                  />
+                </div>
+                <p className="text-center text-xs text-muted-foreground">
+                  {info.grade >= 4
+                    ? "kart excelente"
+                    : info.grade === 3
+                      ? "kart razoável"
+                      : "kart fraco"}
+                  {info.grade_manual !== null ? " (manual)" : ""}
+                </p>
+              </div>
+            ) : null}
+
+            <div>
+              <label className="text-xs uppercase text-muted-foreground">
+                Rating manual (substitui o automático)
+              </label>
+              <div className="mt-1 flex gap-1.5">
+                {[5, 4, 3, 2, 1].map((g) => (
+                  <Button
+                    key={g}
+                    size="sm"
+                    variant={info.grade_manual === g ? "default" : "outline"}
+                    onClick={() => handleRating(g)}
+                  >
+                    {g}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant={info.grade_manual === null ? "default" : "outline"}
+                  onClick={() => handleRating(null)}
+                >
+                  <Wand2 className="size-3.5" /> Auto
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setMostrarVoltas((v) => !v)}
+                className="flex w-full items-center justify-between text-xs font-semibold uppercase text-muted-foreground"
+              >
+                Histórico de voltas do turno
+                <ChevronDown
+                  className={`size-4 transition-transform ${mostrarVoltas ? "" : "-rotate-90"}`}
+                />
+              </button>
+              {mostrarVoltas ? (
+                <div className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+                  {info.voltas.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Ainda sem voltas neste turno.</p>
+                  ) : (
+                    [...info.voltas].reverse().map((v) => (
+                      <div
+                        key={v.numero}
+                        className={`flex items-center justify-between rounded px-2 py-1 font-mono text-sm ${
+                          v.out_lap
+                            ? "bg-red-500/10 text-red-400"
+                            : (GRADE_ROW_CLASS[v.grade ?? 0] ?? "bg-muted/30 text-muted-foreground")
+                        }`}
+                      >
+                        <span>{v.out_lap ? `${v.numero} OUT` : v.numero}</span>
+                        <span className="flex items-center gap-1.5">
+                          {formatLapTime(v.tempo_seconds)}
+                          {!v.out_lap && v.tempo_seconds === info.melhor_tempo_seconds ? (
+                            <span className="text-xs text-emerald-400">↓ melhor</span>
+                          ) : null}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              {info.state !== "FORA_DE_SERVICO" ? (
+                <Button variant="outline" className="w-full" onClick={handleQuebrado}>
+                  <Wrench className="size-3.5" /> Kart avariado — marcar fora de serviço
+                </Button>
+              ) : null}
+              <Button variant="outline" className="w-full" onClick={onClose}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <p className="p-4 text-sm text-muted-foreground">A carregar...</p>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1432,23 +1634,17 @@ function DashboardPanel({
                   const kart = kartId ? snapshot.karts[kartId] : undefined;
                   const grade = kartId ? ratings?.[kartId]?.grade : undefined;
                   return (
-                    <TableRow key={eq.numero_equipa}>
+                    <TableRow
+                      key={eq.numero_equipa}
+                      className={kartId ? "cursor-pointer hover:bg-accent/50" : ""}
+                      onClick={() => kartId && onEditarKart(kartId)}
+                    >
                       <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                       <TableCell className="font-mono font-semibold">
                         <div className="flex items-center gap-1.5">
                           {kart?.label ?? "—"}
                           {kartId ? (
-                            <>
-                              <GradeBadge grade={grade} manual={kart?.rating_manual != null} />
-                              <button
-                                type="button"
-                                onClick={() => onEditarKart(kartId)}
-                                className="text-muted-foreground hover:text-foreground"
-                                aria-label={`Editar kart ${kartId}`}
-                              >
-                                <Pencil className="size-3.5" />
-                              </button>
-                            </>
+                            <GradeBadge grade={grade} manual={kart?.rating_manual != null} />
                           ) : null}
                         </div>
                       </TableCell>
