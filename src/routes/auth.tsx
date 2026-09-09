@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const title = "Entrar — Team Manager 24H Karting";
 const description = "Área reservada das equipas: entra ou regista a tua equipa para aceder ao plano de corrida.";
@@ -29,12 +28,6 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const signUpSchema = z.object({
-  teamName: z.string().trim().min(2, "Indica o nome da equipa").max(60),
-  contactName: z.string().trim().min(2, "Indica o nome do responsável").max(80),
-  email: z.string().trim().email("Email inválido").max(255),
-  password: z.string().min(8, "A palavra-passe precisa de pelo menos 8 caracteres").max(72),
-});
 
 function formatWait(seconds: number) {
   const m = Math.floor(seconds / 60);
