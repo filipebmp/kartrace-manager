@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -1332,6 +1332,28 @@ function formatLapTime(seconds: number | null): string {
   return `${minutos}:${resto}`;
 }
 
+function formatDuration(seconds: number): string {
+  const minutos = Math.floor(seconds / 60);
+  const resto = Math.floor(seconds - minutos * 60)
+    .toString()
+    .padStart(2, "0");
+  return `${minutos}:${resto}`;
+}
+
+function EmPistaTimer({ stintStartedAt }: { stintStartedAt: string | null }) {
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!stintStartedAt) return;
+    const intervalo = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(intervalo);
+  }, [stintStartedAt]);
+
+  if (!stintStartedAt) return <span className="text-muted-foreground">—</span>;
+  const segundos = Math.max(0, (agora - new Date(stintStartedAt).getTime()) / 1000);
+  return <span>{formatDuration(segundos)}</span>;
+}
+
 function DashboardPanel({
   snapshot,
   ratings,
@@ -1351,8 +1373,10 @@ function DashboardPanel({
   const linhas = Object.values(snapshot.equipas)
     .filter((eq) => eq.total_voltas > 0)
     .sort((a, b) => {
-      const A = a.melhor_tempo_seconds ?? Infinity;
-      const B = b.melhor_tempo_seconds ?? Infinity;
+      const kartA = a.kart_atual_id ? snapshot.karts[a.kart_atual_id] : undefined;
+      const kartB = b.kart_atual_id ? snapshot.karts[b.kart_atual_id] : undefined;
+      const A = (kartA ? ratings?.[kartA.id]?.media_melhores_voltas_seconds : null) ?? Infinity;
+      const B = (kartB ? ratings?.[kartB.id]?.media_melhores_voltas_seconds : null) ?? Infinity;
       return A - B;
     });
 
@@ -1361,66 +1385,92 @@ function DashboardPanel({
       <CardHeader>
         <CardTitle>Dashboard ao vivo</CardTitle>
         <CardDescription>
-          Classificação por melhor volta, com a categorização automática do nosso sistema. Clica no
-          lápis para ajustar o rating de um kart manualmente.
+          Classificação pela média das melhores voltas do turno atual. "Gap" e "Interval" ainda não
+          estão disponíveis (por decifrar do Live Timing) — "Em Pista" e "Pits" já são calculados
+          por nós.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {linhas.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ainda não há voltas registadas.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">#</TableHead>
-                <TableHead>Kart</TableHead>
-                <TableHead>Equipa</TableHead>
-                <TableHead className="text-right">Última volta</TableHead>
-                <TableHead className="text-right">Melhor volta</TableHead>
-                <TableHead className="text-right">Rating</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {linhas.map((eq, i) => {
-                const kartId = eq.kart_atual_id;
-                const kart = kartId ? snapshot.karts[kartId] : undefined;
-                const grade = kartId ? ratings?.[kartId]?.grade : undefined;
-                return (
-                  <TableRow key={eq.numero_equipa}>
-                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell className="font-mono font-semibold">{kart?.label ?? "—"}</TableCell>
-                    <TableCell className="font-mono">
-                      {eq.numero_equipa}
-                      {eq.nome ? (
-                        <span className="ml-1 text-muted-foreground">{eq.nome}</span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className={`text-right font-mono ${LAP_COLOR[eq.ultima_categoria]}`}>
-                      {formatLapTime(eq.ultimo_tempo_seconds)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatLapTime(eq.melhor_tempo_seconds)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <GradeBadge grade={grade} manual={kart?.rating_manual != null} />
-                        {kartId ? (
-                          <button
-                            type="button"
-                            onClick={() => onEditarKart(kartId)}
-                            className="text-muted-foreground hover:text-foreground"
-                            aria-label={`Editar kart ${kartId}`}
-                          >
-                            <Pencil className="size-3.5" />
-                          </button>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Kart</TableHead>
+                  <TableHead>Equipa</TableHead>
+                  <TableHead className="text-right">Média Melhores X Voltas</TableHead>
+                  <TableHead className="text-right">Última Volta</TableHead>
+                  <TableHead className="text-right">Gap</TableHead>
+                  <TableHead className="text-right">Interval</TableHead>
+                  <TableHead className="text-right">Voltas</TableHead>
+                  <TableHead className="text-right">Em Pista</TableHead>
+                  <TableHead className="text-right">Pits</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linhas.map((eq, i) => {
+                  const kartId = eq.kart_atual_id;
+                  const kart = kartId ? snapshot.karts[kartId] : undefined;
+                  const grade = kartId ? ratings?.[kartId]?.grade : undefined;
+                  return (
+                    <TableRow key={eq.numero_equipa}>
+                      <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                      <TableCell className="font-mono font-semibold">
+                        <div className="flex items-center gap-1.5">
+                          {kart?.label ?? "—"}
+                          {kartId ? (
+                            <>
+                              <GradeBadge grade={grade} manual={kart?.rating_manual != null} />
+                              <button
+                                type="button"
+                                onClick={() => onEditarKart(kartId)}
+                                className="text-muted-foreground hover:text-foreground"
+                                aria-label={`Editar kart ${kartId}`}
+                              >
+                                <Pencil className="size-3.5" />
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {eq.numero_equipa}
+                        {eq.nome ? (
+                          <span className="ml-1 text-muted-foreground">{eq.nome}</span>
                         ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatLapTime(
+                          kartId
+                            ? (ratings?.[kartId]?.media_melhores_voltas_seconds ?? null)
+                            : null,
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-mono ${LAP_COLOR[eq.ultima_categoria]}`}
+                      >
+                        {formatLapTime(eq.ultimo_tempo_seconds)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{eq.total_voltas}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        <EmPistaTimer stintStartedAt={kart?.stint_started_at ?? null} />
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{eq.total_pits}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

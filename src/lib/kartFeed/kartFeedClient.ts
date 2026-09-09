@@ -46,6 +46,9 @@ export interface KartDTO {
   ultimo_tempo_seconds: number | null;
   notas: string;
   rating_manual: number | null;
+  stint_started_at: string | null; // quando entrou EM_PISTA neste turno —
+  // null se não estiver em pista; usado
+  // para calcular "Em Pista" ao vivo
 }
 
 export interface EquipaDTO {
@@ -56,6 +59,7 @@ export interface EquipaDTO {
   ultima_categoria: PerformanceCategory;
   total_voltas: number;
   melhor_tempo_seconds: number | null;
+  total_pits: number;
 }
 
 export interface FilaDTO {
