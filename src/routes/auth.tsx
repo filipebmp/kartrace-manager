@@ -245,62 +245,27 @@ function AuthPage() {
             <CardDescription>Cada equipa vê apenas a sua própria estratégia.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Registar equipa</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="signin" className="mt-4">
-                <form className="space-y-4" onSubmit={handleSignIn}>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="in-email">Email</Label>
-                    <Input id="in-email" name="email" type="email" required autoComplete="email" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="in-pass">Palavra-passe</Label>
-                    <Input id="in-pass" name="password" type="password" required autoComplete="current-password" />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={busy}>
-                    Entrar
-                  </Button>
-                  <button
-                    type="button"
-                    className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-                    onClick={() => setForgot(true)}
-                  >
-                    Esqueci-me da palavra-passe
-                  </button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup" className="mt-4">
-                <form className="space-y-4" onSubmit={handleSignUp}>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="up-team">Nome da equipa</Label>
-                    <Input id="up-team" name="teamName" required maxLength={60} placeholder="Equipa A" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="up-contact">Nome do responsável</Label>
-                    <Input id="up-contact" name="contactName" required maxLength={80} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="up-email">Email</Label>
-                    <Input id="up-email" name="email" type="email" required autoComplete="email" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="up-pass">Palavra-passe</Label>
-                    <Input id="up-pass" name="password" type="password" required minLength={8} autoComplete="new-password" />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={busy}>
-                    Registar equipa
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    O acesso só fica ativo depois de o administrador aprovar o registo.
-                  </p>
-                </form>
-              </TabsContent>
-            </Tabs>
+            {/* Registo temporariamente desativado: apenas o administrador pode criar equipas. */}
+            <form className="space-y-4" onSubmit={handleSignIn}>
+              <div className="space-y-1.5">
+                <Label htmlFor="in-email">Email</Label>
+                <Input id="in-email" name="email" type="email" required autoComplete="email" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="in-pass">Palavra-passe</Label>
+                <Input id="in-pass" name="password" type="password" required autoComplete="current-password" />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                Entrar
+              </Button>
+              <button
+                type="button"
+                className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+                onClick={() => setForgot(true)}
+              >
+                Esqueci-me da palavra-passe
+              </button>
+            </form>
             <Button variant="ghost" className="mt-4 w-full" asChild>
               <Link to="/">Voltar</Link>
             </Button>
