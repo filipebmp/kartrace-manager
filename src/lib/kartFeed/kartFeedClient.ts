@@ -60,6 +60,7 @@ export interface FilaDTO {
   cor: string; // cor livre (hex, ex: "#dc2626")
   kart_ids: string[];
   tamanho: number;
+  capacidade: number | null; // null = sem limite (∞)
 }
 
 export interface KartRatingDTO {
@@ -413,6 +414,15 @@ export function useKartFeedActions() {
     [],
   );
 
+  const definirCapacidadeFila = useCallback(
+    (filaId: string, capacidade: number | null) =>
+      postJsonWithResponse<{ fila: FilaDTO }>(
+        `/staff/filas/${encodeURIComponent(filaId)}/capacidade`,
+        { capacidade },
+      ),
+    [],
+  );
+
   return {
     triarKart,
     sortearKart,
@@ -427,6 +437,7 @@ export function useKartFeedActions() {
     retirarDaFila,
     adicionarAFilaManual,
     moverKart,
+    definirCapacidadeFila,
   };
 }
 

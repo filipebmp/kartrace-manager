@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Clock,
   Link2,
+  Minus,
   Pencil,
   Play,
   Plus,
@@ -337,6 +338,7 @@ function StaffQueueContent({
     retirarDaFila,
     adicionarAFilaManual,
     moverKart,
+    definirCapacidadeFila,
   } = actions;
   const [draggedKartId, setDraggedKartId] = useState<string | null>(null);
   const [atribuirAlvo, setAtribuirAlvo] = useState<{
@@ -476,6 +478,16 @@ function StaffQueueContent({
     }
   }
 
+  async function handleDefinirCapacidade(filaId: string, capacidade: number | null) {
+    try {
+      await definirCapacidadeFila(filaId, capacidade);
+    } catch (e) {
+      toast.error("Não foi possível ajustar os slots", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   const karts = Object.values(snapshot.karts);
   const foraDeServico = karts.filter((k) => k.state === "FORA_DE_SERVICO");
   const kartEditando = kartEmEdicao ? (snapshot.karts[kartEmEdicao] ?? null) : null;
@@ -562,6 +574,7 @@ function StaffQueueContent({
                 onRetirarDaFila={handleRetirarDaFila}
                 onAdicionarManual={handleAdicionarManual}
                 onMoverKart={handleMoverKart}
+                onDefinirCapacidade={handleDefinirCapacidade}
                 draggedKartId={draggedKartId}
                 onDragStartKart={setDraggedKartId}
                 onDragEndKart={() => setDraggedKartId(null)}
@@ -1370,6 +1383,7 @@ function QueueCard({
   onRetirarDaFila,
   onAdicionarManual,
   onMoverKart,
+  onDefinirCapacidade,
   draggedKartId,
   onDragStartKart,
   onDragEndKart,
@@ -1383,6 +1397,7 @@ function QueueCard({
   onRetirarDaFila: (kartId: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
   onMoverKart: (kartId: string, filaDestinoId: string, novaPosicao?: number) => void;
+  onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
   draggedKartId: string | null;
   onDragStartKart: (kartId: string) => void;
   onDragEndKart: () => void;
@@ -1409,6 +1424,22 @@ function QueueCard({
     setNovoKartId("");
   }
 
+  function handleAjustarCapacidade(delta: number) {
+    const atual = fila.capacidade;
+    let novo: number;
+    if (atual === null) {
+      // Parte do "sem limite": "+" abre 1 slot extra a partir do que já
+      // está ocupado; "-" fixa exatamente na ocupação atual.
+      novo = delta > 0 ? fila.kart_ids.length + 1 : fila.kart_ids.length;
+    } else {
+      novo = atual + delta;
+    }
+    if (novo < 0) return;
+    onDefinirCapacidade(fila.fila_id, novo);
+  }
+
+  const vazios = fila.capacidade !== null ? Math.max(0, fila.capacidade - fila.kart_ids.length) : 0;
+
   return (
     <div className="flex min-w-[220px] max-w-[260px] flex-1 flex-col overflow-hidden rounded-lg border border-border">
       <div
@@ -1416,13 +1447,29 @@ function QueueCard({
         style={{ backgroundColor: fila.cor }}
       >
         <span className="font-semibold text-white">{fila.nome}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/80">{fila.kart_ids.length}</span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleAjustarCapacidade(-1)}
+            className="flex size-5 items-center justify-center rounded bg-white/20 text-white hover:bg-white/30"
+            aria-label="Remover slot"
+          >
+            <Minus className="size-3" />
+          </button>
+          <span className="w-5 text-center text-xs text-white/90">{fila.capacidade ?? "∞"}</span>
+          <button
+            type="button"
+            onClick={() => handleAjustarCapacidade(1)}
+            className="flex size-5 items-center justify-center rounded bg-white/20 text-white hover:bg-white/30"
+            aria-label="Adicionar slot"
+          >
+            <Plus className="size-3" />
+          </button>
           {fila.kart_ids.length === 0 ? (
             <button
               type="button"
               onClick={onRemover}
-              className="text-white/80 hover:text-white"
+              className="ml-1 text-white/80 hover:text-white"
               aria-label={`Remover fila ${fila.nome}`}
             >
               <Trash2 className="size-4" />
@@ -1440,7 +1487,7 @@ function QueueCard({
         onDragLeave={() => setArrastandoSobre(false)}
         onDrop={(e) => handleDropNaFila(e)}
       >
-        {fila.kart_ids.length === 0 ? (
+        {fila.kart_ids.length === 0 && vazios === 0 ? (
           <p className="px-1 py-3 text-center text-xs text-muted-foreground">
             Fila vazia — arrasta um kart para aqui
           </p>
@@ -1512,6 +1559,20 @@ function QueueCard({
             </div>
           ))
         )}
+
+        {Array.from({ length: vazios }).map((_, i) => (
+          <div
+            key={`vazio-${i}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDrop={(e) => handleDropNaFila(e, fila.kart_ids.length + i)}
+            className="flex items-center justify-center rounded-md border border-dashed border-border p-2 py-3"
+          >
+            <span className="size-2 rounded-full border border-muted-foreground" />
+          </div>
+        ))}
 
         <div className="flex gap-1.5 pt-1">
           <Input
