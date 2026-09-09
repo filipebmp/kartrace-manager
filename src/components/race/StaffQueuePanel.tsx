@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -334,7 +334,11 @@ function StaffQueueContent({
     renomearKart,
     definirRatingManual,
     removerKart,
+    retirarDaFila,
+    adicionarAFilaManual,
+    moverKart,
   } = actions;
+  const [draggedKartId, setDraggedKartId] = useState<string | null>(null);
   const [atribuirAlvo, setAtribuirAlvo] = useState<{
     filaId: string;
     kartId: string;
@@ -440,6 +444,38 @@ function StaffQueueContent({
     }
   }
 
+  async function handleRetirarDaFila(kartId: string) {
+    try {
+      await retirarDaFila(kartId);
+      toast.success(`Kart ${kartId} retirado da fila`);
+    } catch (e) {
+      toast.error("Não foi possível retirar da fila", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleAdicionarManual(kartId: string, filaId: string) {
+    try {
+      await adicionarAFilaManual(kartId, filaId);
+      toast.success(`Kart ${kartId} adicionado à fila`);
+    } catch (e) {
+      toast.error("Não foi possível adicionar o kart", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleMoverKart(kartId: string, filaDestinoId: string, novaPosicao?: number) {
+    try {
+      await moverKart(kartId, filaDestinoId, novaPosicao);
+    } catch (e) {
+      toast.error("Não foi possível mover o kart", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   const karts = Object.values(snapshot.karts);
   const foraDeServico = karts.filter((k) => k.state === "FORA_DE_SERVICO");
   const kartEditando = kartEmEdicao ? (snapshot.karts[kartEmEdicao] ?? null) : null;
@@ -523,6 +559,12 @@ function StaffQueueContent({
                 }
                 onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
                 onEditarKart={(kartId) => setKartEmEdicao(kartId)}
+                onRetirarDaFila={handleRetirarDaFila}
+                onAdicionarManual={handleAdicionarManual}
+                onMoverKart={handleMoverKart}
+                draggedKartId={draggedKartId}
+                onDragStartKart={setDraggedKartId}
+                onDragEndKart={() => setDraggedKartId(null)}
               />
             ))}
 
@@ -622,6 +664,7 @@ function StaffQueueContent({
         onRenomear={renomearKart}
         onDefinirRatingManual={definirRatingManual}
         onRemover={removerKart}
+        onMarcarForaDeServico={marcarForaDeServico}
       />
     </div>
   );
@@ -633,12 +676,14 @@ function KartEditDialog({
   onRenomear,
   onDefinirRatingManual,
   onRemover,
+  onMarcarForaDeServico,
 }: {
   kart: KartDTO | null;
   onClose: () => void;
   onRenomear: (kartId: string, label: string) => Promise<void>;
   onDefinirRatingManual: (kartId: string, grade: number | null) => Promise<void>;
   onRemover: (kartId: string) => Promise<void>;
+  onMarcarForaDeServico: (kartId: string, motivo: string) => Promise<void>;
 }) {
   const [novoLabel, setNovoLabel] = useState("");
 
@@ -681,6 +726,19 @@ function KartEditDialog({
     }
   }
 
+  async function handleOficina() {
+    if (!kart) return;
+    try {
+      await onMarcarForaDeServico(kart.id, "Marcado como fora de serviço via edição rápida");
+      toast.success("Kart enviado para a oficina (fora de serviço)");
+      onClose();
+    } catch (e) {
+      toast.error("Não foi possível marcar fora de serviço", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   return (
     <Dialog
       open={kart !== null}
@@ -695,7 +753,7 @@ function KartEditDialog({
             <DialogHeader>
               <DialogTitle>Editar kart {kart.id}</DialogTitle>
               <DialogDescription>
-                Renomear, ajustar o rating manualmente, ou remover.
+                Renomear, ajustar o rating manualmente, enviar para a oficina, ou remover.
               </DialogDescription>
             </DialogHeader>
 
@@ -736,6 +794,12 @@ function KartEditDialog({
                   </Button>
                 </div>
               </div>
+
+              {kart.state !== "FORA_DE_SERVICO" ? (
+                <Button variant="outline" size="sm" onClick={handleOficina}>
+                  <Wrench className="size-3.5" /> Enviar para a oficina
+                </Button>
+              ) : null}
             </div>
 
             <DialogFooter className="flex items-center justify-between sm:justify-between">
@@ -1303,6 +1367,12 @@ function QueueCard({
   onAtribuir,
   onRemover,
   onEditarKart,
+  onRetirarDaFila,
+  onAdicionarManual,
+  onMoverKart,
+  draggedKartId,
+  onDragStartKart,
+  onDragEndKart,
 }: {
   fila: FilaDTO;
   karts: Record<string, KartDTO>;
@@ -1310,7 +1380,35 @@ function QueueCard({
   onAtribuir: (kartId: string) => void;
   onRemover: () => void;
   onEditarKart: (kartId: string) => void;
+  onRetirarDaFila: (kartId: string) => void;
+  onAdicionarManual: (kartId: string, filaId: string) => void;
+  onMoverKart: (kartId: string, filaDestinoId: string, novaPosicao?: number) => void;
+  draggedKartId: string | null;
+  onDragStartKart: (kartId: string) => void;
+  onDragEndKart: () => void;
 }) {
+  const [novoKartId, setNovoKartId] = useState("");
+  const [arrastandoSobre, setArrastandoSobre] = useState(false);
+
+  function handleDropNaFila(e: DragEvent, novaPosicao?: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    setArrastandoSobre(false);
+    const kartId = e.dataTransfer.getData("text/plain");
+    if (kartId) onMoverKart(kartId, fila.fila_id, novaPosicao);
+    onDragEndKart();
+  }
+
+  function handleAdicionar() {
+    const id = novoKartId.trim();
+    if (!id) {
+      toast.error("Indica o número do kart");
+      return;
+    }
+    onAdicionarManual(id, fila.fila_id);
+    setNovoKartId("");
+  }
+
   return (
     <div className="flex min-w-[220px] max-w-[260px] flex-1 flex-col overflow-hidden rounded-lg border border-border">
       <div
@@ -1333,19 +1431,73 @@ function QueueCard({
         </div>
       </div>
 
-      <div className="flex-1 space-y-2 bg-card p-2">
+      <div
+        className={`flex-1 space-y-2 bg-card p-2 ${arrastandoSobre ? "bg-accent/40" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setArrastandoSobre(true);
+        }}
+        onDragLeave={() => setArrastandoSobre(false)}
+        onDrop={(e) => handleDropNaFila(e)}
+      >
         {fila.kart_ids.length === 0 ? (
-          <p className="px-1 py-3 text-center text-xs text-muted-foreground">Fila vazia</p>
+          <p className="px-1 py-3 text-center text-xs text-muted-foreground">
+            Fila vazia — arrasta um kart para aqui
+          </p>
         ) : (
           fila.kart_ids.map((id, i) => (
-            <div key={id} className="rounded-md border border-border p-2">
-              <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">{i + 1}º</span>
-                <KartChip
-                  kart={karts[id]}
-                  grade={ratings?.[id]?.grade}
-                  onEditar={() => onEditarKart(id)}
-                />
+            <div
+              key={id}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", id);
+                onDragStartKart(id);
+              }}
+              onDragEnd={onDragEndKart}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => handleDropNaFila(e, i)}
+              className={`cursor-grab rounded-md border border-border p-2 active:cursor-grabbing ${
+                draggedKartId === id ? "opacity-40" : ""
+              }`}
+            >
+              <div className="mb-1.5 flex items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">{i + 1}º</span>
+                  <KartChip
+                    kart={karts[id]}
+                    grade={ratings?.[id]?.grade}
+                    onEditar={() => onEditarKart(id)}
+                  />
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label={`Retirar kart ${karts[id]?.label ?? id} da fila`}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        O kart {karts[id]?.label ?? id} volta para a Fila de Espera/Triagem, sem
+                        ficar atribuído a nenhuma fila.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onRetirarDaFila(id)}>
+                        Retirar da Fila
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
               {i === 0 ? (
                 <Button
@@ -1360,6 +1512,21 @@ function QueueCard({
             </div>
           ))
         )}
+
+        <div className="flex gap-1.5 pt-1">
+          <Input
+            value={novoKartId}
+            onChange={(e) => setNovoKartId(e.target.value)}
+            placeholder="Nº kart"
+            className="h-8 text-xs"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdicionar();
+            }}
+          />
+          <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={handleAdicionar}>
+            <Plus className="size-3.5" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -392,6 +392,27 @@ export function useKartFeedActions() {
     [],
   );
 
+  const retirarDaFila = useCallback(
+    (kartId: string) => postJson("/staff/retirar_da_fila", { kart_id: kartId }),
+    [],
+  );
+
+  const adicionarAFilaManual = useCallback(
+    (kartId: string, filaId: string) =>
+      postJson("/staff/adicionar_a_fila_manual", { kart_id: kartId, fila_id: filaId }),
+    [],
+  );
+
+  const moverKart = useCallback(
+    (kartId: string, filaDestinoId: string, novaPosicao?: number) =>
+      postJson("/staff/mover_kart", {
+        kart_id: kartId,
+        fila_destino_id: filaDestinoId,
+        nova_posicao: novaPosicao ?? null,
+      }),
+    [],
+  );
+
   return {
     triarKart,
     sortearKart,
@@ -403,6 +424,9 @@ export function useKartFeedActions() {
     renomearKart,
     definirRatingManual,
     removerKart,
+    retirarDaFila,
+    adicionarAFilaManual,
+    moverKart,
   };
 }
 
