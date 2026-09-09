@@ -38,11 +38,25 @@ function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <TeamHeader teamName={profile?.team_name} isAdmin={isAdmin} />
+      <TeamHeader
+        teamName={profile?.team_name}
+        isAdmin={isAdmin}
+        kartsFeature={profile?.karts_feature ?? false}
+        teamFeature={profile?.team_feature ?? true}
+      />
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-4">
+      <main className="w-full px-4 py-4">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">A carregar…</p>
+        ) : !isAdmin && profile?.team_feature === false ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sem acesso</CardTitle>
+              <CardDescription>
+                O administrador desativou a Gestão de equipa para esta conta.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         ) : !approved ? (
           <Card>
             <CardHeader>
