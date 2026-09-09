@@ -76,46 +76,6 @@ function AuthPage() {
     navigate({ to: "/dashboard", replace: true });
   }
 
-  async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const parsed = signUpSchema.safeParse({
-      teamName: form.get("teamName"),
-      contactName: form.get("contactName"),
-      email: form.get("email"),
-      password: form.get("password"),
-    });
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
-      return;
-    }
-    setBusy(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: window.location.origin + "/auth",
-        data: { team_name: parsed.data.teamName, contact_name: parsed.data.contactName },
-      },
-    });
-    setBusy(false);
-    if (error) {
-      toast.error("Não foi possível registar", { description: error.message });
-      return;
-    }
-    if (!data.session) {
-      setPendingEmail(parsed.data.email);
-      toast.success("Confirma o teu email", {
-        description: "Enviámos uma mensagem para confirmares o endereço.",
-      });
-      return;
-    }
-    toast.success("Registo enviado", {
-      description: "A tua equipa fica à espera da aprovação do administrador.",
-    });
-    navigate({ to: "/dashboard", replace: true });
-  }
-
   async function resendConfirmation() {
     if (!pendingEmail) return;
     setBusy(true);
