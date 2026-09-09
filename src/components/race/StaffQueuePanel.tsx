@@ -70,6 +70,7 @@ import {
   useAplicarNumeroFilasPadrao,
   type KartDTO,
   type KartRatingDTO,
+  type EquipaDTO,
   type KartFeedStatus,
   type KartFeedSnapshot,
   type FilaDTO,
@@ -667,6 +668,7 @@ function StaffQueueContent({
                 key={fila.fila_id}
                 fila={fila}
                 karts={snapshot.karts}
+                equipas={snapshot.equipas}
                 ratings={ratings}
                 onAtribuir={(kartId) =>
                   setAtribuirAlvo({ filaId: fila.fila_id, kartId, corFila: fila.cor })
@@ -1323,6 +1325,13 @@ function DemoPanel() {
   );
 }
 
+function formatLapTime(seconds: number | null): string {
+  if (seconds === null) return "—";
+  const minutos = Math.floor(seconds / 60);
+  const resto = (seconds - minutos * 60).toFixed(3).padStart(6, "0");
+  return `${minutos}:${resto}`;
+}
+
 function DashboardPanel({
   snapshot,
   ratings,
@@ -1332,13 +1341,6 @@ function DashboardPanel({
   ratings: Record<string, KartRatingDTO> | null;
   onEditarKart: (kartId: string) => void;
 }) {
-  function formatLapTime(seconds: number | null): string {
-    if (seconds === null) return "—";
-    const minutos = Math.floor(seconds / 60);
-    const resto = (seconds - minutos * 60).toFixed(3).padStart(6, "0");
-    return `${minutos}:${resto}`;
-  }
-
   const LAP_COLOR: Record<string, string> = {
     BOM: "text-emerald-500",
     MEDIO: "text-amber-500",
@@ -1505,6 +1507,7 @@ function ForecastPanel() {
 function QueueCard({
   fila,
   karts,
+  equipas,
   ratings,
   onAtribuir,
   onRemover,
@@ -1518,6 +1521,7 @@ function QueueCard({
 }: {
   fila: FilaDTO;
   karts: Record<string, KartDTO>;
+  equipas: Record<string, EquipaDTO>;
   ratings: Record<string, KartRatingDTO> | null;
   onAtribuir: (kartId: string) => void;
   onRemover: () => void;
@@ -1651,27 +1655,34 @@ function QueueCard({
                 key={id}
                 data-drop-fila={fila.fila_id}
                 data-drop-index={i}
-                className="flex items-start gap-1 rounded-md border border-border p-2"
+                className="rounded-md border border-border p-2"
               >
-                <button
-                  type="button"
-                  onPointerDown={(e) => onPointerDownOnHandle(e, id, fila.fila_id)}
-                  className="mt-1 shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
-                  style={{ touchAction: "none" }}
-                  aria-label={`Arrastar kart ${karts[id]?.label ?? id}`}
-                >
-                  <GripVertical className="size-4" />
-                </button>
-                <div className="flex-1">
-                  <div className="mb-1.5 flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted-foreground">{i + 1}º</span>
-                      <KartChip
-                        kart={karts[id]}
-                        grade={ratings?.[id]?.grade}
-                        onEditar={() => onEditarKart(id)}
-                      />
-                    </div>
+                <div className="mb-1 flex items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onPointerDown={(e) => onPointerDownOnHandle(e, id, fila.fila_id)}
+                      className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                      style={{ touchAction: "none" }}
+                      aria-label={`Arrastar kart ${karts[id]?.label ?? id}`}
+                    >
+                      <GripVertical className="size-4" />
+                    </button>
+                    <span className="text-xs text-muted-foreground">{i + 1}º</span>
+                    <GradeBadge
+                      grade={ratings?.[id]?.grade}
+                      manual={karts[id]?.rating_manual != null}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onEditarKart(id)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label={`Editar kart ${karts[id]?.label ?? id}`}
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
@@ -1699,17 +1710,37 @@ function QueueCard({
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                  {i === 0 ? (
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: fila.cor }}
-                      className="w-full text-white hover:opacity-90"
-                      onClick={() => onAtribuir(id)}
-                    >
-                      <ArrowRight className="size-3.5" /> Atribuir
-                    </Button>
-                  ) : null}
                 </div>
+
+                <div className="py-1 text-center">
+                  <div className="font-mono text-2xl font-extrabold leading-tight">
+                    {karts[id]?.label ?? id}
+                  </div>
+                  <div className="truncate text-sm font-semibold" style={{ color: fila.cor }}>
+                    {(() => {
+                      const equipaId = karts[id]?.ultima_equipa_id;
+                      const equipa = equipaId ? equipas[equipaId] : undefined;
+                      if (!equipa) return "—";
+                      return equipa.nome
+                        ? `${equipa.numero_equipa} ${equipa.nome}`
+                        : equipa.numero_equipa;
+                    })()}
+                  </div>
+                  <div className="font-mono text-base font-bold">
+                    {formatLapTime(ratings?.[id]?.media_melhores_voltas_seconds ?? null)}
+                  </div>
+                </div>
+
+                {i === 0 ? (
+                  <Button
+                    size="sm"
+                    style={{ backgroundColor: fila.cor }}
+                    className="w-full text-white hover:opacity-90"
+                    onClick={() => onAtribuir(id)}
+                  >
+                    <ArrowRight className="size-3.5" /> Atribuir
+                  </Button>
+                ) : null}
               </div>
             );
           })

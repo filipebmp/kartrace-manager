@@ -37,6 +37,10 @@ export interface KartDTO {
   label: string;
   state: KartState;
   equipa_atual: string | null;
+  ultima_equipa_id: string | null; // última equipa que teve este kart —
+  // NUNCA se limpa, ao contrário de
+  // equipa_atual (só preenchido enquanto
+  // EM_PISTA/SORTEADO)
   fila_id: string | null;
   ultima_categoria: PerformanceCategory;
   ultimo_tempo_seconds: number | null;
