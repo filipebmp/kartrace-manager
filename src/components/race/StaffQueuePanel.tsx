@@ -661,7 +661,7 @@ function StaffQueueContent({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
             {snapshot.filas.map((fila) => (
               <QueueCard
                 key={fila.fila_id}
