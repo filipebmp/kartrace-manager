@@ -844,7 +844,7 @@ function KartDetailDialog({
   onDefinirRatingManual: (kartId: string, grade: number | null) => Promise<void>;
   onMarcarForaDeServico: (kartId: string, motivo: string) => Promise<void>;
 }) {
-  const { data: info } = useKartTurnoAtual(kartId);
+  const { data: info, error } = useKartTurnoAtual(kartId);
   const [mostrarVoltas, setMostrarVoltas] = useState(true);
 
   async function handleRating(grade: number | null) {
@@ -877,7 +877,11 @@ function KartDetailDialog({
   return (
     <Dialog open={kartId !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
-        {info ? (
+        {error ? (
+          <p className="p-4 text-sm text-destructive">
+            Não foi possível carregar este kart: {error}
+          </p>
+        ) : info ? (
           <>
             <DialogHeader>
               <DialogTitle>{info.label}</DialogTitle>
