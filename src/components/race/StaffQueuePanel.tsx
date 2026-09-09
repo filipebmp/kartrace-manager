@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -341,7 +341,51 @@ function StaffQueueContent({
     moverKart,
     definirCapacidadeFila,
   } = actions;
-  const [draggedKartId, setDraggedKartId] = useState<string | null>(null);
+  // Arrastar karts entre filas: baseado em eventos de ponteiro (não HTML5
+  // drag nativo, que não funciona em touch no Safari/iPhone e mostrou-se
+  // pouco fiável mesmo em desktop) — funciona igual com rato e dedo.
+  const [dragInfo, setDragInfo] = useState<{ kartId: string; x: number; y: number } | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ filaId: string; index: number } | null>(null);
+  const dragStartRef = useRef<{ kartId: string; x: number; y: number } | null>(null);
+
+  function handlePointerDownOnHandle(e: ReactPointerEvent, kartId: string) {
+    e.preventDefault();
+    dragStartRef.current = { kartId, x: e.clientX, y: e.clientY };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMoveOnHandle(e: ReactPointerEvent) {
+    const inicio = dragStartRef.current;
+    if (!inicio) return;
+    const dx = e.clientX - inicio.x;
+    const dy = e.clientY - inicio.y;
+    // Só passa a "arrastar" de facto depois de um pequeno limiar de
+    // movimento — evita que um simples toque/clique seja interpretado
+    // como arrasto.
+    if (!dragInfo && Math.hypot(dx, dy) < 6) return;
+
+    setDragInfo({ kartId: inicio.kartId, x: e.clientX, y: e.clientY });
+
+    const elemento = document.elementFromPoint(e.clientX, e.clientY);
+    const alvo = elemento?.closest("[data-drop-fila]") as HTMLElement | null;
+    if (alvo) {
+      setDropTarget({
+        filaId: alvo.dataset["dropFila"] as string,
+        index: Number(alvo.dataset["dropIndex"]),
+      });
+    } else {
+      setDropTarget(null);
+    }
+  }
+
+  function handlePointerUpOnHandle() {
+    if (dragInfo && dropTarget) {
+      handleMoverKart(dragInfo.kartId, dropTarget.filaId, dropTarget.index);
+    }
+    dragStartRef.current = null;
+    setDragInfo(null);
+    setDropTarget(null);
+  }
   const [pendingRelocacao, setPendingRelocacao] = useState<{
     kartId: string;
     filaId: string;
@@ -598,11 +642,12 @@ function StaffQueueContent({
                 onEditarKart={(kartId) => setKartEmEdicao(kartId)}
                 onRetirarDaFila={handleRetirarDaFila}
                 onAdicionarManual={handleAdicionarManual}
-                onMoverKart={handleMoverKart}
                 onDefinirCapacidade={handleDefinirCapacidade}
-                draggedKartId={draggedKartId}
-                onDragStartKart={setDraggedKartId}
-                onDragEndKart={() => setDraggedKartId(null)}
+                dragInfo={dragInfo}
+                dropTarget={dropTarget}
+                onPointerDownOnHandle={handlePointerDownOnHandle}
+                onPointerMoveOnHandle={handlePointerMoveOnHandle}
+                onPointerUpOnHandle={handlePointerUpOnHandle}
               />
             ))}
 
@@ -723,6 +768,15 @@ function StaffQueueContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {dragInfo ? (
+        <div
+          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-md border border-primary bg-background px-2.5 py-1.5 font-mono text-sm font-semibold shadow-lg"
+          style={{ left: dragInfo.x, top: dragInfo.y }}
+        >
+          {snapshot.karts[dragInfo.kartId]?.label ?? dragInfo.kartId}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1426,11 +1480,12 @@ function QueueCard({
   onEditarKart,
   onRetirarDaFila,
   onAdicionarManual,
-  onMoverKart,
   onDefinirCapacidade,
-  draggedKartId,
-  onDragStartKart,
-  onDragEndKart,
+  dragInfo,
+  dropTarget,
+  onPointerDownOnHandle,
+  onPointerMoveOnHandle,
+  onPointerUpOnHandle,
 }: {
   fila: FilaDTO;
   karts: Record<string, KartDTO>;
@@ -1440,25 +1495,14 @@ function QueueCard({
   onEditarKart: (kartId: string) => void;
   onRetirarDaFila: (kartId: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
-  onMoverKart: (kartId: string, filaDestinoId: string, novaPosicao?: number) => void;
   onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
-  draggedKartId: string | null;
-  onDragStartKart: (kartId: string) => void;
-  onDragEndKart: () => void;
+  dragInfo: { kartId: string; x: number; y: number } | null;
+  dropTarget: { filaId: string; index: number } | null;
+  onPointerDownOnHandle: (e: ReactPointerEvent, kartId: string) => void;
+  onPointerMoveOnHandle: (e: ReactPointerEvent) => void;
+  onPointerUpOnHandle: () => void;
 }) {
   const [novoKartId, setNovoKartId] = useState("");
-  const [arrastandoSobre, setArrastandoSobre] = useState(false);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
-  function handleDropNaFila(e: DragEvent, novaPosicao?: number) {
-    e.preventDefault();
-    e.stopPropagation();
-    setArrastandoSobre(false);
-    setDragOverIndex(null);
-    const kartId = e.dataTransfer.getData("text/plain");
-    if (kartId) onMoverKart(kartId, fila.fila_id, novaPosicao);
-    onDragEndKart();
-  }
 
   function handleAdicionar() {
     const id = novoKartId.trim();
@@ -1525,50 +1569,44 @@ function QueueCard({
       </div>
 
       <div
-        className={`flex-1 space-y-1.5 bg-card p-2 ${arrastandoSobre ? "bg-accent/40" : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          setArrastandoSobre(true);
-        }}
-        onDragLeave={() => setArrastandoSobre(false)}
-        onDrop={(e) => handleDropNaFila(e)}
+        data-drop-fila={fila.fila_id}
+        data-drop-index={fila.kart_ids.length}
+        className={`flex-1 space-y-1.5 bg-card p-2 ${
+          dropTarget?.filaId === fila.fila_id && dropTarget.index >= fila.kart_ids.length
+            ? "bg-primary/10"
+            : ""
+        }`}
       >
         {fila.kart_ids.length === 0 && vazios === 0 ? (
-          <p className="px-1 py-3 text-center text-xs text-muted-foreground">
-            Fila vazia — arrasta um kart para aqui
+          <p className="pointer-events-none px-1 py-3 text-center text-xs text-muted-foreground">
+            Fila vazia — arrasta um kart para aqui (pega no ⠿)
           </p>
         ) : (
           fila.kart_ids.map((id, i) => (
             <div
               key={id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", id);
-                onDragStartKart(id);
-              }}
-              onDragEnd={() => {
-                onDragEndKart();
-                setDragOverIndex(null);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.dataTransfer.dropEffect = "move";
-                setDragOverIndex(i);
-              }}
-              onDragLeave={() => setDragOverIndex((cur) => (cur === i ? null : cur))}
-              onDrop={(e) => handleDropNaFila(e, i)}
+              data-drop-fila={fila.fila_id}
+              data-drop-index={i}
               className={`flex items-start gap-1 rounded-md border p-2 transition-colors ${
-                draggedKartId === id
-                  ? "border-border/50 bg-muted/30"
-                  : dragOverIndex === i
+                dragInfo?.kartId === id
+                  ? "border-border/50 bg-muted/30 opacity-50"
+                  : dropTarget?.filaId === fila.fila_id && dropTarget.index === i
                     ? "border-primary bg-primary/10"
                     : "border-border"
               }`}
             >
-              <GripVertical className="mt-1 size-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
+              <button
+                type="button"
+                onPointerDown={(e) => onPointerDownOnHandle(e, id)}
+                onPointerMove={onPointerMoveOnHandle}
+                onPointerUp={onPointerUpOnHandle}
+                onPointerCancel={onPointerUpOnHandle}
+                className="mt-1 shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                style={{ touchAction: "none" }}
+                aria-label={`Arrastar kart ${karts[id]?.label ?? id}`}
+              >
+                <GripVertical className="size-4" />
+              </button>
               <div className="flex-1">
                 <div className="mb-1.5 flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5">
@@ -1624,15 +1662,15 @@ function QueueCard({
         {Array.from({ length: vazios }).map((_, i) => (
           <div
             key={`vazio-${i}`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              e.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(e) => handleDropNaFila(e, fila.kart_ids.length + i)}
-            className="flex items-center justify-center rounded-md border border-dashed border-border p-2 py-3"
+            data-drop-fila={fila.fila_id}
+            data-drop-index={fila.kart_ids.length + i}
+            className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
+              dropTarget?.filaId === fila.fila_id && dropTarget.index === fila.kart_ids.length + i
+                ? "border-primary bg-primary/10"
+                : "border-border"
+            }`}
           >
-            <span className="size-2 rounded-full border border-muted-foreground" />
+            <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
           </div>
         ))}
 

@@ -283,6 +283,12 @@ function applyIncrementalEvent(
       next.filas = next.filas.filter((f) => f.fila_id !== filaId);
       break;
     }
+    case "FILA_CAPACIDADE_ALTERADA": {
+      const filaId = payload["fila_id"] as string;
+      const capacidade = payload["capacidade"] as number | null;
+      next.filas = next.filas.map((f) => (f.fila_id === filaId ? { ...f, capacidade } : f));
+      break;
+    }
     default:
       break;
   }
