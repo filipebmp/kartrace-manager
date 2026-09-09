@@ -245,7 +245,10 @@ function applyIncrementalEvent(
     case "KART_FORA_DE_SERVICO":
     case "KART_REINTEGRADO":
     case "KART_RENOMEADO":
-    case "KART_RATING_MANUAL_DEFINIDO": {
+    case "KART_RATING_MANUAL_DEFINIDO":
+    case "KART_MOVIDO":
+    case "KART_ADICIONADO_MANUALMENTE":
+    case "KART_RETIRADO_DA_FILA": {
       if (payload["kart"]) {
         const kart = payload["kart"] as KartDTO;
         next.karts[kart.id] = kart;
@@ -287,6 +290,28 @@ function applyIncrementalEvent(
       const filaId = payload["fila_id"] as string;
       const capacidade = payload["capacidade"] as number | null;
       next.filas = next.filas.map((f) => (f.fila_id === filaId ? { ...f, capacidade } : f));
+      break;
+    }
+    case "FILAS_RECRIADAS": {
+      if (Array.isArray(payload["filas"])) {
+        next.filas = payload["filas"] as FilaDTO[];
+      }
+      break;
+    }
+    case "DADOS_SESSAO_RESET": {
+      const prefixo = payload["prefixo"] as string;
+      const novasEquipas: typeof next.equipas = {};
+      for (const [id, eq] of Object.entries(next.equipas)) {
+        if (!id.startsWith(prefixo)) novasEquipas[id] = eq;
+      }
+      next.equipas = novasEquipas;
+
+      const novosKarts: typeof next.karts = {};
+      for (const [id, k] of Object.entries(next.karts)) {
+        if (!id.startsWith(prefixo)) novosKarts[id] = k;
+      }
+      next.karts = novosKarts;
+      next.fila_espera = next.fila_espera.filter((id) => !id.startsWith(prefixo));
       break;
     }
     default:
