@@ -1693,6 +1693,46 @@ function EmPistaTimer({ stintStartedAt }: { stintStartedAt: string | null }) {
   return <span>{formatDuration(segundos)}</span>;
 }
 
+function SortHead<T extends string>({
+  label,
+  coluna,
+  sortColuna,
+  sortAsc,
+  onSort,
+  align,
+}: {
+  label: string;
+  coluna: T;
+  sortColuna: T | null;
+  sortAsc: boolean;
+  onSort: (coluna: T) => void;
+  align?: "right";
+}) {
+  const ativo = sortColuna === coluna;
+  return (
+    <TableHead className={align === "right" ? "text-right" : ""}>
+      <button
+        type="button"
+        onClick={() => onSort(coluna)}
+        className={`inline-flex items-center gap-0.5 hover:text-foreground ${
+          align === "right" ? "flex-row-reverse" : ""
+        }`}
+      >
+        {label}
+        {ativo ? (
+          sortAsc ? (
+            <ChevronUp className="size-3" />
+          ) : (
+            <ChevronDown className="size-3" />
+          )
+        ) : (
+          <span className="size-3" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
 function DashboardPanel({
   snapshot,
   ratings,
@@ -1702,14 +1742,58 @@ function DashboardPanel({
   ratings: Record<string, KartRatingDTO> | null;
   onEditarKart: (kartId: string) => void;
 }) {
+  const [sortColuna, setSortColuna] = useState<
+    "kart" | "equipa" | "media" | "ultima" | "voltas" | "empista" | "pits" | null
+  >(null);
+  const [sortAsc, setSortAsc] = useState(true);
+
+  function handleSort(coluna: NonNullable<typeof sortColuna>) {
+    if (sortColuna === coluna) {
+      setSortAsc((a) => !a);
+    } else {
+      setSortColuna(coluna);
+      setSortAsc(true);
+    }
+  }
+
+  function valorSort(eq: EquipaDTO, coluna: NonNullable<typeof sortColuna>): number | string {
+    const kartId = eq.kart_atual_id;
+    const kart = kartId ? snapshot.karts[kartId] : undefined;
+    switch (coluna) {
+      case "kart":
+        return kart?.label ?? "";
+      case "equipa":
+        return eq.numero_equipa;
+      case "media":
+        return (kartId ? ratings?.[kartId]?.media_melhores_voltas_seconds : null) ?? Infinity;
+      case "ultima":
+        return eq.ultimo_tempo_seconds ?? Infinity;
+      case "voltas":
+        return eq.total_voltas;
+      case "empista":
+        return kart?.stint_started_at ? new Date(kart.stint_started_at).getTime() : -Infinity;
+      case "pits":
+        return eq.total_pits;
+    }
+  }
+
   const linhas = Object.values(snapshot.equipas)
     .filter((eq) => eq.total_voltas > 0)
     .sort((a, b) => {
-      const kartA = a.kart_atual_id ? snapshot.karts[a.kart_atual_id] : undefined;
-      const kartB = b.kart_atual_id ? snapshot.karts[b.kart_atual_id] : undefined;
-      const A = (kartA ? ratings?.[kartA.id]?.media_melhores_voltas_seconds : null) ?? Infinity;
-      const B = (kartB ? ratings?.[kartB.id]?.media_melhores_voltas_seconds : null) ?? Infinity;
-      return A - B;
+      if (sortColuna === null) {
+        const kartA = a.kart_atual_id ? snapshot.karts[a.kart_atual_id] : undefined;
+        const kartB = b.kart_atual_id ? snapshot.karts[b.kart_atual_id] : undefined;
+        const A = (kartA ? ratings?.[kartA.id]?.media_melhores_voltas_seconds : null) ?? Infinity;
+        const B = (kartB ? ratings?.[kartB.id]?.media_melhores_voltas_seconds : null) ?? Infinity;
+        return A - B;
+      }
+      const va = valorSort(a, sortColuna);
+      const vb = valorSort(b, sortColuna);
+      const cmp =
+        typeof va === "string" && typeof vb === "string"
+          ? va.localeCompare(vb)
+          : (va as number) - (vb as number);
+      return sortAsc ? cmp : -cmp;
     });
 
   const kartsComMedia = Object.values(snapshot.karts)
@@ -1791,15 +1875,62 @@ function DashboardPanel({
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
-                  <TableHead>Kart</TableHead>
-                  <TableHead>Equipa</TableHead>
-                  <TableHead className="text-right">Média Melhores X Voltas</TableHead>
-                  <TableHead className="text-right">Última Volta</TableHead>
+                  <SortHead
+                    label="Kart"
+                    coluna="kart"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                  />
+                  <SortHead
+                    label="Equipa"
+                    coluna="equipa"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                  />
+                  <SortHead
+                    label="Média Melhores X Voltas"
+                    coluna="media"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                    align="right"
+                  />
+                  <SortHead
+                    label="Última Volta"
+                    coluna="ultima"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                    align="right"
+                  />
                   <TableHead className="text-right">Gap</TableHead>
                   <TableHead className="text-right">Interval</TableHead>
-                  <TableHead className="text-right">Voltas</TableHead>
-                  <TableHead className="text-right">Em Pista</TableHead>
-                  <TableHead className="text-right">Pits</TableHead>
+                  <SortHead
+                    label="Voltas"
+                    coluna="voltas"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                    align="right"
+                  />
+                  <SortHead
+                    label="Em Pista"
+                    coluna="empista"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                    align="right"
+                  />
+                  <SortHead
+                    label="Pits"
+                    coluna="pits"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                    align="right"
+                  />
                 </TableRow>
               </TableHeader>
               <TableBody>
