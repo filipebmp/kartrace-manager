@@ -678,13 +678,31 @@ function StaffQueueContent({
                               {fila.nome}
                             </Button>
                           ))}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleForaDeServico(kart.id)}
-                          >
-                            <Wrench className="size-3.5" /> Avariado
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Wrench className="size-3.5" /> Avariado
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Marcar kart {kart.label} como avariado?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Vai para a oficina, fora de serviço — não entra em nenhuma fila
+                                  nem pode ser atribuído a nenhuma equipa até seres tu a
+                                  reintegrá-lo.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleForaDeServico(kart.id)}>
+                                  Marcar avariado
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ),
@@ -1030,9 +1048,28 @@ function KartDetailDialog({
 
             <DialogFooter className="flex-col gap-2 sm:flex-col">
               {info.state !== "FORA_DE_SERVICO" ? (
-                <Button variant="outline" className="w-full" onClick={handleQuebrado}>
-                  <Wrench className="size-3.5" /> Kart avariado — marcar fora de serviço
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <Wrench className="size-3.5" /> Kart avariado — marcar fora de serviço
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Marcar kart {info.label} como avariado?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Vai para a oficina, fora de serviço — não entra em nenhuma fila nem pode ser
+                        atribuído a nenhuma equipa até seres tu a reintegrá-lo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleQuebrado}>
+                        Marcar avariado
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               ) : null}
               <Button variant="outline" className="w-full" onClick={onClose}>
                 Fechar
@@ -1173,9 +1210,26 @@ function KartEditDialog({
               </div>
 
               {kart.state !== "FORA_DE_SERVICO" ? (
-                <Button variant="outline" size="sm" onClick={handleOficina}>
-                  <Wrench className="size-3.5" /> Enviar para a oficina
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Wrench className="size-3.5" /> Enviar para a oficina
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Enviar kart {kart.id} para a oficina?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Fica fora de serviço — não entra em nenhuma fila nem pode ser atribuído a
+                        nenhuma equipa até seres tu a reintegrá-lo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleOficina}>Enviar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               ) : null}
             </div>
 
