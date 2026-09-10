@@ -81,12 +81,39 @@ import {
 } from "@/lib/kartFeed/kartFeedClient";
 import { TeamClassificationPanel } from "@/components/race/TeamClassificationPanel";
 
+// Escala de cores do rating, ao estilo F1 (roxo = volta mais rápida da
+// sessão, o "purple sector"). Fonte única de verdade — usada no badge,
+// no histórico de voltas, e no fundo dos cartões de kart nas filas.
+const GRADE_COLORS: Record<number, { hex: string; badge: string; row: string }> = {
+  5: {
+    hex: "#a855f7",
+    badge: "border-purple-500/40 text-purple-400",
+    row: "bg-purple-500/15 text-purple-300",
+  },
+  4: {
+    hex: "#22c55e",
+    badge: "border-green-500/40 text-green-400",
+    row: "bg-green-500/15 text-green-300",
+  },
+  3: {
+    hex: "#eab308",
+    badge: "border-yellow-500/40 text-yellow-400",
+    row: "bg-yellow-500/15 text-yellow-300",
+  },
+  2: {
+    hex: "#f97316",
+    badge: "border-orange-500/40 text-orange-400",
+    row: "bg-orange-500/15 text-orange-300",
+  },
+  1: { hex: "#ef4444", badge: "border-red-500/40 text-red-400", row: "bg-red-500/15 text-red-300" },
+};
+
 const GRADE_BADGE_CLASS: Record<number, string> = {
-  5: "border-emerald-500/40 text-emerald-500",
-  4: "border-emerald-500/30 text-emerald-400",
-  3: "border-amber-500/40 text-amber-500",
-  2: "border-red-500/30 text-red-400",
-  1: "border-red-500/40 text-red-500",
+  5: GRADE_COLORS[5]!.badge,
+  4: GRADE_COLORS[4]!.badge,
+  3: GRADE_COLORS[3]!.badge,
+  2: GRADE_COLORS[2]!.badge,
+  1: GRADE_COLORS[1]!.badge,
 };
 
 const CORES_SUGERIDAS = [
@@ -826,11 +853,11 @@ function StaffQueueContent({
 }
 
 const GRADE_ROW_CLASS: Record<number, string> = {
-  5: "bg-emerald-500/15 text-emerald-400",
-  4: "bg-emerald-500/10 text-emerald-300",
-  3: "bg-amber-500/15 text-amber-400",
-  2: "bg-red-500/10 text-red-300",
-  1: "bg-red-500/15 text-red-400",
+  5: GRADE_COLORS[5]!.row,
+  4: GRADE_COLORS[4]!.row,
+  3: GRADE_COLORS[3]!.row,
+  2: GRADE_COLORS[2]!.row,
+  1: GRADE_COLORS[1]!.row,
 };
 
 function KartDetailDialog({
@@ -920,7 +947,7 @@ function KartDetailDialog({
 
             {info.grade !== null ? (
               <div className="space-y-1">
-                <div className="relative h-2 w-full rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500">
+                <div className="relative h-2 w-full rounded-full bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-green-500 to-purple-500">
                   <div
                     className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground"
                     style={{ left: `${((info.grade - 1) / 4) * 100}%` }}
@@ -1800,6 +1827,7 @@ function QueueCard({
   onPointerDownOnHandle: (e: ReactPointerEvent, kartId: string, filaOrigemId: string) => void;
 }) {
   const [novoKartId, setNovoKartId] = useState("");
+  const [mostrarAdicionar, setMostrarAdicionar] = useState(false);
 
   // Pré-visualização em tempo real: enquanto se arrasta um kart PARA
   // dentro desta fila, mostra logo "o espaço a abrir-se" na posição onde
@@ -1826,6 +1854,7 @@ function QueueCard({
     }
     onAdicionarManual(id, fila.fila_id);
     setNovoKartId("");
+    setMostrarAdicionar(false);
   }
 
   function handleAjustarCapacidade(delta: number) {
@@ -1916,12 +1945,20 @@ function QueueCard({
               );
             }
 
+            const grade = ratings?.[id]?.grade;
+            const corGrade = grade ? GRADE_COLORS[grade]?.hex : undefined;
+
             return (
               <div
                 key={id}
                 data-drop-fila={fila.fila_id}
                 data-drop-index={i}
-                className="rounded-md border border-border p-2"
+                className="rounded-md border p-2"
+                style={
+                  corGrade
+                    ? { backgroundColor: `${corGrade}26`, borderColor: `${corGrade}66` }
+                    : undefined
+                }
               >
                 <div className="mb-1 flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5">
@@ -2028,21 +2065,43 @@ function QueueCard({
           </div>
         ))}
 
-        <div className="flex gap-1.5 pt-1">
+        <div className="pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-full"
+            onClick={() => setMostrarAdicionar(true)}
+          >
+            <Plus className="size-3.5" /> Adicionar kart
+          </Button>
+        </div>
+      </div>
+
+      <Dialog open={mostrarAdicionar} onOpenChange={setMostrarAdicionar}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar kart à fila "{fila.nome}"</DialogTitle>
+            <DialogDescription>
+              Indica o número do kart. Fica adicionado ao fim da fila.
+            </DialogDescription>
+          </DialogHeader>
           <Input
             value={novoKartId}
             onChange={(e) => setNovoKartId(e.target.value)}
             placeholder="Nº kart"
-            className="h-8 text-xs"
+            autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAdicionar();
             }}
           />
-          <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={handleAdicionar}>
-            <Plus className="size-3.5" />
-          </Button>
-        </div>
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMostrarAdicionar(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdicionar}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
