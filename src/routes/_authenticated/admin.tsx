@@ -111,6 +111,8 @@ function AdminPage() {
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
     enabled: isAdmin,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
