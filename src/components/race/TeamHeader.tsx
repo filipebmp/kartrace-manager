@@ -1,7 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { LogOut, ShieldCheck, Radio, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePendingTeamsCount } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
