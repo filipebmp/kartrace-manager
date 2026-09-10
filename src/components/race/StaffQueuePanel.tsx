@@ -686,13 +686,17 @@ function StaffQueueContent({
         Live Timing ligado — {karts.length} karts monitorizados
       </div>
 
-      <Button
-        className="w-full"
-        style={{ backgroundColor: "#f97316" }}
-        onClick={() => setMostrarParagemManual(true)}
-      >
-        <Wrench className="size-4" /> Registar paragem manual na box
-      </Button>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+          <Button
+            size="sm"
+            style={{ backgroundColor: "#f97316" }}
+            onClick={() => setMostrarParagemManual(true)}
+          >
+            <Wrench className="size-3.5" /> Paragem manual
+          </Button>
+        </CardContent>
+      </Card>
 
       <Dialog
         open={mostrarParagemManual}
