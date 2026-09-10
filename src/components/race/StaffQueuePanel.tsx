@@ -1702,13 +1702,6 @@ function DashboardPanel({
   ratings: Record<string, KartRatingDTO> | null;
   onEditarKart: (kartId: string) => void;
 }) {
-  const LAP_COLOR: Record<string, string> = {
-    BOM: "text-emerald-500",
-    MEDIO: "text-amber-500",
-    MAU: "text-red-500",
-    SEM_DADOS: "text-muted-foreground",
-  };
-
   const linhas = Object.values(snapshot.equipas)
     .filter((eq) => eq.total_voltas > 0)
     .sort((a, b) => {
@@ -1843,7 +1836,8 @@ function DashboardPanel({
                         )}
                       </TableCell>
                       <TableCell
-                        className={`text-right font-mono ${LAP_COLOR[eq.ultima_categoria]}`}
+                        className="text-right font-mono"
+                        style={grade ? { color: GRADE_COLORS[grade]?.hex } : undefined}
                       >
                         {formatLapTime(eq.ultimo_tempo_seconds)}
                       </TableCell>
