@@ -2067,12 +2067,20 @@ function QueueCard({
                 key={id}
                 data-drop-fila={fila.fila_id}
                 data-drop-index={i}
-                className="rounded-md border p-2"
-                style={
-                  corGrade
+                className="cursor-grab touch-none rounded-md border p-2 active:cursor-grabbing"
+                style={{
+                  touchAction: "none",
+                  ...(corGrade
                     ? { backgroundColor: `${corGrade}26`, borderColor: `${corGrade}66` }
-                    : undefined
-                }
+                    : undefined),
+                }}
+                onPointerDown={(e) => {
+                  // Não inicia arrasto se o toque começar em cima de um
+                  // botão (editar, retirar, atribuir) — esses continuam a
+                  // funcionar normalmente com um simples toque/clique.
+                  if ((e.target as HTMLElement).closest("button")) return;
+                  onPointerDownOnHandle(e, id, fila.fila_id);
+                }}
               >
                 <div className="mb-1 flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5">
