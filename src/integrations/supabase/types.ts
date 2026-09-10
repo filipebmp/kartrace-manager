@@ -48,6 +48,7 @@ export type Database = {
           email: string
           id: string
           karts_feature: boolean
+          last_seen_at: string | null
           status: Database["public"]["Enums"]["team_status"]
           team_feature: boolean
           team_name: string
@@ -59,6 +60,7 @@ export type Database = {
           email: string
           id: string
           karts_feature?: boolean
+          last_seen_at?: string | null
           status?: Database["public"]["Enums"]["team_status"]
           team_feature?: boolean
           team_name: string
@@ -70,6 +72,7 @@ export type Database = {
           email?: string
           id?: string
           karts_feature?: boolean
+          last_seen_at?: string | null
           status?: Database["public"]["Enums"]["team_status"]
           team_feature?: boolean
           team_name?: string
@@ -196,6 +199,7 @@ export type Database = {
         Args: { _email: string }
         Returns: Json
       }
+      touch_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "team"
