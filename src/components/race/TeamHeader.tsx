@@ -63,10 +63,18 @@ export function TeamHeader({
       </div>
       <div className="flex items-center gap-2">
         {isAdmin ? (
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="relative">
             <Link to="/admin">
               <ShieldCheck className="size-4" />
               <span className="hidden sm:inline">Admin</span>
+              {pendingCount > 0 ? (
+                <span
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground"
+                  aria-label={`${pendingCount} pedidos por aprovar`}
+                >
+                  {pendingCount}
+                </span>
+              ) : null}
             </Link>
           </Button>
         ) : null}
