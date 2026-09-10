@@ -166,6 +166,8 @@ function AuthPage() {
     setPendingEmail(parsed.data.email);
   }
 
+  if (forgot) {
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-md">
