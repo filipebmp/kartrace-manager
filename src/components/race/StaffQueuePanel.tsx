@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowRight,
   ChevronDown,
+  ChevronUp,
   Clock,
   GripVertical,
   Link2,
@@ -2062,6 +2063,10 @@ function QueueCard({
             : ""
         }`}
       >
+        <div className="flex items-center justify-center gap-1 pb-0.5 text-[11px] font-semibold uppercase text-emerald-500">
+          <ChevronUp className="size-3" /> Saída
+        </div>
+
         {fila.kart_ids.length === 0 && vazios === 0 && kartIdsParaMostrar.length === 0 ? (
           <p className="pointer-events-none px-1 py-3 text-center text-xs text-muted-foreground">
             Fila vazia — arrasta um kart para aqui (pega no ⠿)
@@ -2214,6 +2219,10 @@ function QueueCard({
             <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
           </div>
         ))}
+
+        <div className="flex items-center justify-center gap-1 pt-0.5 text-[11px] font-semibold uppercase text-red-500">
+          <ChevronUp className="size-3" /> Entrada
+        </div>
 
         <div className="pt-1">
           <Button
