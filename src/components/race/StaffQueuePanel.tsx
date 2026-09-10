@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -392,7 +391,6 @@ function StaffQueueContent({
 }) {
   const {
     triarKart,
-    sortearKart,
     marcarForaDeServico,
     reintegrarKart,
     criarFila,
@@ -491,11 +489,6 @@ function StaffQueueContent({
   } | null>(null);
   const [mostrarParagemManual, setMostrarParagemManual] = useState(false);
   const [kartParagemManual, setKartParagemManual] = useState("");
-  const [atribuirAlvo, setAtribuirAlvo] = useState<{
-    filaId: string;
-    kartId: string;
-    corFila: string;
-  } | null>(null);
   const [motivoAvaria] = useState<Record<string, string>>({});
   const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
   const [kartDetalheId, setKartDetalheId] = useState<string | null>(null);
@@ -528,19 +521,6 @@ function StaffQueueContent({
       await triarKart(kartId, filaId);
     } catch (e) {
       toast.error("Não foi possível triar o kart", {
-        description: e instanceof Error ? e.message : undefined,
-      });
-    }
-  }
-
-  async function handleConfirmarAtribuicao(numeroEquipa: string) {
-    if (!atribuirAlvo) return;
-    try {
-      await sortearKart(atribuirAlvo.filaId, numeroEquipa, atribuirAlvo.kartId);
-      toast.success(`Kart atribuído à equipa ${numeroEquipa}`);
-      setAtribuirAlvo(null);
-    } catch (e) {
-      toast.error("Não foi possível atribuir", {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -784,7 +764,7 @@ function StaffQueueContent({
                 Karts que acabaram de entrar em PITIN. Classifica cada um numa fila.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-2 overflow-x-auto pb-1">
+            <CardContent className="space-y-2">
               {kartsEspera.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem karts à espera de triagem.</p>
               ) : (
@@ -793,7 +773,7 @@ function StaffQueueContent({
                     kart && (
                       <div
                         key={kart.id}
-                        className="flex shrink-0 flex-col gap-2 rounded-md border border-border px-3 py-2"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                       >
                         <KartChip
                           kart={kart}
@@ -845,7 +825,7 @@ function StaffQueueContent({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="flex flex-wrap justify-center gap-3">
             {snapshot.filas.map((fila) => (
               <QueueCard
                 key={fila.fila_id}
@@ -853,9 +833,6 @@ function StaffQueueContent({
                 karts={snapshot.karts}
                 equipas={snapshot.equipas}
                 ratings={ratings}
-                onAtribuir={(kartId) =>
-                  setAtribuirAlvo({ filaId: fila.fila_id, kartId, corFila: fila.cor })
-                }
                 onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
                 onEditarKart={(kartId) => setKartEmEdicao(kartId)}
                 onRetirarDaFila={handleRetirarDaFila}
@@ -896,12 +873,6 @@ function StaffQueueContent({
               </Button>
             </div>
           </div>
-
-          <AtribuirDialog
-            alvo={atribuirAlvo}
-            onCancel={() => setAtribuirAlvo(null)}
-            onConfirmar={handleConfirmarAtribuicao}
-          />
 
           {foraDeServico.length > 0 ? (
             <Card>
@@ -2185,7 +2156,6 @@ function QueueCard({
   karts,
   equipas,
   ratings,
-  onAtribuir,
   onRemover,
   onEditarKart,
   onRetirarDaFila,
@@ -2199,7 +2169,6 @@ function QueueCard({
   karts: Record<string, KartDTO>;
   equipas: Record<string, EquipaDTO>;
   ratings: Record<string, KartRatingDTO> | null;
-  onAtribuir: (kartId: string) => void;
   onRemover: () => void;
   onEditarKart: (kartId: string) => void;
   onRetirarDaFila: (kartId: string) => void;
@@ -2401,7 +2370,10 @@ function QueueCard({
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onRetirarDaFila(id)}>
+                          <AlertDialogAction
+                            ref={(el) => el?.focus()}
+                            onClick={() => onRetirarDaFila(id)}
+                          >
                             Retirar da Fila
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -2428,17 +2400,6 @@ function QueueCard({
                     {formatLapTime(ratings?.[id]?.media_melhores_voltas_seconds ?? null)}
                   </div>
                 </div>
-
-                {i === 0 ? (
-                  <Button
-                    size="sm"
-                    style={{ backgroundColor: fila.cor }}
-                    className="w-full text-white hover:opacity-90"
-                    onClick={() => onAtribuir(id)}
-                  >
-                    <ArrowRight className="size-3.5" /> Atribuir
-                  </Button>
-                ) : null}
               </div>
             );
           })
@@ -2502,57 +2463,5 @@ function QueueCard({
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function AtribuirDialog({
-  alvo,
-  onCancel,
-  onConfirmar,
-}: {
-  alvo: { filaId: string; kartId: string; corFila: string } | null;
-  onCancel: () => void;
-  onConfirmar: (numeroEquipa: string) => void;
-}) {
-  const [numero, setNumero] = useState("");
-
-  return (
-    <Dialog open={alvo !== null} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent>
-        {alvo ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Atribuir kart {alvo.kartId}</DialogTitle>
-              <DialogDescription>
-                A que equipa vai este kart? (a que está a sair da box agora)
-              </DialogDescription>
-            </DialogHeader>
-            <Input
-              autoFocus
-              value={numero}
-              onChange={(e) => setNumero(e.target.value)}
-              placeholder="Número da equipa (ex: 12)"
-              inputMode="numeric"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && numero.trim()) onConfirmar(numero.trim());
-              }}
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={onCancel}>
-                Cancelar
-              </Button>
-              <Button
-                style={{ backgroundColor: alvo.corFila }}
-                className="text-white hover:opacity-90"
-                disabled={!numero.trim()}
-                onClick={() => onConfirmar(numero.trim())}
-              >
-                Confirmar
-              </Button>
-            </DialogFooter>
-          </>
-        ) : null}
-      </DialogContent>
-    </Dialog>
   );
 }
