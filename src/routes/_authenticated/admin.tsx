@@ -46,6 +46,18 @@ const statusLabel: Record<TeamProfile["status"], string> = {
   rejected: "Recusada",
 };
 
+function lastSeenLabel(iso: string | null): { text: string; online: boolean } {
+  if (!iso) return { text: "Nunca ligado", online: false };
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 3) return { text: "Ligado agora", online: true };
+  if (minutes < 60) return { text: `Há ${minutes} min`, online: false };
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return { text: `Há ${hours} h`, online: false };
+  const days = Math.floor(hours / 24);
+  return { text: days === 1 ? "Há 1 dia" : `Há ${days} dias`, online: false };
+}
+
 function AdminPage() {
   const { user } = useSession();
   const { data: me } = useProfile(user?.id);
@@ -99,6 +111,8 @@ function AdminPage() {
   const { data: teams, isLoading } = useQuery({
     queryKey: ["all-teams"],
     enabled: isAdmin,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -175,6 +189,22 @@ function AdminPage() {
                     <CardDescription className="truncate">
                       {t.contact_name} · {t.email}
                     </CardDescription>
+                    {(() => {
+                      const seen = lastSeenLabel(t.last_seen_at);
+                      return (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span
+                            className={`inline-block size-2 rounded-full ${seen.online ? "bg-success" : "bg-muted-foreground/40"}`}
+                            aria-hidden
+                          />
+                          {seen.online ? (
+                            <span className="font-medium text-success">{seen.text}</span>
+                          ) : (
+                            <>Última atividade: {seen.text}</>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <Badge
                     variant={t.status === "approved" ? "default" : t.status === "pending" ? "secondary" : "destructive"}

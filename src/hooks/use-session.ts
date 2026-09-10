@@ -35,6 +35,7 @@ export interface TeamProfile {
   status: "pending" | "approved" | "rejected";
   karts_feature: boolean;
   team_feature: boolean;
+  last_seen_at: string | null;
   created_at: string;
 }
 
