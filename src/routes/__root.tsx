@@ -12,7 +12,13 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  clearSessionGuard,
+  isSessionExpiredByInactivity,
+  markSessionActivity,
+} from "@/lib/session-guard";
 
 function NotFoundComponent() {
   return (
@@ -129,11 +135,44 @@ function RootComponent() {
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      if (event === "SIGNED_IN") markSessionActivity();
+      if (event === "SIGNED_OUT") clearSessionGuard();
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
+
+  // Termina a sessão após 2h sem atividade (salvo "manter sessão iniciada").
+  useEffect(() => {
+    let lastMark = 0;
+    const onActivity = () => {
+      const now = Date.now();
+      if (now - lastMark < 15_000) return;
+      lastMark = now;
+      markSessionActivity();
+    };
+    const events: (keyof WindowEventMap)[] = ["pointerdown", "keydown", "touchstart"];
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+
+    const check = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      if (!isSessionExpiredByInactivity()) return;
+      toast.warning("Sessão terminada", {
+        description: "A sessão foi terminada após 2 horas sem atividade.",
+      });
+      queryClient.clear();
+      await supabase.auth.signOut();
+    };
+    void check();
+    const id = window.setInterval(() => void check(), 60_000);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, onActivity));
+      window.clearInterval(id);
+    };
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
