@@ -1683,6 +1683,27 @@ function DashboardPanel({
       return A - B;
     });
 
+  const kartsComMedia = Object.values(snapshot.karts)
+    .map((k) => ({
+      kart: k,
+      media: ratings?.[k.id]?.media_melhores_voltas_seconds ?? null,
+    }))
+    .filter((x): x is { kart: KartDTO; media: number } => x.media !== null);
+
+  const top3PorMedia = [...kartsComMedia].sort((a, b) => a.media - b.media).slice(0, 3);
+  const pace =
+    top3PorMedia.length > 0
+      ? top3PorMedia.reduce((soma, x) => soma + x.media, 0) / top3PorMedia.length
+      : null;
+  const melhorKart = top3PorMedia[0] ?? null;
+
+  const ultimasEntradas = Object.values(snapshot.karts)
+    .filter((k) => k.stint_started_at !== null)
+    .sort(
+      (a, b) => new Date(b.stint_started_at!).getTime() - new Date(a.stint_started_at!).getTime(),
+    )
+    .slice(0, 3);
+
   return (
     <Card>
       <CardHeader>
@@ -1692,6 +1713,45 @@ function DashboardPanel({
           estão disponíveis (por decifrar do Live Timing) — "Em Pista" e "Pits" já são calculados
           por nós.
         </CardDescription>
+
+        <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border p-2.5">
+            <div className="text-xs uppercase text-muted-foreground">Pace (top 3 karts)</div>
+            <div className="font-mono text-xl font-bold">{formatLapTime(pace)}</div>
+          </div>
+          <div className="rounded-md border border-purple-500/40 bg-purple-500/5 p-2.5">
+            <div className="text-xs uppercase text-purple-400">Melhor Kart</div>
+            {melhorKart ? (
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-xl font-bold text-purple-300">
+                  {melhorKart.kart.label}
+                </span>
+                <span className="font-mono text-sm text-muted-foreground">
+                  {formatLapTime(melhorKart.media)}
+                </span>
+              </div>
+            ) : (
+              <div className="text-xl text-muted-foreground">—</div>
+            )}
+          </div>
+          <div className="rounded-md border border-border p-2.5">
+            <div className="text-xs uppercase text-muted-foreground">Últimas entradas</div>
+            {ultimasEntradas.length === 0 ? (
+              <div className="text-xl text-muted-foreground">—</div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {ultimasEntradas.map((k) => (
+                  <span
+                    key={k.id}
+                    className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm font-semibold"
+                  >
+                    {k.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {linhas.length === 0 ? (
