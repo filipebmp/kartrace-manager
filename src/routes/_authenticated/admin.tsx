@@ -187,6 +187,22 @@ function AdminPage() {
                     <CardDescription className="truncate">
                       {t.contact_name} · {t.email}
                     </CardDescription>
+                    {(() => {
+                      const seen = lastSeenLabel(t.last_seen_at);
+                      return (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span
+                            className={`inline-block size-2 rounded-full ${seen.online ? "bg-success" : "bg-muted-foreground/40"}`}
+                            aria-hidden
+                          />
+                          {seen.online ? (
+                            <span className="font-medium text-success">{seen.text}</span>
+                          ) : (
+                            <>Última atividade: {seen.text}</>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <Badge
                     variant={t.status === "approved" ? "default" : t.status === "pending" ? "secondary" : "destructive"}
