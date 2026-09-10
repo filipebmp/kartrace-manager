@@ -315,9 +315,57 @@ function AuthPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="up-pass">Palavra-passe</Label>
-                    <Input id="up-pass" name="password" type="password" required minLength={8} autoComplete="new-password" />
+                    <Input
+                      id="up-pass"
+                      name="password"
+                      type="password"
+                      required
+                      minLength={10}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                    />
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full transition-all ${
+                          passwordScore >= 6 ? "bg-emerald-500" : passwordScore >= 4 ? "bg-amber-500" : "bg-destructive"
+                        }`}
+                        style={{ width: `${(passwordScore / PASSWORD_RULES.length) * 100}%` }}
+                      />
+                    </div>
+                    <ul className="space-y-1 pt-1">
+                      {passwordChecks.map((c) => (
+                        <li
+                          key={c.label}
+                          className={`flex items-center gap-1.5 text-xs ${
+                            c.ok ? "text-emerald-500" : "text-muted-foreground"
+                          }`}
+                        >
+                          {c.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                          {c.label}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <Button type="submit" className="w-full" disabled={busy}>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="up-confirm">Confirmar palavra-passe</Label>
+                    <Input
+                      id="up-confirm"
+                      name="confirm"
+                      type="password"
+                      required
+                      minLength={10}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={signUpConfirm}
+                      onChange={(e) => setSignUpConfirm(e.target.value)}
+                    />
+                    {signUpConfirm.length > 0 && !passwordsMatch ? (
+                      <p className="text-xs text-destructive">As palavras-passe não coincidem.</p>
+                    ) : null}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={busy || !strongEnough || !passwordsMatch}>
                     Registar equipa
                   </Button>
                   <p className="text-xs text-muted-foreground">
