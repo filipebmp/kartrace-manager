@@ -124,6 +124,7 @@ function AdminPage() {
       description: team.team_name,
     });
     queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    queryClient.invalidateQueries({ queryKey: ["pending-teams-count"] });
   }
 
   async function confirmDelete() {
@@ -136,6 +137,7 @@ function AdminPage() {
       });
       setToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-teams-count"] });
     } catch (e) {
       toast.error("Não foi possível eliminar", {
         description: e instanceof Error ? e.message : "Tenta novamente.",

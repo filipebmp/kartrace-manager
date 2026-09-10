@@ -38,6 +38,23 @@ export interface TeamProfile {
   created_at: string;
 }
 
+export function usePendingTeamsCount(enabled: boolean) {
+  return useQuery({
+    queryKey: ["pending-teams-count"],
+    enabled,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
 export function useProfile(userId: string | undefined) {
   return useQuery({
     queryKey: ["profile", userId],
