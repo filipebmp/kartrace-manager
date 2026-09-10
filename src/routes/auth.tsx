@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, X } from "lucide-react";
 import { requestPasswordReset } from "@/lib/auth.functions";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -37,6 +38,15 @@ const signUpSchema = z.object({
   password: z.string().min(8, "A palavra-passe precisa de pelo menos 8 caracteres").max(72),
 });
 
+const PASSWORD_RULES: { label: string; test: (v: string) => boolean }[] = [
+  { label: "Pelo menos 10 caracteres", test: (v) => v.length >= 10 },
+  { label: "Uma letra maiúscula", test: (v) => /[A-ZÀ-Ý]/.test(v) },
+  { label: "Uma letra minúscula", test: (v) => /[a-zà-ÿ]/.test(v) },
+  { label: "Um número", test: (v) => /\d/.test(v) },
+  { label: "Um símbolo (!@#$…)", test: (v) => /[^A-Za-zÀ-ÿ0-9]/.test(v) },
+  { label: "Sem espaços", test: (v) => v.length > 0 && !/\s/.test(v) },
+];
+
 function formatWait(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -52,6 +62,16 @@ function AuthPage() {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
   const [blockedFor, setBlockedFor] = useState(0);
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirm, setSignUpConfirm] = useState("");
+
+  const passwordChecks = useMemo(
+    () => PASSWORD_RULES.map((r) => ({ ...r, ok: r.test(signUpPassword) })),
+    [signUpPassword],
+  );
+  const passwordScore = passwordChecks.filter((c) => c.ok).length;
+  const strongEnough = passwordChecks.every((c) => c.ok);
+  const passwordsMatch = signUpConfirm.length > 0 && signUpPassword === signUpConfirm;
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
@@ -144,6 +164,16 @@ function AuthPage() {
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+      return;
+    }
+    if (!strongEnough) {
+      toast.error("Palavra-passe demasiado fraca", {
+        description: "Cumpre todos os requisitos indicados.",
+      });
+      return;
+    }
+    if (parsed.data.password !== signUpConfirm) {
+      toast.error("As palavras-passe não coincidem");
       return;
     }
     setBusy(true);
@@ -285,9 +315,57 @@ function AuthPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="up-pass">Palavra-passe</Label>
-                    <Input id="up-pass" name="password" type="password" required minLength={8} autoComplete="new-password" />
+                    <Input
+                      id="up-pass"
+                      name="password"
+                      type="password"
+                      required
+                      minLength={10}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                    />
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full transition-all ${
+                          passwordScore >= 6 ? "bg-emerald-500" : passwordScore >= 4 ? "bg-amber-500" : "bg-destructive"
+                        }`}
+                        style={{ width: `${(passwordScore / PASSWORD_RULES.length) * 100}%` }}
+                      />
+                    </div>
+                    <ul className="space-y-1 pt-1">
+                      {passwordChecks.map((c) => (
+                        <li
+                          key={c.label}
+                          className={`flex items-center gap-1.5 text-xs ${
+                            c.ok ? "text-emerald-500" : "text-muted-foreground"
+                          }`}
+                        >
+                          {c.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                          {c.label}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <Button type="submit" className="w-full" disabled={busy}>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="up-confirm">Confirmar palavra-passe</Label>
+                    <Input
+                      id="up-confirm"
+                      name="confirm"
+                      type="password"
+                      required
+                      minLength={10}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={signUpConfirm}
+                      onChange={(e) => setSignUpConfirm(e.target.value)}
+                    />
+                    {signUpConfirm.length > 0 && !passwordsMatch ? (
+                      <p className="text-xs text-destructive">As palavras-passe não coincidem.</p>
+                    ) : null}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={busy || !strongEnough || !passwordsMatch}>
                     Registar equipa
                   </Button>
                   <p className="text-xs text-muted-foreground">
