@@ -274,6 +274,10 @@ function LiveTimingConnectionCard() {
                   A ligar…
                 </Badge>
               )
+            ) : liveStatus && !error ? (
+              <Badge variant="outline" className="border-red-500/40 text-red-400">
+                Não ligado
+              </Badge>
             ) : null}
           </CardTitle>
           <ChevronDown
