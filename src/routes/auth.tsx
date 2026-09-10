@@ -10,8 +10,10 @@ import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { markSessionActivity, setKeepSignedIn } from "@/lib/session-guard";
 
 const title = "Entrar — Team Manager 24H Karting";
 const description = "Área reservada das equipas: entra ou regista a tua equipa para aceder ao plano de corrida.";
@@ -62,6 +64,7 @@ function AuthPage() {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
   const [blockedFor, setBlockedFor] = useState(0);
+  const [keepSignedIn, setKeepSignedInState] = useState(false);
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpConfirm, setSignUpConfirm] = useState("");
 
