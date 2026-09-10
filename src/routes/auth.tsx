@@ -133,7 +133,39 @@ function AuthPage() {
     setForgot(false);
   }
 
-  if (forgot) {
+  async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const parsed = signUpSchema.safeParse({
+      teamName: form.get("teamName"),
+      contactName: form.get("contactName"),
+      email: form.get("email"),
+      password: form.get("password"),
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: {
+        emailRedirectTo: window.location.origin + "/auth",
+        data: { team_name: parsed.data.teamName, contact_name: parsed.data.contactName },
+      },
+    });
+    setBusy(false);
+    if (error) {
+      toast.error("Não foi possível registar", { description: error.message });
+      return;
+    }
+    toast.success("Registo enviado", {
+      description: "Confirma o email e aguarda a aprovação do administrador.",
+    });
+    setPendingEmail(parsed.data.email);
+  }
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-md">
