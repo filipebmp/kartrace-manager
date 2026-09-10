@@ -1,7 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { LogOut, ShieldCheck, Radio, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePendingTeamsCount } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,6 +21,28 @@ export function TeamHeader({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: pendingCount = 0 } = usePendingTeamsCount(isAdmin === true);
+  const lastNotified = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (lastNotified.current === null) {
+      lastNotified.current = pendingCount;
+      if (pendingCount > 0) {
+        toast.warning(
+          pendingCount === 1 ? "1 pedido de registo por aprovar" : `${pendingCount} pedidos de registo por aprovar`,
+          { description: "Abre a área de administração para aprovar ou recusar." },
+        );
+      }
+      return;
+    }
+    if (pendingCount > lastNotified.current) {
+      toast.warning("Novo pedido de registo", {
+        description: "Uma equipa registou-se e aguarda aprovação.",
+      });
+    }
+    lastNotified.current = pendingCount;
+  }, [pendingCount, isAdmin]);
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -38,10 +63,18 @@ export function TeamHeader({
       </div>
       <div className="flex items-center gap-2">
         {isAdmin ? (
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="relative">
             <Link to="/admin">
               <ShieldCheck className="size-4" />
               <span className="hidden sm:inline">Admin</span>
+              {pendingCount > 0 ? (
+                <span
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground"
+                  aria-label={`${pendingCount} pedidos por aprovar`}
+                >
+                  {pendingCount}
+                </span>
+              ) : null}
             </Link>
           </Button>
         ) : null}
