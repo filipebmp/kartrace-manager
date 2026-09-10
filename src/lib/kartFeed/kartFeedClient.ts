@@ -261,6 +261,7 @@ function applyIncrementalEvent(
     case "KART_RENOMEADO":
     case "KART_RATING_MANUAL_DEFINIDO":
     case "KART_MOVIDO":
+    case "PARAGEM_MANUAL_REGISTADA":
     case "KART_ADICIONADO_MANUALMENTE":
     case "KART_RETIRADO_DA_FILA": {
       if (payload["kart"]) {
@@ -483,6 +484,12 @@ export function useKartFeedActions() {
     [],
   );
 
+  const registarParagemManual = useCallback(
+    (kartId: string, filaDestinoId: string | null) =>
+      postJson("/staff/paragem_manual", { kart_id: kartId, fila_destino_id: filaDestinoId }),
+    [],
+  );
+
   const definirCapacidadeFila = useCallback(
     (filaId: string, capacidade: number | null) =>
       postJsonWithResponse<{ fila: FilaDTO }>(
@@ -506,6 +513,7 @@ export function useKartFeedActions() {
     retirarDaFila,
     adicionarAFilaManual,
     moverKart,
+    registarParagemManual,
     definirCapacidadeFila,
   };
 }

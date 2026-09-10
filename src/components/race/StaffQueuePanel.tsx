@@ -403,6 +403,7 @@ function StaffQueueContent({
     retirarDaFila,
     adicionarAFilaManual,
     moverKart,
+    registarParagemManual,
     definirCapacidadeFila,
   } = actions;
   // Arrastar karts entre filas: baseado em eventos de ponteiro nativos do
@@ -488,6 +489,8 @@ function StaffQueueContent({
     filaId: string;
     localizacaoAtual: string;
   } | null>(null);
+  const [mostrarParagemManual, setMostrarParagemManual] = useState(false);
+  const [kartParagemManual, setKartParagemManual] = useState("");
   const [atribuirAlvo, setAtribuirAlvo] = useState<{
     filaId: string;
     kartId: string;
@@ -620,6 +623,23 @@ function StaffQueueContent({
     }
   }
 
+  async function handleParagemManual(kartId: string, filaDestinoId: string | null) {
+    try {
+      await registarParagemManual(kartId, filaDestinoId);
+      toast.success(
+        filaDestinoId
+          ? `Paragem registada — kart ${kartId} triado diretamente`
+          : `Paragem registada — kart ${kartId} na Fila de Espera/Triagem`,
+      );
+      setMostrarParagemManual(false);
+      setKartParagemManual("");
+    } catch (e) {
+      toast.error("Não foi possível registar a paragem", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   async function handleConfirmarRelocacao() {
     if (!pendingRelocacao) return;
     const { kartId, filaId } = pendingRelocacao;
@@ -665,6 +685,83 @@ function StaffQueueContent({
         <Radio className="size-3.5 animate-pulse" />
         Live Timing ligado — {karts.length} karts monitorizados
       </div>
+
+      <Button
+        className="w-full"
+        style={{ backgroundColor: "#f97316" }}
+        onClick={() => setMostrarParagemManual(true)}
+      >
+        <Wrench className="size-4" /> Registar paragem manual na box
+      </Button>
+
+      <Dialog
+        open={mostrarParagemManual}
+        onOpenChange={(open) => {
+          setMostrarParagemManual(open);
+          if (!open) setKartParagemManual("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Paragem manual na box</DialogTitle>
+            <DialogDescription>
+              Para quando vês um kart a chegar mas o Live Timing não apanhou. Indica o número e
+              escolhe para onde vai.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Número do kart</label>
+            <Input
+              value={kartParagemManual}
+              onChange={(e) => setKartParagemManual(e.target.value)}
+              placeholder="ex.: 58"
+              autoFocus
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Escolhe a fila</label>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={!kartParagemManual.trim()}
+                onClick={() => handleParagemManual(kartParagemManual.trim(), null)}
+                className="rounded-md border border-border bg-card p-3 text-center hover:bg-accent/50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <div className="font-semibold">Fila de Espera</div>
+                <div className="text-xs text-muted-foreground">
+                  {snapshot.fila_espera.length} na fila
+                </div>
+              </button>
+              {snapshot.filas.map((fila) => (
+                <button
+                  key={fila.fila_id}
+                  type="button"
+                  disabled={!kartParagemManual.trim()}
+                  onClick={() => handleParagemManual(kartParagemManual.trim(), fila.fila_id)}
+                  className="rounded-md border p-3 text-center disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ borderColor: `${fila.cor}66`, backgroundColor: `${fila.cor}1a` }}
+                >
+                  <div className="font-semibold" style={{ color: fila.cor }}>
+                    {fila.nome}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {fila.kart_ids.length} na fila
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMostrarParagemManual(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="fila">
         <TabsList>
