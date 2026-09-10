@@ -104,6 +104,8 @@ function AuthPage() {
       toast.error("Não foi possível entrar", { description: error.message });
       return;
     }
+    setKeepSignedIn(keepSignedIn);
+    markSessionActivity();
     navigate({ to: "/dashboard", replace: true });
   }
 
@@ -289,6 +291,20 @@ function AuthPage() {
                     <Label htmlFor="in-pass">Palavra-passe</Label>
                     <Input id="in-pass" name="password" type="password" required autoComplete="current-password" />
                   </div>
+                  <label
+                    htmlFor="keep-signed-in"
+                    className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <Checkbox
+                      id="keep-signed-in"
+                      checked={keepSignedIn}
+                      onCheckedChange={(v) => setKeepSignedInState(v === true)}
+                    />
+                    Manter sessão iniciada
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Sem esta opção, a sessão termina automaticamente após 2 horas sem atividade.
+                  </p>
                   <Button type="submit" className="w-full" disabled={busy}>
                     Entrar
                   </Button>
