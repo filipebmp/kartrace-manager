@@ -1828,7 +1828,10 @@ function DashboardPanel({
                           <span className="ml-1 text-muted-foreground">{eq.nome}</span>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-right font-mono">
+                      <TableCell
+                        className="text-right font-mono"
+                        style={grade ? { color: GRADE_COLORS[grade]?.hex } : undefined}
+                      >
                         {formatLapTime(
                           kartId
                             ? (ratings?.[kartId]?.media_melhores_voltas_seconds ?? null)
