@@ -25,6 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 // --- Tipos espelhados do contrato definido em ws_events.py -----------------
 
@@ -182,6 +183,11 @@ export function useKartFeed() {
 
         // Deteção de gap: se perdemos eventos, pedimos snapshot reabrindo a ligação.
         if (lastSeqRef.current !== null && frame.seq !== lastSeqRef.current + 1) {
+          console.warn(
+            `[kartFeed] Gap de eventos detetado: esperava seq ${lastSeqRef.current + 1}, ` +
+              `recebi ${frame.seq}. A reconectar (pede snapshot novo).`,
+          );
+          toast.warning("Ligação perdeu eventos — a atualizar...", { duration: 2500 });
           ws.close();
           return;
         }
