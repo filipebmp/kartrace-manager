@@ -166,6 +166,16 @@ function AuthPage() {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
     }
+    if (!strongEnough) {
+      toast.error("Palavra-passe demasiado fraca", {
+        description: "Cumpre todos os requisitos indicados.",
+      });
+      return;
+    }
+    if (parsed.data.password !== signUpConfirm) {
+      toast.error("As palavras-passe não coincidem");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.signUp({
       email: parsed.data.email,
