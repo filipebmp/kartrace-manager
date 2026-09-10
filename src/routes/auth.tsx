@@ -30,6 +30,13 @@ export const Route = createFileRoute("/auth")({
 });
 
 
+const signUpSchema = z.object({
+  teamName: z.string().trim().min(2, "Indica o nome da equipa").max(60),
+  contactName: z.string().trim().min(2, "Indica o nome do responsável").max(80),
+  email: z.string().trim().email("Email inválido").max(255),
+  password: z.string().min(8, "A palavra-passe precisa de pelo menos 8 caracteres").max(72),
+});
+
 function formatWait(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
