@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, X } from "lucide-react";
 import { requestPasswordReset } from "@/lib/auth.functions";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -36,6 +37,15 @@ const signUpSchema = z.object({
   email: z.string().trim().email("Email inválido").max(255),
   password: z.string().min(8, "A palavra-passe precisa de pelo menos 8 caracteres").max(72),
 });
+
+const PASSWORD_RULES: { label: string; test: (v: string) => boolean }[] = [
+  { label: "Pelo menos 10 caracteres", test: (v) => v.length >= 10 },
+  { label: "Uma letra maiúscula", test: (v) => /[A-ZÀ-Ý]/.test(v) },
+  { label: "Uma letra minúscula", test: (v) => /[a-zà-ÿ]/.test(v) },
+  { label: "Um número", test: (v) => /\d/.test(v) },
+  { label: "Um símbolo (!@#$…)", test: (v) => /[^A-Za-zÀ-ÿ0-9]/.test(v) },
+  { label: "Sem espaços", test: (v) => v.length > 0 && !/\s/.test(v) },
+];
 
 function formatWait(seconds: number) {
   const m = Math.floor(seconds / 60);
