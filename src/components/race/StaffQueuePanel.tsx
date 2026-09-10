@@ -211,6 +211,7 @@ function LiveTimingConnectionCard() {
   const disconnect = useDisconnectLiveTimingTarget();
   const resetSessionData = useResetSessionData();
   const [eventUrl, setEventUrl] = useState("");
+  const [mostrar, setMostrar] = useState(false);
 
   async function handleLigar() {
     const url = eventUrl.trim();
@@ -255,93 +256,120 @@ function LiveTimingConnectionCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Link2 className="size-4" /> Ligação ao Live Timing
-        </CardTitle>
-        <CardDescription>
-          Cola o link normal da página de live timing da pista (ex.:{" "}
-          <code>http://live.apex-timing.com/kip-palmela/</code>). Fica ligado até desligares
-          manualmente — não precisas de mexer no servidor para trocar de pista.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          <Input
-            value={eventUrl}
-            onChange={(e) => setEventUrl(e.target.value)}
-            placeholder="http://live.apex-timing.com/kip-palmela/"
-            className="max-w-md"
+        <button
+          type="button"
+          onClick={() => setMostrar((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 text-left"
+        >
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="size-4" /> Ligação ao Live Timing
+            {liveStatus?.event_url ? (
+              liveStatus.connected ? (
+                <Badge variant="outline" className="border-emerald-500/40 text-emerald-500">
+                  <Radio className="size-3 animate-pulse" /> Ligado
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-500">
+                  A ligar…
+                </Badge>
+              )
+            ) : null}
+          </CardTitle>
+          <ChevronDown
+            className={`size-4 shrink-0 transition-transform ${mostrar ? "" : "-rotate-90"}`}
           />
-          <Button onClick={handleLigar}>Ligar</Button>
-          {liveStatus?.event_url ? (
+        </button>
+        {mostrar ? (
+          <CardDescription>
+            Cola o link normal da página de live timing da pista (ex.:{" "}
+            <code>http://live.apex-timing.com/kip-palmela/</code>). Fica ligado até desligares
+            manualmente — não precisas de mexer no servidor para trocar de pista.
+          </CardDescription>
+        ) : null}
+      </CardHeader>
+      {mostrar ? (
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Input
+              value={eventUrl}
+              onChange={(e) => setEventUrl(e.target.value)}
+              placeholder="http://live.apex-timing.com/kip-palmela/"
+              className="max-w-md"
+            />
+            <Button onClick={handleLigar}>Ligar</Button>
+            {liveStatus?.event_url ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline">Desligar</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Desligar do Live Timing?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isto para a ligação a{" "}
+                      <span className="font-mono">{liveStatus.event_url}</span>. O sistema deixa de
+                      receber tempos e pits até ligares outra vez.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDesligar}>Desligar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : null}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline">Desligar</Button>
+                <Button variant="outline">Limpar dados da sessão</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Desligar do Live Timing?</AlertDialogTitle>
+                  <AlertDialogTitle>Limpar dados da sessão anterior?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Isto para a ligação a <span className="font-mono">{liveStatus.event_url}</span>.
-                    O sistema deixa de receber tempos e pits até ligares outra vez.
+                    Remove todas as equipas/karts detetados automaticamente pelo Live Timing (os que
+                    aparecem como "r80", "r81", etc.) e o respetivo histórico de rating — usa isto
+                    quando o Apex Timing muda de sessão e os dados antigos ainda aparecem. Isto
+                    tenta fazer-se sozinho quando deteta o fim de uma sessão, mas nem sempre é
+                    possível confirmar automaticamente.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDesligar}>Desligar</AlertDialogAction>
+                  <AlertDialogAction onClick={handleLimparSessao}>Limpar</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          ) : null}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">Limpar dados da sessão</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Limpar dados da sessão anterior?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Remove todas as equipas/karts detetados automaticamente pelo Live Timing (os que
-                  aparecem como "r80", "r81", etc.) e o respetivo histórico de rating — usa isto
-                  quando o Apex Timing muda de sessão e os dados antigos ainda aparecem. Isto tenta
-                  fazer-se sozinho quando deteta o fim de uma sessão, mas nem sempre é possível
-                  confirmar automaticamente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLimparSessao}>Limpar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-
-        {error ? (
-          <p className="text-sm text-muted-foreground">
-            Sem ligação ao backend para consultar o estado.
-          </p>
-        ) : !liveStatus ? (
-          <p className="text-sm text-muted-foreground">A carregar estado…</p>
-        ) : !liveStatus.event_url ? (
-          <p className="text-sm text-muted-foreground">Nenhuma pista definida neste momento.</p>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {liveStatus.connected ? (
-              <Badge variant="outline" className="border-emerald-500/40 text-emerald-500">
-                <Radio className="size-3 animate-pulse" /> Ligado
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="border-amber-500/40 text-amber-500">
-                A ligar…
-              </Badge>
-            )}
-            <span className="font-mono text-xs text-muted-foreground">{liveStatus.event_url}</span>
-            {liveStatus.detail ? (
-              <span className="text-xs text-muted-foreground">— {liveStatus.detail}</span>
-            ) : null}
           </div>
-        )}
-      </CardContent>
+
+          {error ? (
+            <p className="text-sm text-muted-foreground">
+              Sem ligação ao backend para consultar o estado.
+            </p>
+          ) : !liveStatus ? (
+            <p className="text-sm text-muted-foreground">A carregar estado…</p>
+          ) : !liveStatus.event_url ? (
+            <p className="text-sm text-muted-foreground">Nenhuma pista definida neste momento.</p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {liveStatus.connected ? (
+                <Badge variant="outline" className="border-emerald-500/40 text-emerald-500">
+                  <Radio className="size-3 animate-pulse" /> Ligado
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-500">
+                  A ligar…
+                </Badge>
+              )}
+              <span className="font-mono text-xs text-muted-foreground">
+                {liveStatus.event_url}
+              </span>
+              {liveStatus.detail ? (
+                <span className="text-xs text-muted-foreground">— {liveStatus.detail}</span>
+              ) : null}
+            </div>
+          )}
+        </CardContent>
+      ) : null}
     </Card>
   );
 }
