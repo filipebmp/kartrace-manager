@@ -1419,7 +1419,14 @@ function ConfiguracoesPanel() {
             <div className="space-y-2">
               {[5, 4, 3, 2, 1].map((grade) => (
                 <div key={grade} className="flex items-center gap-2">
-                  <Badge variant="outline" className="w-20 justify-center shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="w-28 shrink-0 justify-center border-0 font-semibold"
+                    style={{
+                      backgroundColor: `${GRADE_COLORS[grade]?.hex}33`,
+                      color: GRADE_COLORS[grade]?.hex,
+                    }}
+                  >
                     Rating {grade}
                   </Badge>
                   <Input
@@ -1431,7 +1438,7 @@ function ConfiguracoesPanel() {
                       }))
                     }
                     placeholder="1:03.000"
-                    className="max-w-[9rem]"
+                    className="w-28"
                   />
                   <span className="text-muted-foreground">até</span>
                   <Input
@@ -1443,7 +1450,7 @@ function ConfiguracoesPanel() {
                       }))
                     }
                     placeholder="1:03.499"
-                    className="max-w-[9rem]"
+                    className="w-28"
                   />
                 </div>
               ))}
