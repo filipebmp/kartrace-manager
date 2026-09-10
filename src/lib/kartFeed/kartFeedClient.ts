@@ -46,7 +46,9 @@ export interface KartDTO {
   ultima_categoria: PerformanceCategory;
   ultimo_tempo_seconds: number | null;
   notas: string;
-  rating_manual: number | null;
+  rating_manual: number | null; // override manual (1-5) do staff — o
+  // rating é do kart físico (chassis/pneus/
+  // afinações), não de quem o conduz
   stint_started_at: string | null; // quando entrou EM_PISTA neste turno —
   // null se não estiver em pista; usado
   // para calcular "Em Pista" ao vivo
@@ -259,7 +261,6 @@ function applyIncrementalEvent(
     case "KART_FORA_DE_SERVICO":
     case "KART_REINTEGRADO":
     case "KART_RENOMEADO":
-    case "KART_RATING_MANUAL_DEFINIDO":
     case "KART_MOVIDO":
     case "PARAGEM_MANUAL_REGISTADA":
     case "KART_ADICIONADO_MANUALMENTE":
@@ -287,6 +288,15 @@ function applyIncrementalEvent(
         ...f,
         kart_ids: f.kart_ids.filter((id) => id !== kartId),
       }));
+      break;
+    }
+    case "KART_RATING_MANUAL_DEFINIDO": {
+      const kartId = payload["kart_id"] as string;
+      const grade = payload["grade"] as number | null;
+      const kart = next.karts[kartId];
+      if (kart) {
+        next.karts[kartId] = { ...kart, rating_manual: grade };
+      }
       break;
     }
     case "FILA_CRIADA": {
