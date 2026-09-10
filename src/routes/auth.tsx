@@ -62,6 +62,16 @@ function AuthPage() {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
   const [blockedFor, setBlockedFor] = useState(0);
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirm, setSignUpConfirm] = useState("");
+
+  const passwordChecks = useMemo(
+    () => PASSWORD_RULES.map((r) => ({ ...r, ok: r.test(signUpPassword) })),
+    [signUpPassword],
+  );
+  const passwordScore = passwordChecks.filter((c) => c.ok).length;
+  const strongEnough = passwordChecks.every((c) => c.ok);
+  const passwordsMatch = signUpConfirm.length > 0 && signUpPassword === signUpConfirm;
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
