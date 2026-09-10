@@ -55,6 +55,9 @@ function Landing() {
           <Button asChild>
             <Link to="/auth">Entrar na área da equipa</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link to="/auth">Registar equipa</Link>
+          </Button>
         </div>
 
         <ul className="mt-10 grid gap-4 sm:grid-cols-3">
