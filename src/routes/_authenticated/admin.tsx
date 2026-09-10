@@ -124,6 +124,7 @@ function AdminPage() {
       description: team.team_name,
     });
     queryClient.invalidateQueries({ queryKey: ["all-teams"] });
+    queryClient.invalidateQueries({ queryKey: ["pending-teams-count"] });
   }
 
   async function confirmDelete() {
