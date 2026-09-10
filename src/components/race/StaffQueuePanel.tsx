@@ -784,7 +784,7 @@ function StaffQueueContent({
                 Karts que acabaram de entrar em PITIN. Classifica cada um numa fila.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="flex gap-2 overflow-x-auto pb-1">
               {kartsEspera.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem karts à espera de triagem.</p>
               ) : (
@@ -793,7 +793,7 @@ function StaffQueueContent({
                     kart && (
                       <div
                         key={kart.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                        className="flex shrink-0 flex-col gap-2 rounded-md border border-border px-3 py-2"
                       >
                         <KartChip
                           kart={kart}
@@ -845,7 +845,7 @@ function StaffQueueContent({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {snapshot.filas.map((fila) => (
               <QueueCard
                 key={fila.fila_id}
@@ -2395,8 +2395,8 @@ function QueueCard({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            O kart {karts[id]?.label ?? id} volta para a Fila de Espera/Triagem, sem
-                            ficar atribuído a nenhuma fila.
+                            O kart {karts[id]?.label ?? id} volta a EM_PISTA (não vai para a Fila de
+                            Espera) — o Live Timing continua a controlá-lo na realidade.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
