@@ -1819,7 +1819,7 @@ function DashboardPanel({
   onEditarKart: (kartId: string) => void;
 }) {
   const [sortColuna, setSortColuna] = useState<
-    "kart" | "equipa" | "media" | "ultima" | "voltas" | "empista" | "pits" | null
+    "posicao" | "kart" | "equipa" | "media" | "ultima" | "voltas" | "empista" | "pits" | null
   >(null);
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -1836,6 +1836,8 @@ function DashboardPanel({
     const kartId = eq.kart_atual_id;
     const kart = kartId ? snapshot.karts[kartId] : undefined;
     switch (coluna) {
+      case "posicao":
+        return eq.posicao ?? Infinity;
       case "kart":
         return kart?.label ?? "";
       case "equipa":
@@ -1952,6 +1954,13 @@ function DashboardPanel({
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
                   <SortHead
+                    label="Pos"
+                    coluna="posicao"
+                    sortColuna={sortColuna}
+                    sortAsc={sortAsc}
+                    onSort={handleSort}
+                  />
+                  <SortHead
                     label="Kart"
                     coluna="kart"
                     sortColuna={sortColuna}
@@ -2021,6 +2030,9 @@ function DashboardPanel({
                       onClick={() => kartId && onEditarKart(kartId)}
                     >
                       <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                      <TableCell className="font-mono text-muted-foreground">
+                        {eq.posicao ?? "—"}
+                      </TableCell>
                       <TableCell className="font-mono font-semibold">
                         <div className="flex items-center gap-1.5">
                           {kart?.label ?? "—"}

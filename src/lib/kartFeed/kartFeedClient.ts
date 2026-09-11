@@ -58,6 +58,7 @@ export interface EquipaDTO {
   numero_equipa: string;
   nome: string;
   kart_atual_id: string | null;
+  posicao: number | null;
   ultimo_tempo_seconds: number | null;
   ultima_categoria: PerformanceCategory;
   total_voltas: number;
