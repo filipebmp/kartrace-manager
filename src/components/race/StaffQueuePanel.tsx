@@ -923,8 +923,8 @@ function StaffQueueContent({
           <DemoPanel />
         </TabsContent>
 
-        <TabsContent value="config">
-          <ConfiguracoesPanel />
+         <TabsContent value="config">
+          <ConfiguracoesPanel snapshot={snapshot} ratings={ratings} />
         </TabsContent>
       </Tabs>
 
@@ -1383,7 +1383,13 @@ function formatarSegundosParaTempo(segundos: number): string {
   return `${minutos}:${resto}`;
 }
 
-function ConfiguracoesPanel() {
+function ConfiguracoesPanel({
+  snapshot,
+  ratings,
+}: {
+  snapshot: KartFeedSnapshot | null;
+  ratings: Record<string, KartRatingDTO> | null;
+}) {
   const { data: ratingConfig } = useRatingConfig();
   const setRatingTiers = useSetRatingTiers();
   const setBestNLaps = useSetRatingBestNLaps();
@@ -1395,6 +1401,9 @@ function ConfiguracoesPanel() {
   const [campos, setCampos] = useState<Record<number, { min: string; max: string }> | null>(null);
   const [bestN, setBestN] = useState("8");
   const [numeroFilas, setNumeroFilas] = useState("2");
+
+  const [passoDecimas, setPassoDecimas] = useState(0.3);
+  const pace = calcularPaceTop3(snapshot, ratings);
 
   if (ratingConfig && campos === null) {
     const iniciais: Record<number, { min: string; max: string }> = {};
@@ -1432,6 +1441,28 @@ function ConfiguracoesPanel() {
         description: e instanceof Error ? e.message : undefined,
       });
     }
+  }
+
+  function handleAtualizarComPace() {
+    if (pace === null) {
+      toast.error("Ainda não há pace disponível — precisa de pelo menos 1 kart com voltas.");
+      return;
+    }
+    const max5 = pace + passoDecimas;
+    const max4 = pace + 2 * passoDecimas;
+    const max3 = pace + 3 * passoDecimas;
+    const max2 = pace + 4 * passoDecimas;
+    setCampos({
+      5: { min: formatarSegundosParaTempo(0), max: formatarSegundosParaTempo(max5) },
+      4: { min: formatarSegundosParaTempo(max5 + 0.001), max: formatarSegundosParaTempo(max4) },
+      3: { min: formatarSegundosParaTempo(max4 + 0.001), max: formatarSegundosParaTempo(max3) },
+      2: { min: formatarSegundosParaTempo(max3 + 0.001), max: formatarSegundosParaTempo(max2) },
+      1: {
+        min: formatarSegundosParaTempo(max2 + 0.001),
+        max: campos?.[1]?.max ?? formatarSegundosParaTempo(999.999),
+      },
+    });
+    toast.success('Campos preenchidos a partir do pace atual — revê e clica em "Guardar tabela"');
   }
 
   async function handleGuardarBestN() {
@@ -1489,6 +1520,53 @@ function ConfiguracoesPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-end gap-3 rounded-md border border-dashed border-border p-3">
+            <div>
+              <label className="text-xs uppercase text-muted-foreground">Pace atual (top 3)</label>
+              <div className="font-mono text-lg font-bold">
+                {pace !== null ? formatLapTime(pace) : "—"}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs uppercase text-muted-foreground">Intervalo (s)</label>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  onClick={() =>
+                    setPassoDecimas((p) => Math.max(0.1, Math.round((p - 0.1) * 10) / 10))
+                  }
+                  aria-label="Diminuir intervalo"
+                >
+                  <Minus className="size-3.5" />
+                </Button>
+                <span className="w-10 text-center font-mono text-sm">
+                  {passoDecimas.toFixed(1)}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setPassoDecimas((p) => Math.round((p + 0.1) * 10) / 10)}
+                  aria-label="Aumentar intervalo"
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAtualizarComPace}
+              disabled={pace === null}
+            >
+              <Wand2 className="size-3.5" /> Atualizar a partir do Pace
+            </Button>
+          </div>
+
           {campos === null ? (
             <p className="text-sm text-muted-foreground">A carregar...</p>
           ) : (
@@ -1739,6 +1817,21 @@ function DemoPanel() {
     </Card>
   );
 }
+
+function calcularPaceTop3(
+  snapshot: KartFeedSnapshot | null,
+  ratings: Record<string, KartRatingDTO> | null,
+): number | null {
+  if (!snapshot) return null;
+  const medias = Object.values(snapshot.karts)
+    .map((k) => ratings?.[k.id]?.media_melhores_voltas_seconds ?? null)
+    .filter((m): m is number => m !== null)
+    .sort((a, b) => a - b)
+    .slice(0, 3);
+  if (medias.length === 0) return null;
+  return medias.reduce((soma, m) => soma + m, 0) / medias.length;
+}
+
 
 function formatLapTime(seconds: number | null): string {
   if (seconds === null) return "—";
@@ -2041,12 +2134,7 @@ function DashboardPanel({
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono">
-                        {eq.numero_equipa}
-                        {eq.nome ? (
-                          <span className="ml-1 text-muted-foreground">{eq.nome}</span>
-                        ) : null}
-                      </TableCell>
+                      <TableCell className="font-mono">{eq.nome || eq.numero_equipa}</TableCell>
                       <TableCell
                         className="text-right font-mono"
                         style={grade ? { color: GRADE_COLORS[grade]?.hex } : undefined}
