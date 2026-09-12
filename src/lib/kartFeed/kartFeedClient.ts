@@ -772,3 +772,22 @@ export function useResetSessionData() {
     [],
   );
 }
+
+
+export interface MapeamentoColunasDTO {
+  detetado: Record<string, string>;
+  manual: Record<string, string>;
+  efetivo: Record<string, string>;
+}
+
+export function useMapeamentoColunas(enabled = true) {
+  return usePolledEndpoint<MapeamentoColunasDTO>("/admin/mapeamento_colunas", 5000, enabled);
+}
+
+export function useSetMapeamentoColunas() {
+  return useCallback(
+    (mapeamento: Record<string, string | null>) =>
+      postJsonWithResponse<MapeamentoColunasDTO>("/admin/mapeamento_colunas", { mapeamento }),
+    [],
+  );
+}
