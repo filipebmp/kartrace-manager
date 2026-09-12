@@ -2406,6 +2406,32 @@ function QueueCard({
 
   const vazios = fila.capacidade !== null ? Math.max(0, fila.capacidade - fila.kart_ids.length) : 0;
 
+  const jaGraduouRef = useRef(false);
+  if (fila.capacidade !== null && fila.capacidade > 0 && fila.kart_ids.length >= fila.capacidade) {
+    jaGraduouRef.current = true;
+  }
+  const graduada = jaGraduouRef.current;
+
+  const blocoSlots = (
+    <>
+      {Array.from({ length: vazios }).map((_, i) => (
+        <div
+          key={`vazio-${i}`}
+          data-drop-fila={fila.fila_id}
+          data-drop-index={kartIdsParaMostrar.length + i}
+          className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
+            dropTarget?.filaId === fila.fila_id &&
+            dropTarget.index === kartIdsParaMostrar.length + i
+              ? "border-primary bg-primary/10"
+              : "border-border"
+          }`}
+        >
+          <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
+        </div>
+      ))}
+    </>
+  );
+
   return (
     <div className="flex min-w-[150px] max-w-[260px] flex-1 flex-col overflow-hidden rounded-lg border border-border sm:min-w-[220px]">
       <div
@@ -2453,26 +2479,11 @@ function QueueCard({
             : ""
         }`}
       >
-        <div className="flex items-center justify-center gap-1 pb-0.5 text-[11px] font-semibold uppercase text-emerald-500">
+		<div className="flex items-center justify-center gap-1 pb-0.5 text-[11px] font-semibold uppercase text-emerald-500">
           <ChevronUp className="size-3" /> Saída
         </div>
 
-        {Array.from({ length: vazios }).map((_, i) => (
-          <div
-            key={`vazio-${i}`}
-            data-drop-fila={fila.fila_id}
-            data-drop-index={kartIdsParaMostrar.length + i}
-            className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
-              dropTarget?.filaId === fila.fila_id &&
-              dropTarget.index === kartIdsParaMostrar.length + i
-                ? "border-primary bg-primary/10"
-                : "border-border"
-            }`}
-          >
-            <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
-          </div>
-        ))}
-
+        {!graduada && blocoSlots}
         {fila.kart_ids.length === 0 && vazios === 0 && kartIdsParaMostrar.length === 0 ? (
           <p className="pointer-events-none px-1 py-3 text-center text-xs text-muted-foreground">
             Fila vazia — arrasta um kart para aqui (pega no ⠿)
@@ -2602,10 +2613,11 @@ function QueueCard({
            })
         )}
 
+        {graduada && blocoSlots}
+
         <div className="flex items-center justify-center gap-1 pt-0.5 text-[11px] font-semibold uppercase text-red-500">
           <ChevronUp className="size-3" /> Entrada
         </div>
-
         <div className="pt-1">
           <Button
             size="sm"
