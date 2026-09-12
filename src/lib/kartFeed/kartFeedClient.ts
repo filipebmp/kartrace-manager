@@ -74,6 +74,11 @@ export interface FilaDTO {
   kart_ids: string[];
   tamanho: number;
   capacidade: number | null; // null = sem limite (∞)
+  // Sequência visual (Saída→Entrada) com `null` nos buracos deixados por
+  // "Rating Desconhecido" — os restantes karts NÃO avançam para tapar o
+  // buraco. Não inclui a capacidade ainda por preencher (essa continua a
+  // ser `capacidade - slots_visuais.length`, tal como sempre foi).
+  slots_visuais: (string | null)[];
 }
 
 export interface KartRatingDTO {

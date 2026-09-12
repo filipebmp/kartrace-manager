@@ -452,7 +452,7 @@ function StaffQueueContent({
       // certo, não para "uma posição a mais".
       if (novoAlvo && novoAlvo.filaId === filaOrigemId) {
         const filaAtual = snapshot?.filas.find((f) => f.fila_id === filaOrigemId);
-        const indiceAtual = filaAtual?.kart_ids.indexOf(kartId) ?? -1;
+        const indiceAtual = filaAtual?.slots_visuais.indexOf(kartId) ?? -1;
         if (indiceAtual !== -1 && novoAlvo.index > indiceAtual) {
           novoAlvo = { ...novoAlvo, index: novoAlvo.index - 1 };
         }
@@ -2408,10 +2408,13 @@ function QueueCard({
   // dentro desta fila, mostra logo "o espaço a abrir-se" na posição onde
   // vai cair — tal como o Pit Helper faz. Só se aplica à fila que está
   // mesmo a ser sobrevoada agora; as outras mostram a lista tal como está.
-  const kartIdsParaMostrar =
+  // Trabalha sobre `slots_visuais` (karts reais + buracos explícitos do
+  // "Rating Desconhecido", nas posições exatas onde ficaram) — não sobre
+  // `kart_ids`, que já não reflete sozinho a ordem visual.
+  const slotsParaMostrar: (string | null)[] =
     dragInfo && dropTarget?.filaId === fila.fila_id
       ? (() => {
-          const semArrastado = fila.kart_ids.filter((id) => id !== dragInfo.kartId);
+          const semArrastado = fila.slots_visuais.filter((id) => id !== dragInfo.kartId);
           const posicao = Math.min(dropTarget.index, semArrastado.length);
           return [
             ...semArrastado.slice(0, posicao),
@@ -2419,7 +2422,7 @@ function QueueCard({
             ...semArrastado.slice(posicao),
           ];
         })()
-      : fila.kart_ids;
+      : fila.slots_visuais;
 
   function handleAdicionar() {
     const id = novoKartId.trim();
@@ -2437,8 +2440,9 @@ function QueueCard({
     let novo: number;
     if (atual === null) {
       // Parte do "sem limite": "+" abre 1 slot extra a partir do que já
-      // está ocupado; "-" fixa exatamente na ocupação atual.
-      novo = delta > 0 ? fila.kart_ids.length + 1 : fila.kart_ids.length;
+      // está ocupado; "-" fixa exatamente na ocupação atual (incluindo
+      // buracos, que também contam como "lugar usado").
+      novo = delta > 0 ? fila.slots_visuais.length + 1 : fila.slots_visuais.length;
     } else {
       novo = atual + delta;
     }
@@ -2446,24 +2450,42 @@ function QueueCard({
     onDefinirCapacidade(fila.fila_id, novo);
   }
 
-  const vazios = fila.capacidade !== null ? Math.max(0, fila.capacidade - fila.kart_ids.length) : 0;
+  // Capacidade ainda nunca tocada (nem sequer chegou a ter um buraco) —
+  // isto continua à parte de `slots_visuais`, tal como sempre foi.
+  const capacidadeExtra =
+    fila.capacidade !== null ? Math.max(0, fila.capacidade - fila.slots_visuais.length) : 0;
 
+  // "Graduada": esta fila já esteve completamente cheia de karts REAIS
+  // pelo menos uma vez (nunca volta atrás). Enquanto não graduou, os
+  // slots vazios ("desconhecidos" — karts ainda sem rating, à espera de
+  // serem identificados) ficam do lado da SAÍDA e os karts reais
+  // encostam à ENTRADA (um kart novo aparece em baixo e "sobe" à medida
+  // que mais karts reais chegam). Depois de graduar, a fila passa a
+  // comportar-se como uma fila normal: karts encostados à SAÍDA (mantêm
+  // a ordem de chegada) e a capacidade ainda por tocar aparece do lado
+  // da ENTRADA. Um buraco aberto por "Rating Desconhecido" é outra coisa
+  // — já vem posicionado exatamente no lugar certo em `slots_visuais`,
+  // sem os restantes karts avançarem (pedido do utilizador ao testar ao
+  // vivo, 2026-09-12).
   const jaGraduouRef = useRef(false);
-  if (fila.capacidade !== null && fila.capacidade > 0 && fila.kart_ids.length >= fila.capacidade) {
+  if (
+    fila.capacidade !== null &&
+    fila.capacidade > 0 &&
+    fila.slots_visuais.length >= fila.capacidade
+  ) {
     jaGraduouRef.current = true;
   }
   const graduada = jaGraduouRef.current;
 
-  const blocoSlots = (
+  const blocoCapacidadeExtra = (
     <>
-      {Array.from({ length: vazios }).map((_, i) => (
+      {Array.from({ length: capacidadeExtra }).map((_, i) => (
         <div
-          key={`vazio-${i}`}
+          key={`extra-${i}`}
           data-drop-fila={fila.fila_id}
-          data-drop-index={kartIdsParaMostrar.length + i}
+          data-drop-index={slotsParaMostrar.length + i}
           className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
-            dropTarget?.filaId === fila.fila_id &&
-            dropTarget.index === kartIdsParaMostrar.length + i
+            dropTarget?.filaId === fila.fila_id && dropTarget.index === slotsParaMostrar.length + i
               ? "border-primary bg-primary/10"
               : "border-border"
           }`}
@@ -2472,6 +2494,13 @@ function QueueCard({
         </div>
       ))}
     </>
+  );
+
+  // Numeração (1º, 2º...) conta só karts reais, ignorando buracos — um
+  // buraco no meio da fila não desloca o número de ninguém.
+  let _contadorReal = 0;
+  const posicoesReais: (number | null)[] = slotsParaMostrar.map((id) =>
+    id === null ? null : _contadorReal++,
   );
 
   return (
@@ -2514,24 +2543,54 @@ function QueueCard({
 
       <div
         data-drop-fila={fila.fila_id}
-        data-drop-index={kartIdsParaMostrar.length}
+        data-drop-index={slotsParaMostrar.length}
         className={`flex-1 space-y-1.5 bg-card p-2 ${
-          dropTarget?.filaId === fila.fila_id && dropTarget.index >= kartIdsParaMostrar.length
+          dropTarget?.filaId === fila.fila_id && dropTarget.index >= slotsParaMostrar.length
             ? "bg-primary/10"
             : ""
         }`}
       >
-		<div className="flex items-center justify-center gap-1 pb-0.5 text-[11px] font-semibold uppercase text-emerald-500">
+        <div className="flex items-center justify-center gap-1 pb-0.5 text-[11px] font-semibold uppercase text-emerald-500">
           <ChevronUp className="size-3" /> Saída
         </div>
 
-        {!graduada && blocoSlots}
-        {fila.kart_ids.length === 0 && vazios === 0 && kartIdsParaMostrar.length === 0 ? (
+        {/* Antes de graduar: capacidade por tocar do lado da SAÍDA, karts
+            reais encostados à ENTRADA (sobem à medida que mais chegam).
+            Depois de graduar (já esteve 100% cheia de karts reais): karts
+            encostados à SAÍDA, capacidade por tocar aparece do lado da
+            ENTRADA — ver jaGraduouRef acima. Buracos de "Rating
+            Desconhecido" vêm à parte, já na posição certa dentro de
+            slotsParaMostrar. */}
+        {!graduada && blocoCapacidadeExtra}
+
+        {fila.slots_visuais.length === 0 &&
+        capacidadeExtra === 0 &&
+        slotsParaMostrar.length === 0 ? (
           <p className="pointer-events-none px-1 py-3 text-center text-xs text-muted-foreground">
             Fila vazia — arrasta um kart para aqui (pega no ⠿)
           </p>
         ) : (
-          kartIdsParaMostrar.map((id, i) => {
+          slotsParaMostrar.map((id, i) => {
+            if (id === null) {
+              // Buraco explícito ("Rating Desconhecido") — fica exatamente
+              // aqui, os outros karts não avançam para o tapar.
+              return (
+                <div
+                  key={`buraco-${i}`}
+                  data-drop-fila={fila.fila_id}
+                  data-drop-index={i}
+                  className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
+                    dropTarget?.filaId === fila.fila_id && dropTarget.index === i
+                      ? "border-primary bg-primary/10"
+                      : "border-border"
+                  }`}
+                >
+                  <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
+                </div>
+              );
+            }
+
+            const posicaoReal = posicoesReais[i]!;
             const ehFantasma = dragInfo?.kartId === id && dropTarget?.filaId === fila.fila_id;
 
             if (ehFantasma) {
@@ -2585,7 +2644,7 @@ function QueueCard({
                     >
                       <GripVertical className="size-4" />
                     </button>
-                    <span className="text-xs text-muted-foreground">{i + 1}º</span>
+                    <span className="text-xs text-muted-foreground">{posicaoReal + 1}º</span>
                     <GradeBadge
                       grade={ratings?.[id]?.grade}
                       manual={karts[id]?.rating_manual != null}
@@ -2652,14 +2711,15 @@ function QueueCard({
                 </div>
               </div>
             );
-           })
+          })
         )}
 
-        {graduada && blocoSlots}
+        {graduada && blocoCapacidadeExtra}
 
         <div className="flex items-center justify-center gap-1 pt-0.5 text-[11px] font-semibold uppercase text-red-500">
           <ChevronUp className="size-3" /> Entrada
         </div>
+
         <div className="pt-1">
           <Button
             size="sm"
