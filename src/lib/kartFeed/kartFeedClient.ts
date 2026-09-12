@@ -26,6 +26,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // --- Tipos espelhados do contrato definido em ws_events.py -----------------
 
@@ -138,6 +139,29 @@ export function backendHttpUrl(): string | null {
   return v && v.trim().length > 0 ? v.replace(/\/$/, "") : null;
 }
 
+let currentRaceId: string | null = null;
+
+let resolveRaceIdReady: () => void;
+const raceIdReady: Promise<void> = new Promise((resolve) => {
+  resolveRaceIdReady = resolve;
+});
+
+void supabase.auth.getUser().then(({ data }) => {
+  currentRaceId = data.user?.id ?? null;
+  resolveRaceIdReady();
+});
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+    currentRaceId = session?.user?.id ?? null;
+  }
+});
+
+function comRaceId(url: string): string {
+  if (!currentRaceId) return url;
+  const separador = url.includes("?") ? "&" : "?";
+  return `${url}${separador}race_id=${encodeURIComponent(currentRaceId)}`;
+}
+
 // --- Hook principal: liga ao WS, mantém snapshot atualizado -------------
 
 export type KartFeedStatus = "disabled" | "connecting" | "online" | "offline";
@@ -161,7 +185,7 @@ export function useKartFeed() {
     function connect() {
       if (cancelled) return;
       setStatus("connecting");
-      const ws = new WebSocket(url!);
+      const ws = new WebSocket(comRaceId(url!));
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -213,7 +237,7 @@ export function useKartFeed() {
       };
     }
 
-    connect();
+    void raceIdReady.then(connect);
 
     return () => {
       cancelled = true;
@@ -352,7 +376,7 @@ function applyIncrementalEvent(
 async function postJson(path: string, body: unknown): Promise<void> {
   const base = backendHttpUrl();
   if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
-  const res = await fetch(`${base}${path}`, {
+  const res = await fetch(comRaceId(`${base}${path}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -366,7 +390,7 @@ async function postJson(path: string, body: unknown): Promise<void> {
 async function postJsonWithResponse<T>(path: string, body: unknown): Promise<T> {
   const base = backendHttpUrl();
   if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
-  const res = await fetch(`${base}${path}`, {
+  const res = await fetch(comRaceId(`${base}${path}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -381,7 +405,7 @@ async function postJsonWithResponse<T>(path: string, body: unknown): Promise<T> 
 async function deleteRequest(path: string): Promise<void> {
   const base = backendHttpUrl();
   if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
-  const res = await fetch(`${base}${path}`, { method: "DELETE" });
+  const res = await fetch(comRaceId(`${base}${path}`), { method: "DELETE" });
   if (!res.ok) {
     const detail = await res.text().catch(() => res.statusText);
     throw new Error(detail || `Falha ao chamar ${path}`);
@@ -466,7 +490,7 @@ export function useKartFeedActions() {
     ): Promise<AdicionarAFilaResultado> => {
       const base = backendHttpUrl();
       if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
-      const res = await fetch(`${base}/staff/adicionar_a_fila_manual`, {
+      const res = await fetch(comRaceId(`${base}/staff/adicionar_a_fila_manual`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -534,7 +558,7 @@ export function useKartFeedActions() {
 async function getJson<T>(path: string): Promise<T> {
   const base = backendHttpUrl();
   if (!base) throw new Error("VITE_KART_BACKEND_HTTP_URL não configurado.");
-  const res = await fetch(`${base}${path}`);
+  const res = await fetch(comRaceId(`${base}${path}`));
   if (!res.ok) {
     const detail = await res.text().catch(() => res.statusText);
     throw new Error(detail || `Falha ao chamar ${path}`);
