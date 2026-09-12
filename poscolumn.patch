@@ -1,0 +1,86 @@
+From ac1a59256fd04ad593a6f490654e7a15c1bde86b Mon Sep 17 00:00:00 2001
+From: filipebmp <filipebmp@gmail.com>
+Date: Fri, 11 Sep 2026 19:12:59 +0000
+Subject: [PATCH] =?UTF-8?q?Dashboard:=20coluna=20Pos=20(orden=C3=A1vel)=20?=
+ =?UTF-8?q?antes=20do=20Kart;=20label=20do=20kart=20sem=20prefixo?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Nova coluna "Pos" (posição em pista, coluna Cla do Apex) antes da
+  coluna "Kart", ordenável como as outras.
+- EquipaDTO ganha o campo posicao (number | null).
+- Removido o prefixo "Kart " do label dos karts reais identificados
+  pelo backend (agora só o número, ex. "38" em vez de "Kart 38") —
+  afeta todo o lado onde kart.label é mostrado (Melhor Kart, cartões de
+  fila, dashboard, etc.), sem precisar de mais nenhuma alteração aqui.
+
+Validado com tsc --noEmit, npm run build e eslint, todos limpos.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+---
+ src/components/race/StaffQueuePanel.tsx | 14 +++++++++++++-
+ src/lib/kartFeed/kartFeedClient.ts      |  1 +
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/src/components/race/StaffQueuePanel.tsx b/src/components/race/StaffQueuePanel.tsx
+index 65fafff..ebcce4f 100644
+--- a/src/components/race/StaffQueuePanel.tsx
++++ b/src/components/race/StaffQueuePanel.tsx
+@@ -1819,7 +1819,7 @@ function DashboardPanel({
+   onEditarKart: (kartId: string) => void;
+ }) {
+   const [sortColuna, setSortColuna] = useState<
+-    "kart" | "equipa" | "media" | "ultima" | "voltas" | "empista" | "pits" | null
++    "posicao" | "kart" | "equipa" | "media" | "ultima" | "voltas" | "empista" | "pits" | null
+   >(null);
+   const [sortAsc, setSortAsc] = useState(true);
+ 
+@@ -1836,6 +1836,8 @@ function DashboardPanel({
+     const kartId = eq.kart_atual_id;
+     const kart = kartId ? snapshot.karts[kartId] : undefined;
+     switch (coluna) {
++      case "posicao":
++        return eq.posicao ?? Infinity; // sem posição conhecida -> fica sempre no fim
+       case "kart":
+         return kart?.label ?? "";
+       case "equipa":
+@@ -1951,6 +1953,13 @@ function DashboardPanel({
+               <TableHeader>
+                 <TableRow>
+                   <TableHead className="w-10">#</TableHead>
++                  <SortHead
++                    label="Pos"
++                    coluna="posicao"
++                    sortColuna={sortColuna}
++                    sortAsc={sortAsc}
++                    onSort={handleSort}
++                  />
+                   <SortHead
+                     label="Kart"
+                     coluna="kart"
+@@ -2021,6 +2030,9 @@ function DashboardPanel({
+                       onClick={() => kartId && onEditarKart(kartId)}
+                     >
+                       <TableCell className="text-muted-foreground">{i + 1}</TableCell>
++                      <TableCell className="font-mono text-muted-foreground">
++                        {eq.posicao ?? "—"}
++                      </TableCell>
+                       <TableCell className="font-mono font-semibold">
+                         <div className="flex items-center gap-1.5">
+                           {kart?.label ?? "—"}
+diff --git a/src/lib/kartFeed/kartFeedClient.ts b/src/lib/kartFeed/kartFeedClient.ts
+index 8c47b76..b2b383a 100644
+--- a/src/lib/kartFeed/kartFeedClient.ts
++++ b/src/lib/kartFeed/kartFeedClient.ts
+@@ -58,6 +58,7 @@ export interface EquipaDTO {
+   numero_equipa: string;
+   nome: string;
+   kart_atual_id: string | null;
++  posicao: number | null; // posição/classificação em pista (coluna "Cla" do Apex), null = desconhecida
+   ultimo_tempo_seconds: number | null;
+   ultima_categoria: PerformanceCategory;
+   total_voltas: number;
+-- 
+2.53.0
+

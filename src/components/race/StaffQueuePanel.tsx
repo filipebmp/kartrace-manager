@@ -71,6 +71,8 @@ import {
   useBoxConfig,
   useSetNumeroFilasPadrao,
   useAplicarNumeroFilasPadrao,
+  useMapeamentoColunas,
+  useSetMapeamentoColunas,
   type KartDTO,
   type KartRatingDTO,
   type EquipaDTO,
@@ -663,7 +665,7 @@ function StaffQueueContent({
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-500">
         <Radio className="size-3.5 animate-pulse" />
-        Live Timing ligado — {karts.length} karts monitorizados
+        Live Timing ligado
       </div>
 
       <Card>
@@ -912,7 +914,6 @@ function StaffQueueContent({
             ratings={ratings}
             onEditarKart={(kartId) => setKartDetalheId(kartId)}
           />
-          <ForecastPanel />
         </TabsContent>
 
         <TabsContent value="classificar">
@@ -1675,7 +1676,88 @@ function ConfiguracoesPanel({
           </AlertDialog>
         </CardContent>
       </Card>
+
+      <MapeamentoColunasPanel />
     </div>
+  );
+}
+
+const CAMPOS_MAPEAVEIS: { tipo: string; label: string }[] = [
+  { tipo: "no", label: "Kart" },
+  { tipo: "dr", label: "Equipa" },
+  { tipo: "rk", label: "Posição" },
+  { tipo: "llp", label: "Última Volta" },
+];
+
+const COLUNAS_DISPONIVEIS = Array.from({ length: 16 }, (_, i) => String(i + 1));
+
+function MapeamentoColunasPanel() {
+  const { data } = useMapeamentoColunas();
+  const setMapeamento = useSetMapeamentoColunas();
+  const [valores, setValores] = useState<Record<string, string> | null>(null);
+
+  if (data && valores === null) {
+    const iniciais: Record<string, string> = {};
+    for (const { tipo } of CAMPOS_MAPEAVEIS) {
+      iniciais[tipo] = data.manual[tipo] ?? "";
+    }
+    setValores(iniciais);
+  }
+
+  async function handleGuardar() {
+    if (!valores) return;
+    try {
+      await setMapeamento(valores);
+      toast.success("Mapeamento de colunas atualizado");
+    } catch (e) {
+      toast.error("Não foi possível guardar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>III. Mapeamento de Colunas (avançado)</CardTitle>
+        <CardDescription>
+          Cada pista do Apex Timing usa uma ordem de colunas diferente — o sistema deteta isto
+          sozinho. Só mexas aqui se reparares que o Kart, a Equipa, a Posição ou a Última Volta
+          estão errados nesta pista; "Automático" mostra entre parêntesis a coluna que foi
+          detetada.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {data === null || valores === null ? (
+          <p className="text-sm text-muted-foreground">A carregar...</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {CAMPOS_MAPEAVEIS.map(({ tipo, label }) => (
+                <div key={tipo}>
+                  <label className="text-xs uppercase text-muted-foreground">{label}</label>
+                  <select
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                    value={valores[tipo] ?? ""}
+                    onChange={(e) => setValores((prev) => ({ ...(prev ?? {}), [tipo]: e.target.value }))}
+                  >
+                    <option value="">
+                      Automático{data.detetado[tipo] ? ` (c${data.detetado[tipo]})` : ""}
+                    </option>
+                    {COLUNAS_DISPONIVEIS.map((n) => (
+                      <option key={n} value={n}>
+                        c{n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <Button onClick={handleGuardar}>Guardar mapeamento</Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -2375,6 +2457,22 @@ function QueueCard({
           <ChevronUp className="size-3" /> Saída
         </div>
 
+        {Array.from({ length: vazios }).map((_, i) => (
+          <div
+            key={`vazio-${i}`}
+            data-drop-fila={fila.fila_id}
+            data-drop-index={kartIdsParaMostrar.length + i}
+            className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
+              dropTarget?.filaId === fila.fila_id &&
+              dropTarget.index === kartIdsParaMostrar.length + i
+                ? "border-primary bg-primary/10"
+                : "border-border"
+            }`}
+          >
+            <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
+          </div>
+        ))}
+
         {fila.kart_ids.length === 0 && vazios === 0 && kartIdsParaMostrar.length === 0 ? (
           <p className="pointer-events-none px-1 py-3 text-center text-xs text-muted-foreground">
             Fila vazia — arrasta um kart para aqui (pega no ⠿)
@@ -2501,24 +2599,8 @@ function QueueCard({
                 </div>
               </div>
             );
-          })
+           })
         )}
-
-        {Array.from({ length: vazios }).map((_, i) => (
-          <div
-            key={`vazio-${i}`}
-            data-drop-fila={fila.fila_id}
-            data-drop-index={kartIdsParaMostrar.length + i}
-            className={`flex items-center justify-center rounded-md border border-dashed p-2 py-3 ${
-              dropTarget?.filaId === fila.fila_id &&
-              dropTarget.index === kartIdsParaMostrar.length + i
-                ? "border-primary bg-primary/10"
-                : "border-border"
-            }`}
-          >
-            <span className="pointer-events-none size-2 rounded-full border border-muted-foreground" />
-          </div>
-        ))}
 
         <div className="flex items-center justify-center gap-1 pt-0.5 text-[11px] font-semibold uppercase text-red-500">
           <ChevronUp className="size-3" /> Entrada
