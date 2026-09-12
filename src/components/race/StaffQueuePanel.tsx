@@ -931,11 +931,13 @@ function StaffQueueContent({
 
       <KartEditDialog
         kart={kartEditando}
+        filas={snapshot.filas}
         onClose={() => setKartEmEdicao(null)}
         onRenomear={renomearKart}
         onDefinirRatingManual={definirRatingManual}
         onRemover={removerKart}
         onMarcarForaDeServico={marcarForaDeServico}
+        onRetirarDaFila={handleRetirarDaFila}
       />
 
       <KartDetailDialog
@@ -1192,20 +1194,25 @@ function KartDetailDialog({
 
 function KartEditDialog({
   kart,
+  filas,
   onClose,
   onRenomear,
   onDefinirRatingManual,
   onRemover,
   onMarcarForaDeServico,
+  onRetirarDaFila,
 }: {
   kart: KartDTO | null;
+  filas: FilaDTO[];
   onClose: () => void;
   onRenomear: (kartId: string, label: string) => Promise<void>;
   onDefinirRatingManual: (kartId: string, grade: number | null) => Promise<void>;
   onRemover: (kartId: string) => Promise<void>;
   onMarcarForaDeServico: (kartId: string, motivo: string) => Promise<void>;
+  onRetirarDaFila: (kartId: string) => Promise<void>;
 }) {
   const [novoLabel, setNovoLabel] = useState("");
+  const estaNumaFila = kart ? filas.some((f) => f.kart_ids.includes(kart.id)) : false;
 
   async function handleGuardarNome() {
     if (!kart) return;
@@ -1259,6 +1266,12 @@ function KartEditDialog({
     }
   }
 
+  async function handleRatingDesconhecido() {
+    if (!kart) return;
+    await onRetirarDaFila(kart.id);
+    onClose();
+  }
+
   return (
     <Dialog
       open={kart !== null}
@@ -1273,7 +1286,8 @@ function KartEditDialog({
             <DialogHeader>
               <DialogTitle>Editar kart {kart.id}</DialogTitle>
               <DialogDescription>
-                Renomear, ajustar o rating manualmente, enviar para a oficina, ou remover.
+                Renomear, ajustar o rating manualmente, enviar para a oficina, marcar rating
+                desconhecido, ou remover.
               </DialogDescription>
             </DialogHeader>
 
@@ -1330,9 +1344,37 @@ function KartEditDialog({
                         nenhuma equipa até seres tu a reintegrá-lo.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                                        <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction onClick={handleOficina}>Enviar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : null}
+
+              {estaNumaFila ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <RotateCcw className="size-3.5" /> Rating Desconhecido
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Marcar kart {kart.label} como Rating Desconhecido?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        O kart sai já da fila onde está e volta a ser monitorizado em pista — os
+                        restantes ajustam-se automaticamente e fica um espaço vazio (bolinha) na
+                        fila, em vez dele.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleRatingDesconhecido}>
+                        Marcar Rating Desconhecido
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
