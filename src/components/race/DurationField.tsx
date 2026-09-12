@@ -28,9 +28,7 @@ export function DurationField({
 
   return (
     <div>
-      <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </Label>
+      <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</Label>
       <div className="flex items-center gap-1">
         <div className="flex-1">
           <Input

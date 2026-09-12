@@ -42,7 +42,9 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setReady(true);
     });
     // Fallback: a recovery session may already be active
@@ -117,7 +119,8 @@ function ResetPasswordPage() {
           <CardHeader>
             <CardTitle>Ligação inválida ou expirada</CardTitle>
             <CardDescription>
-              Esta ligação de recuperação já não é válida. Pede uma nova a partir da página de entrada.
+              Esta ligação de recuperação já não é válida. Pede uma nova a partir da página de
+              entrada.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -135,7 +138,9 @@ function ResetPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Definir nova palavra-passe</CardTitle>
-          <CardDescription>Escolhe uma nova palavra-passe para a conta da tua equipa.</CardDescription>
+          <CardDescription>
+            Escolhe uma nova palavra-passe para a conta da tua equipa.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleUpdate}>
@@ -195,8 +200,8 @@ function ResetPasswordPage() {
               Guardar nova palavra-passe
             </Button>
             <p className="text-xs text-muted-foreground">
-              Depois de mudares a palavra-passe, o acesso ao dashboard mantém-se dependente da aprovação do
-              administrador.
+              Depois de mudares a palavra-passe, o acesso ao dashboard mantém-se dependente da
+              aprovação do administrador.
             </p>
           </form>
         </CardContent>

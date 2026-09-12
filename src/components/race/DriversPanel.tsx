@@ -44,9 +44,7 @@ export function DriversPanel() {
         </p>
         <div className="flex items-end gap-2">
           <div className="flex-1">
-            <Label className="text-[10px] uppercase text-muted-foreground">
-              Número de pilotos
-            </Label>
+            <Label className="text-[10px] uppercase text-muted-foreground">Número de pilotos</Label>
             <Input
               type="number"
               min={0}
@@ -125,7 +123,9 @@ export function DriversPanel() {
 
       <div className="space-y-2">
         {state.drivers.map((d) => {
-          const need = d.isPit ? 0 : Math.max(0, Math.ceil(state.config.minDriverWeight - d.weight));
+          const need = d.isPit
+            ? 0
+            : Math.max(0, Math.ceil(state.config.minDriverWeight - d.weight));
           return (
             <div key={d.id} className="panel p-3">
               <div className="flex items-end gap-2">
@@ -172,7 +172,6 @@ export function DriversPanel() {
         })}
       </div>
 
-
       <Button variant="secondary" className="w-full" onClick={addDriver} disabled={racing}>
         <Plus className="size-4" /> Adicionar piloto
       </Button>
@@ -197,9 +196,9 @@ export function DriversPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Criar pilotos?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação substitui todos os pilotos atuais por {driverCount} piloto(s) com {driverWeight}{" "}
-              kg. O plano e a corrida em curso não são afetados, mas os nomes e códigos existentes
-              serão perdidos.
+              Esta ação substitui todos os pilotos atuais por {driverCount} piloto(s) com{" "}
+              {driverWeight} kg. O plano e a corrida em curso não são afetados, mas os nomes e
+              códigos existentes serão perdidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

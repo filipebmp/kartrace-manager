@@ -30,7 +30,9 @@ export function TeamHeader({
       lastNotified.current = pendingCount;
       if (pendingCount > 0) {
         toast.warning(
-          pendingCount === 1 ? "1 pedido de registo por aprovar" : `${pendingCount} pedidos de registo por aprovar`,
+          pendingCount === 1
+            ? "1 pedido de registo por aprovar"
+            : `${pendingCount} pedidos de registo por aprovar`,
           { description: "Abre a área de administração para aprovar ou recusar." },
         );
       }

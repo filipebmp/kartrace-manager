@@ -16,7 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { markSessionActivity, setKeepSignedIn } from "@/lib/session-guard";
 
 const title = "Entrar — Team Manager 24H Karting";
-const description = "Área reservada das equipas: entra ou regista a tua equipa para aceder ao plano de corrida.";
+const description =
+  "Área reservada das equipas: entra ou regista a tua equipa para aceder ao plano de corrida.";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -31,7 +32,6 @@ export const Route = createFileRoute("/auth")({
   }),
   component: AuthPage,
 });
-
 
 const signUpSchema = z.object({
   teamName: z.string().trim().min(2, "Indica o nome da equipa").max(60),
@@ -130,7 +130,9 @@ function AuthPage() {
       return;
     }
     if (blockedFor > 0) {
-      toast.error("Demasiados pedidos", { description: `Tenta novamente em ${formatWait(blockedFor)}.` });
+      toast.error("Demasiados pedidos", {
+        description: `Tenta novamente em ${formatWait(blockedFor)}.`,
+      });
       return;
     }
     setBusy(true);
@@ -153,7 +155,8 @@ function AuthPage() {
       return;
     }
     toast.success("Email enviado", {
-      description: "Se a conta existir, vais receber uma ligação para definires uma nova palavra-passe.",
+      description:
+        "Se a conta existir, vais receber uma ligação para definires uma nova palavra-passe.",
     });
     setForgot(false);
   }
@@ -202,14 +205,14 @@ function AuthPage() {
   }
 
   if (forgot) {
-
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Recuperar palavra-passe</CardTitle>
             <CardDescription>
-              Indica o email da tua equipa. Enviamos uma ligação segura para definires uma nova palavra-passe.
+              Indica o email da tua equipa. Enviamos uma ligação segura para definires uma nova
+              palavra-passe.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -226,7 +229,12 @@ function AuthPage() {
               <p className="text-xs text-muted-foreground">
                 Por segurança, são permitidos até 5 pedidos por hora para o mesmo email.
               </p>
-              <Button type="button" variant="ghost" className="w-full" onClick={() => setForgot(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setForgot(false)}
+              >
                 Voltar ao login
               </Button>
             </form>
@@ -243,15 +251,21 @@ function AuthPage() {
           <CardHeader>
             <CardTitle>Confirma o teu email</CardTitle>
             <CardDescription>
-              Enviámos uma mensagem para <strong>{pendingEmail}</strong>. Clica na ligação para confirmares o
-              endereço e depois entra na tua conta.
+              Enviámos uma mensagem para <strong>{pendingEmail}</strong>. Clica na ligação para
+              confirmares o endereço e depois entra na tua conta.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Depois da confirmação, o acesso ao dashboard só fica ativo quando o administrador aprovar a equipa.
+              Depois da confirmação, o acesso ao dashboard só fica ativo quando o administrador
+              aprovar a equipa.
             </p>
-            <Button variant="outline" className="w-full" onClick={resendConfirmation} disabled={busy}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={resendConfirmation}
+              disabled={busy}
+            >
               Reenviar email de confirmação
             </Button>
             <Button variant="ghost" className="w-full" onClick={() => setPendingEmail(null)}>
@@ -266,7 +280,10 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 block text-center font-display text-lg font-bold uppercase tracking-[0.12em]">
+        <Link
+          to="/"
+          className="mb-6 block text-center font-display text-lg font-bold uppercase tracking-[0.12em]"
+        >
           Team Manager <span className="text-primary">24H</span>
         </Link>
         <Card>
@@ -289,7 +306,13 @@ function AuthPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="in-pass">Palavra-passe</Label>
-                    <Input id="in-pass" name="password" type="password" required autoComplete="current-password" />
+                    <Input
+                      id="in-pass"
+                      name="password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                    />
                   </div>
                   <label
                     htmlFor="keep-signed-in"
@@ -322,7 +345,13 @@ function AuthPage() {
                 <form className="space-y-4" onSubmit={handleSignUp}>
                   <div className="space-y-1.5">
                     <Label htmlFor="up-team">Nome da equipa</Label>
-                    <Input id="up-team" name="teamName" required maxLength={60} placeholder="Equipa A" />
+                    <Input
+                      id="up-team"
+                      name="teamName"
+                      required
+                      maxLength={60}
+                      placeholder="Equipa A"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="up-contact">Nome do responsável</Label>
@@ -348,7 +377,11 @@ function AuthPage() {
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className={`h-full transition-all ${
-                          passwordScore >= 6 ? "bg-emerald-500" : passwordScore >= 4 ? "bg-amber-500" : "bg-destructive"
+                          passwordScore >= 6
+                            ? "bg-emerald-500"
+                            : passwordScore >= 4
+                              ? "bg-amber-500"
+                              : "bg-destructive"
                         }`}
                         style={{ width: `${(passwordScore / PASSWORD_RULES.length) * 100}%` }}
                       />
@@ -384,7 +417,11 @@ function AuthPage() {
                       <p className="text-xs text-destructive">As palavras-passe não coincidem.</p>
                     ) : null}
                   </div>
-                  <Button type="submit" className="w-full" disabled={busy || !strongEnough || !passwordsMatch}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={busy || !strongEnough || !passwordsMatch}
+                  >
                     Registar equipa
                   </Button>
                   <p className="text-xs text-muted-foreground">

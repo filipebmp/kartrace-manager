@@ -38,7 +38,6 @@ import type { ComputedStint, Driver, Stint } from "@/lib/race/types";
 import { useNow, useRace } from "@/lib/race/store";
 import { supabase } from "@/integrations/supabase/client";
 
-
 interface PendingEdit {
   id: string;
   patch: Partial<Stint>;
@@ -92,9 +91,7 @@ function PlanStintCard({
   }, [c.id, c.driverCode, c.duration, c.ballast, c.kart, c.kartRating]);
 
   const dirty =
-    driverCode !== c.driverCode ||
-    Math.abs(duration - c.duration) > 1e-9 ||
-    ballast !== c.ballast;
+    driverCode !== c.driverCode || Math.abs(duration - c.duration) > 1e-9 || ballast !== c.ballast;
 
   const save = () => {
     const patch: Partial<Stint> = {};
@@ -117,9 +114,7 @@ function PlanStintCard({
           <select
             className="rounded-md border border-input bg-secondary px-2 py-1 text-sm"
             value={driverCode ?? ""}
-            onChange={(e) =>
-              setDriverCode(e.target.value === "" ? null : Number(e.target.value))
-            }
+            onChange={(e) => setDriverCode(e.target.value === "" ? null : Number(e.target.value))}
           >
             <option value="">—</option>
             {drivers.map((d) => (
@@ -168,7 +163,6 @@ function PlanStintCard({
               <option value="nao">Não</option>
               <option value="sim">Sim</option>
             </select>
-
           </div>
         )}
       </div>
@@ -220,7 +214,10 @@ function PlanStintCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!c.isPit && (
-          <Badge variant="outline" className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}>
+          <Badge
+            variant="outline"
+            className={`tabular ${c.weightDiff < 0 ? "text-destructive" : ""}`}
+          >
             Balança: {c.weighInWeight.toFixed(1)} kg
           </Badge>
         )}
@@ -287,7 +284,7 @@ function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndi
               {active.isPit ? "Box em curso" : `Turno ${driveNumber} em curso`}
             </p>
             <p className="font-display text-lg font-semibold leading-tight">
-              {active.isPit ? "BOX" : active.driver?.name ?? "—"}
+              {active.isPit ? "BOX" : (active.driver?.name ?? "—")}
               {!active.isPit && active.driver ? (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   #{active.driver.code}
@@ -303,10 +300,18 @@ function ActiveStintIndicator({ active, driveNumber, now, onLocate }: ActiveIndi
       </div>
 
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div className="h-full heat-bar transition-all duration-1000" style={{ width: `${progress}%` }} />
+        <div
+          className="h-full heat-bar transition-all duration-1000"
+          style={{ width: `${progress}%` }}
+        />
       </div>
 
-      <Button variant="ghost" size="sm" className="mt-2 h-8 w-full gap-2 text-xs" onClick={onLocate}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mt-2 h-8 w-full gap-2 text-xs"
+        onClick={onLocate}
+      >
         <Locate className="size-3.5" /> Ver no plano
       </Button>
     </div>
@@ -344,7 +349,9 @@ export function PlanPanel() {
   const computed = computeStints(state);
   // Antes da partida o turno ativo é sempre o primeiro (Piloto 1); depois segue a corrida.
   const idx = !state.startedAt
-    ? (computed.length > 0 ? 0 : -1)
+    ? computed.length > 0
+      ? 0
+      : -1
     : now === null
       ? -1
       : (state.liveIndex ?? currentStintIndex(computed, now));
@@ -429,7 +436,6 @@ export function PlanPanel() {
     setPendingEdit(null);
   };
 
-
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 300);
     onScroll();
@@ -475,39 +481,33 @@ export function PlanPanel() {
             Total planeado: <span className="tabular">{fmtDuration(planned)}</span> · Alvo:{" "}
             <span className="tabular">{fmtDuration(state.config.raceDuration)}</span>
           </p>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const drivers = ensurePitDriver(state.drivers);
-                if (drivers.length !== state.drivers.length) setDrivers(drivers);
-                const stints = generatePlan(drivers, state.config);
-                setStints(stints);
-                const computed = computeStints({ ...state, stints });
-                const driveStints = driveStintTotal(computed);
-                const total = totalPlanned(stints);
-                const stops = stints.filter((s) =>
-                  computed.find((c) => c.id === s.id)?.isPit,
-                ).length;
-                const burnable = burnableStints(
-                  state.config,
-                  state.config.mandatoryStops,
-                  state.config.raceDuration - stops * state.config.minPitDuration,
-                );
-                toast.success(
-                  `Plano criado com ${driveStints} turnos, duração total de ${fmtDuration(total)} e possibilidade de ${burnable} turno(s) rápido(s).`,
-                );
-              }}
-            >
-              <Wand2 className="size-4" /> Gerar plano
-            </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const drivers = ensurePitDriver(state.drivers);
+              if (drivers.length !== state.drivers.length) setDrivers(drivers);
+              const stints = generatePlan(drivers, state.config);
+              setStints(stints);
+              const computed = computeStints({ ...state, stints });
+              const driveStints = driveStintTotal(computed);
+              const total = totalPlanned(stints);
+              const stops = stints.filter((s) => computed.find((c) => c.id === s.id)?.isPit).length;
+              const burnable = burnableStints(
+                state.config,
+                state.config.mandatoryStops,
+                state.config.raceDuration - stops * state.config.minPitDuration,
+              );
+              toast.success(
+                `Plano criado com ${driveStints} turnos, duração total de ${fmtDuration(total)} e possibilidade de ${burnable} turno(s) rápido(s).`,
+              );
+            }}
+          >
+            <Wand2 className="size-4" /> Gerar plano
+          </Button>
         </div>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Switch
-              id="hidePitStints"
-              checked={hidePitStints}
-              onCheckedChange={setHidePitStints}
-            />
+            <Switch id="hidePitStints" checked={hidePitStints} onCheckedChange={setHidePitStints} />
             <Label htmlFor="hidePitStints" className="text-xs text-muted-foreground">
               Ocultar boxes
             </Label>
@@ -595,9 +595,9 @@ export function PlanPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Guardar alterações?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ao corrigir um turno já passado só se acerta a diferença: o turno em curso
-              mantém a duração e a hora de fim, e os turnos ainda por fazer são recalculados
-              até ao fim da prova.
+              Ao corrigir um turno já passado só se acerta a diferença: o turno em curso mantém a
+              duração e a hora de fim, e os turnos ainda por fazer são recalculados até ao fim da
+              prova.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {preview ? (

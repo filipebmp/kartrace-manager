@@ -923,7 +923,7 @@ function StaffQueueContent({
           <DemoPanel />
         </TabsContent>
 
-         <TabsContent value="config">
+        <TabsContent value="config">
           <ConfiguracoesPanel snapshot={snapshot} ratings={ratings} />
         </TabsContent>
       </Tabs>
@@ -1831,7 +1831,6 @@ function calcularPaceTop3(
   if (medias.length === 0) return null;
   return medias.reduce((soma, m) => soma + m, 0) / medias.length;
 }
-
 
 function formatLapTime(seconds: number | null): string {
   if (seconds === null) return "—";

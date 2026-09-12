@@ -8,7 +8,6 @@ import type {
   Stint,
 } from "./types";
 
-
 export const MIN = 60_000;
 
 export function uid() {
@@ -256,14 +255,7 @@ export function defaultConfig(): RaceConfig {
   };
 }
 
-
-const DEFAULT_NAMES = [
-  "Piloto 1",
-  "Piloto 2",
-  "Piloto 3",
-  "Piloto 4",
-  "Piloto 5",
-];
+const DEFAULT_NAMES = ["Piloto 1", "Piloto 2", "Piloto 3", "Piloto 4", "Piloto 5"];
 
 export function defaultDrivers(): Driver[] {
   const list: Driver[] = DEFAULT_NAMES.map((name, i) => ({
@@ -286,9 +278,7 @@ export function generatePlan(drivers: Driver[], config: RaceConfig): Stint[] {
   if (!pit || config.mandatoryStops <= 0) {
     const firstRacer = racers[0];
     if (!firstRacer) return [];
-    return [
-      { id: uid(), driverCode: firstRacer.code, duration: config.raceDuration, ballast: 0 },
-    ];
+    return [{ id: uid(), driverCode: firstRacer.code, duration: config.raceDuration, ballast: 0 }];
   }
 
   // Uma prova com N paragens tem sempre exatamente N+1 turnos de condução.
@@ -361,8 +351,7 @@ export function rebalanceFrom(
 
   // Todas as boxes têm exatamente a duração definida no regulamento.
   // Uma box terminada antecipadamente não transfere o tempo em falta para as seguintes.
-  const pitDurationOf = (s: Stint) =>
-    s.durationLocked ? s.duration : config.minPitDuration;
+  const pitDurationOf = (s: Stint) => (s.durationLocked ? s.duration : config.minPitDuration);
   const pitMinutes = pitsAfter.reduce((sum, s) => sum + pitDurationOf(s), 0);
   const available = Math.max(0, config.raceDuration - consumed - pitMinutes);
   const base = Math.floor(available / drivesAfter.length);
@@ -394,9 +383,7 @@ export function planWarnings(state: RaceState, computed: ComputedStint[]): strin
   if (summary.stopsAfterPitClose > 0)
     out.push(`${summary.stopsAfterPitClose} paragem(ns) depois do fecho do pitlane`);
   if (Math.round(total) !== config.raceDuration)
-    out.push(
-      `Plano com ${fmtDuration(total)} — a prova tem ${fmtDuration(config.raceDuration)}`,
-    );
+    out.push(`Plano com ${fmtDuration(total)} — a prova tem ${fmtDuration(config.raceDuration)}`);
 
   const long = computed.filter((c) => !c.isPit && c.duration > config.maxStint).length;
   if (long > 0) out.push(`${long} turno(s) acima do máximo de ${config.maxStint} min`);
@@ -432,9 +419,7 @@ export function applyStintEdit(
   // Ao alterar manualmente o tempo de uma box (ex.: penalização de 3m30),
   // essa paragem passa a manter exatamente esse tempo.
   const effective: Partial<Stint> =
-    targetIsPit && patch.duration !== undefined
-      ? { ...patch, durationLocked: true }
-      : patch;
+    targetIsPit && patch.duration !== undefined ? { ...patch, durationLocked: true } : patch;
   let next = state.stints.map((st) => (st.id === id ? { ...st, ...effective } : st));
   let startedAt = state.startedAt;
 

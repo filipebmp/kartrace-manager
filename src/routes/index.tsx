@@ -48,8 +48,8 @@ function Landing() {
           Estratégia de resistência, equipa a equipa
         </h2>
         <p className="mt-3 max-w-xl text-muted-foreground">
-          Plano de turnos, boxes, lastro e avisos do regulamento em tempo real. Cada equipa tem a sua
-          área privada e só vê a sua própria estratégia.
+          Plano de turnos, boxes, lastro e avisos do regulamento em tempo real. Cada equipa tem a
+          sua área privada e só vê a sua própria estratégia.
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <Button asChild>
@@ -64,17 +64,23 @@ function Landing() {
           <li className="rounded-lg border border-border p-4">
             <Gauge className="size-5 text-primary" />
             <p className="mt-2 font-semibold">Corrida ao vivo</p>
-            <p className="text-sm text-muted-foreground">Turno atual, próxima box e tempos restantes.</p>
+            <p className="text-sm text-muted-foreground">
+              Turno atual, próxima box e tempos restantes.
+            </p>
           </li>
           <li className="rounded-lg border border-border p-4">
             <Users className="size-5 text-primary" />
             <p className="mt-2 font-semibold">Pilotos e lastro</p>
-            <p className="text-sm text-muted-foreground">Pesos, lastro sugerido e confirmação na troca.</p>
+            <p className="text-sm text-muted-foreground">
+              Pesos, lastro sugerido e confirmação na troca.
+            </p>
           </li>
           <li className="rounded-lg border border-border p-4">
             <ShieldCheck className="size-5 text-primary" />
             <p className="mt-2 font-semibold">Acesso validado</p>
-            <p className="text-sm text-muted-foreground">Só equipas aprovadas pelo administrador entram.</p>
+            <p className="text-sm text-muted-foreground">
+              Só equipas aprovadas pelo administrador entram.
+            </p>
           </li>
         </ul>
       </main>

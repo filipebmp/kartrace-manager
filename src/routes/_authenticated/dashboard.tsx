@@ -62,7 +62,9 @@ function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="size-4 text-primary" />
-                {profile?.status === "rejected" ? "Registo recusado" : "Registo à espera de aprovação"}
+                {profile?.status === "rejected"
+                  ? "Registo recusado"
+                  : "Registo à espera de aprovação"}
               </CardTitle>
               <CardDescription>
                 {profile?.status === "rejected"

@@ -66,9 +66,10 @@ function AdminPage() {
   const removeTeam = useServerFn(deleteTeam);
   const [toDelete, setToDelete] = useState<TeamProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [pendingChange, setPendingChange] = useState<
-    { team: TeamProfile; status: "approved" | "rejected" } | null
-  >(null);
+  const [pendingChange, setPendingChange] = useState<{
+    team: TeamProfile;
+    status: "approved" | "rejected";
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -207,7 +208,13 @@ function AdminPage() {
                     })()}
                   </div>
                   <Badge
-                    variant={t.status === "approved" ? "default" : t.status === "pending" ? "secondary" : "destructive"}
+                    variant={
+                      t.status === "approved"
+                        ? "default"
+                        : t.status === "pending"
+                          ? "secondary"
+                          : "destructive"
+                    }
                   >
                     {statusLabel[t.status]}
                   </Badge>
@@ -243,32 +250,32 @@ function AdminPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  disabled={t.status === "approved"}
-                  onClick={() => setPendingChange({ team: t, status: "approved" })}
-                >
-                  Aprovar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={t.status === "rejected"}
-                  onClick={() => setPendingChange({ team: t, status: "rejected" })}
-                >
-                  Recusar
-                </Button>
-                {t.id !== user?.id ? (
                   <Button
                     size="sm"
-                    variant="destructive"
-                    className="ml-auto"
-                    onClick={() => setToDelete(t)}
+                    disabled={t.status === "approved"}
+                    onClick={() => setPendingChange({ team: t, status: "approved" })}
                   >
-                    <Trash2 className="size-4" />
-                    Eliminar
+                    Aprovar
                   </Button>
-                ) : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={t.status === "rejected"}
+                    onClick={() => setPendingChange({ team: t, status: "rejected" })}
+                  >
+                    Recusar
+                  </Button>
+                  {t.id !== user?.id ? (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="ml-auto"
+                      onClick={() => setToDelete(t)}
+                    >
+                      <Trash2 className="size-4" />
+                      Eliminar
+                    </Button>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

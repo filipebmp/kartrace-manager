@@ -17,7 +17,6 @@ import {
   isPitDriver,
   MIN,
   rebalanceFrom,
-
   uid,
 } from "./engine";
 import type { Driver, Kart, KartRating, RaceConfig, RaceState, Stint } from "./types";
@@ -62,7 +61,7 @@ interface Ctx {
   boxNow: () => void;
   /** Termina a paragem atual nas boxes agora (saída mais cedo que o planeado) */
   endBoxNow: () => void;
-  
+
   replaceState: (s: RaceState) => void;
   reset: () => void;
 }
@@ -127,8 +126,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       if (remote && Object.keys(remote).length > 0) setState(merge(remote));
 
       // Se ainda não há nome de equipa definido, usa o nome do registo.
-      const hasName =
-        (remote?.config?.teamName ?? local?.config?.teamName ?? "").trim().length > 0;
+      const hasName = (remote?.config?.teamName ?? local?.config?.teamName ?? "").trim().length > 0;
       if (!hasName) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -222,8 +220,6 @@ export function RaceProvider({ children }: { children: ReactNode }) {
       void supabase.removeChannel(channel);
     };
   }, [userId, hydrated]);
-
-
 
   const patch = useCallback((fn: (s: RaceState) => RaceState) => setState(fn), []);
 
@@ -331,8 +327,6 @@ export function RaceProvider({ children }: { children: ReactNode }) {
         return recalculated;
       },
 
-
-
       setBallast: (id, kg) =>
         patch((s) => ({
           ...s,
@@ -429,8 +423,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           logEvent("box_end", currentStint.id, "Box", now, {
             planned_duration_min: cur.duration,
             actual_duration_sec: Math.round(((now - cur.startAt) / 1000) * 10) / 10,
-            next_driver:
-              s.drivers.find((d) => d.code === nextStint?.driverCode)?.name ?? null,
+            next_driver: s.drivers.find((d) => d.code === nextStint?.driverCode)?.name ?? null,
           });
           return {
             ...s,
@@ -460,9 +453,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
               const nextPit = stints[idx + 1]!;
               stints[idx + 1] = {
                 ...nextPit,
-                duration: nextPit.durationLocked
-                  ? nextPit.duration
-                  : s.config.minPitDuration,
+                duration: nextPit.durationLocked ? nextPit.duration : s.config.minPitDuration,
               };
             } else {
               stints.splice(idx + 1, 0, {
@@ -489,7 +480,6 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           };
         }),
 
-      
       replaceState: (s) => setState({ ...s, drivers: ensurePitDriver(s.drivers) }),
       reset: () => setState(defaultState()),
     }),

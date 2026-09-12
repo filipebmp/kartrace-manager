@@ -9,8 +9,6 @@ import { DurationField } from "@/components/race/DurationField";
 import { useRace } from "@/lib/race/store";
 import type { RaceState } from "@/lib/race/types";
 
-
-
 function Field({
   label,
   value,
@@ -46,7 +44,6 @@ function Field({
   );
 }
 
-
 export function SettingsPanel() {
   const { state, setConfig, reset, replaceState } = useRace();
   const c = state.config;
@@ -77,7 +74,12 @@ export function SettingsPanel() {
     <div className="space-y-4">
       <div className="panel space-y-3 p-4">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Equipa</p>
-        <Field label="Equipa" type="text" value={c.teamName} onChange={(v) => setConfig({ teamName: v })} />
+        <Field
+          label="Equipa"
+          type="text"
+          value={c.teamName}
+          onChange={(v) => setConfig({ teamName: v })}
+        />
         <Field
           label="Prova"
           type="text"
@@ -149,8 +151,8 @@ export function SettingsPanel() {
               Terminar box automaticamente
             </Label>
             <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
-              Quando o tempo da box chega ao fim, o turno seguinte começa sozinho. Pode ligar
-              ou desligar a qualquer momento, mesmo durante a corrida.
+              Quando o tempo da box chega ao fim, o turno seguinte começa sozinho. Pode ligar ou
+              desligar a qualquer momento, mesmo durante a corrida.
             </p>
           </div>
           <Switch
@@ -159,9 +161,7 @@ export function SettingsPanel() {
             aria-label="Terminar box automaticamente"
           />
         </div>
-
       </div>
-
 
       <div className="flex gap-2">
         <Button variant="secondary" className="flex-1" onClick={exportJson}>
