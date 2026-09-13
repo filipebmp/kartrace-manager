@@ -282,6 +282,20 @@ function applyIncrementalEvent(
     case "LAP_UPDATE": {
       const equipa = payload["equipa"] as EquipaDTO;
       next.equipas[equipa.numero_equipa] = equipa;
+      // Rede de segurança do "Em Pista" (2026-09-13): quando o PITOUT
+      // falha, o backend confirma o kart em pista à boleia da própria
+      // volta — isso pode atualizar o kart (timer/estado) e tirá-lo de
+      // uma fila. Sem isto, essa correção nunca chegava a aparecer aqui.
+      if (payload["kart"]) {
+        const kart = payload["kart"] as KartDTO;
+        next.karts[kart.id] = kart;
+      }
+      if (Array.isArray(payload["fila_espera"])) {
+        next.fila_espera = payload["fila_espera"] as string[];
+      }
+      if (Array.isArray(payload["filas"])) {
+        next.filas = payload["filas"] as FilaDTO[];
+      }
       break;
     }
     case "KART_DROP_OFF":
