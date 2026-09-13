@@ -88,6 +88,7 @@ export interface KartRatingDTO {
   media_melhores_voltas_seconds: number | null;
   amostras_usadas: number;
   total_voltas_turno: number;
+  rating_box: Omit<KartRatingDTO, "rating_box"> | null;
 }
 
 export interface PrevisaoEntryDTO {

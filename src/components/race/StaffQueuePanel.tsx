@@ -2662,7 +2662,8 @@ function QueueCard({
               );
             }
 
-            const grade = ratings?.[id]?.grade;
+            const ratingBox = ratings?.[id]?.rating_box;
+            const grade = ratingBox?.grade;
             const corGrade = grade ? GRADE_COLORS[grade]?.hex : undefined;
 
             return (
@@ -2698,7 +2699,7 @@ function QueueCard({
                     </button>
                     <span className="text-xs text-muted-foreground">{posicaoReal + 1}º</span>
                     <GradeBadge
-                      grade={ratings?.[id]?.grade}
+                      grade={ratingBox?.grade}
                       manual={karts[id]?.rating_manual != null}
                     />
                   </div>
@@ -2758,7 +2759,7 @@ function QueueCard({
                     })()}
                   </div>
                   <div className="font-mono text-base font-bold">
-                    {formatLapTime(ratings?.[id]?.media_melhores_voltas_seconds ?? null)}
+                    {formatLapTime(ratingBox?.media_melhores_voltas_seconds ?? null)}
                   </div>
                 </div>
               </div>
