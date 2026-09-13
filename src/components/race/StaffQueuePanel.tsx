@@ -1971,7 +1971,19 @@ function formatDuration(seconds: number): string {
   return `${minutos}:${resto}`;
 }
 
-function EmPistaTimer({ stintStartedAt }: { stintStartedAt: string | null }) {
+function EmPistaTimer({
+  stintStartedAt,
+  semDadosLabel = "—",
+}: {
+  stintStartedAt: string | null;
+  // Agora que PITIN e PITOUT são ambos automáticos (2026-09-13): entre o
+  // kart sair de uma fila/ser identificado e o PITOUT confirmar a saída
+  // real da box, "stintStartedAt" fica de propósito a null (ver
+  // KartQueueManager.retirar_kart_da_fila / processar_pitout) — mostrar
+  // "PIT" aqui em vez de "—" deixa isso claro no Dashboard, em vez de
+  // parecer que não há informação nenhuma.
+  semDadosLabel?: string;
+}) {
   const [agora, setAgora] = useState(() => Date.now());
 
   useEffect(() => {
@@ -1980,7 +1992,7 @@ function EmPistaTimer({ stintStartedAt }: { stintStartedAt: string | null }) {
     return () => clearInterval(intervalo);
   }, [stintStartedAt]);
 
-  if (!stintStartedAt) return <span className="text-muted-foreground">—</span>;
+  if (!stintStartedAt) return <span className="text-muted-foreground">{semDadosLabel}</span>;
   const segundos = Math.max(0, (agora - new Date(stintStartedAt).getTime()) / 1000);
   return <span>{formatDuration(segundos)}</span>;
 }
@@ -2282,7 +2294,10 @@ function DashboardPanel({
                       </TableCell>
                       <TableCell className="text-right font-mono">{eq.total_voltas}</TableCell>
                       <TableCell className="text-right font-mono">
-                        <EmPistaTimer stintStartedAt={kart?.stint_started_at ?? null} />
+                        <EmPistaTimer
+                          stintStartedAt={kart?.stint_started_at ?? null}
+                          semDadosLabel="PIT"
+                        />
                       </TableCell>
                       <TableCell className="text-right font-mono">{eq.total_pits}</TableCell>
                     </TableRow>
