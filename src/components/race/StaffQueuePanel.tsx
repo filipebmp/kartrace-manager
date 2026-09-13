@@ -2151,9 +2151,8 @@ function DashboardPanel({
       <CardHeader>
         <CardTitle>Dashboard ao vivo</CardTitle>
         <CardDescription>
-          Classificação pela média das melhores voltas do turno atual. "Gap" e "Interval" ainda não
-          estão disponíveis (por decifrar do Live Timing) — "Em Pista" e "Pits" já são calculados
-          por nós.
+          Classificação pela média das melhores voltas do turno atual. "Em Pista" e "Pits" já são
+          calculados por nós.
         </CardDescription>
 
                 <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-4">
@@ -2263,8 +2262,6 @@ function DashboardPanel({
                     onSort={handleSort}
                     align="right"
                   />
-                  <TableHead className="text-right">Gap</TableHead>
-                  <TableHead className="text-right">Interval</TableHead>
                   <SortHead
                     label="Voltas"
                     coluna="voltas"
@@ -2331,12 +2328,7 @@ function DashboardPanel({
                       >
                         {formatLapTime(eq.ultimo_tempo_seconds)}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        —
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        —
-                      </TableCell>
+
                       <TableCell className="text-right font-mono">{eq.total_voltas}</TableCell>
                       <TableCell className="text-right font-mono">
                         <EmPistaTimer
