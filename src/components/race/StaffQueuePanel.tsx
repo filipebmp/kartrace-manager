@@ -494,8 +494,31 @@ function StaffQueueContent({
   const [motivoAvaria] = useState<Record<string, string>>({});
   const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
   const [kartDetalheId, setKartDetalheId] = useState<string | null>(null);
-  const [novaFilaNome, setNovaFilaNome] = useState("");
+    const [novaFilaNome, setNovaFilaNome] = useState("");
   const [novaFilaCor, setNovaFilaCor] = useState<string>(CORES_SUGERIDAS[0] ?? "#dc2626");
+
+  // Notifica o staff a cada novo kart que entra na Fila de Espera/Triagem
+  // (PITIN), esteja o staff a ver ou não esse separador — pedido para não
+  // depender de estarem sempre a olhar para o ecrã. `null` = ainda não
+  // estabelecemos a base de referência (1º snapshot ao ligar): nesse caso
+  // não notifica os que já lá estavam, só os que chegam a partir daí.
+  const filaEsperaConhecidaRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!snapshot) return;
+    const atuais = new Set(snapshot.fila_espera);
+    const anteriores = filaEsperaConhecidaRef.current;
+    if (anteriores !== null) {
+      for (const kartId of snapshot.fila_espera) {
+        if (!anteriores.has(kartId)) {
+          const kart = snapshot.karts[kartId];
+          toast.info(`Kart ${kart?.label ?? kartId} entrou na box`, {
+            description: `${atuais.size} na Fila de Espera/Triagem`,
+          });
+        }
+      }
+    }
+    filaEsperaConhecidaRef.current = atuais;
+  }, [snapshot]);
 
   if (status !== "online" || !snapshot) {
     return (
@@ -2133,7 +2156,7 @@ function DashboardPanel({
           por nós.
         </CardDescription>
 
-        <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-4">
           <div className="rounded-md border border-border p-2.5">
             <div className="text-xs uppercase text-muted-foreground">Pace (top 3 karts)</div>
             <div className="font-mono text-xl font-bold">{formatLapTime(pace)}</div>
@@ -2169,6 +2192,28 @@ function DashboardPanel({
                 ))}
               </div>
             )}
+          </div>
+          <div
+            className={`rounded-md border p-2.5 ${
+              snapshot.fila_espera.length > 0
+                ? "border-orange-500/40 bg-orange-500/5"
+                : "border-border"
+            }`}
+          >
+            <div
+              className={`text-xs uppercase ${
+                snapshot.fila_espera.length > 0 ? "text-orange-400" : "text-muted-foreground"
+              }`}
+            >
+              Fila de Espera
+            </div>
+            <div
+              className={`font-mono text-xl font-bold ${
+                snapshot.fila_espera.length > 0 ? "text-orange-300" : ""
+              }`}
+            >
+              {snapshot.fila_espera.length}
+            </div>
           </div>
         </div>
       </CardHeader>
