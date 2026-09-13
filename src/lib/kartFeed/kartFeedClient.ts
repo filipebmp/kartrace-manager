@@ -279,7 +279,7 @@ function applyIncrementalEvent(
   }
 
   switch (frame.type) {
-    case "LAP_UPDATE": {
+     case "LAP_UPDATE": {
       const equipa = payload["equipa"] as EquipaDTO;
       next.equipas[equipa.numero_equipa] = equipa;
       // Rede de segurança do "Em Pista" (2026-09-13): quando o PITOUT
@@ -295,6 +295,14 @@ function applyIncrementalEvent(
       }
       if (Array.isArray(payload["filas"])) {
         next.filas = payload["filas"] as FilaDTO[];
+      }
+      // Kart ANTERIOR desta mesma equipa: assim que ela fica confirmada
+      // com o kart acima, o kart antigo que largou (pode ainda estar
+      // parado nalguma fila) perde o nome dela do cartão — mantém o
+      // rating/cor, só deixa de "parecer" que ainda é dela.
+      if (payload["kart_anterior"]) {
+        const kartAnterior = payload["kart_anterior"] as KartDTO;
+        next.karts[kartAnterior.id] = kartAnterior;
       }
       break;
     }
@@ -316,9 +324,7 @@ function applyIncrementalEvent(
       if (Array.isArray(payload["fila_espera"])) {
         next.fila_espera = payload["fila_espera"] as string[];
       }
-      if (Array.isArray(payload["filas"])) {
-        next.filas = payload["filas"] as FilaDTO[];
-      }
+
       if (payload["fila_atualizada"]) {
         substituirFila(payload["fila_atualizada"] as FilaDTO);
       }
