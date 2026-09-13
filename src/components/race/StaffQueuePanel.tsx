@@ -2745,14 +2745,7 @@ function QueueCard({
 
                 <div className="py-1 text-center">
                   <div className="font-mono text-2xl font-extrabold leading-tight">
-                    {/* O "número" mostrado é o da EQUIPA que usou este
-                        kart por último (nesta prova os karts físicos não
-                        têm identificador próprio) — assim que essa equipa
-                        é reconfirmada em pista, `ultima_equipa_id` fica a
-                        null e o cartão passa a anónimo (mantém o rating
-                        abaixo), mesmo continuando na mesma posição da
-                        fila. */}
-                    {karts[id]?.ultima_equipa_id ? (karts[id]?.label ?? id) : "—"}
+                    {karts[id]?.label ?? id}
                   </div>
                   <div className="truncate text-sm font-semibold" style={{ color: fila.cor }}>
                     {(() => {
