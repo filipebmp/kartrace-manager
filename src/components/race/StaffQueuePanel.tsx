@@ -2797,10 +2797,8 @@ function QueueCard({
                           </AlertDialogDescription>
                           {karts[id]?.rating_manual != null ? (
                             <AlertDialogDescription className="text-foreground">
-                              Este kart tem Rating Manual ({karts[id]?.rating_manual}/5). Se vai
-                              ser entregue a outra equipa, coloca o número dela aqui — o rating
-                              viaja com o kart até à próxima box, independentemente dos tempos do
-                              piloto seguinte.
+                              Kart com rating manual, se pretende atribuir a uma equipa preencha o
+                              campo abaixo.
                             </AlertDialogDescription>
                           ) : null}
                         </AlertDialogHeader>
