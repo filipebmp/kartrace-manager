@@ -2791,19 +2791,21 @@ function QueueCard({
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            O kart {karts[id]?.label ?? id} volta a EM_PISTA (não vai para a Fila de
-                            Espera) — o Live Timing continua a controlá-lo na realidade.
-                          </AlertDialogDescription>
                           {karts[id]?.rating_manual != null ? (
-                            <AlertDialogDescription className="text-foreground">
+                            <AlertDialogDescription>
                               Kart com rating manual, se pretende atribuir a uma equipa preencha o
-                              campo abaixo.
+                              campo abaixo — se não atribuir volta para o rating automático.
                             </AlertDialogDescription>
-                          ) : null}
+                          ) : (
+                            <AlertDialogDescription>
+                              O kart {karts[id]?.label ?? id} volta a EM_PISTA (não vai para a Fila
+                              de Espera) — o Live Timing continua a controlá-lo na realidade.
+                            </AlertDialogDescription>
+                          )}
                         </AlertDialogHeader>
                         {karts[id]?.rating_manual != null ? (
                           <Input
+                            autoFocus
                             value={atribuirEquipaInput[id] ?? ""}
                             onChange={(e) =>
                               setAtribuirEquipaInput((prev) => ({ ...prev, [id]: e.target.value }))
@@ -2814,7 +2816,9 @@ function QueueCard({
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
-                            ref={(el) => el?.focus()}
+                            ref={
+                              karts[id]?.rating_manual == null ? (el) => el?.focus() : undefined
+                            }
                             onClick={() => {
                               const destino = atribuirEquipaInput[id]?.trim() || undefined;
                               onRetirarDaFila(id, destino);
