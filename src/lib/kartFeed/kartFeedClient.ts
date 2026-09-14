@@ -326,12 +326,21 @@ function applyIncrementalEvent(
         next.fila_espera = payload["fila_espera"] as string[];
       }
 
+      if (payload["fila_atualizada"]) {
+        substituirFila(payload["fila_atualizada"] as FilaDTO);
+      }
+      // Corrigido 2026-09-13: a maioria destes eventos manda o array
+      // `filas` completo (não `fila_atualizada`, que só o KART_SORTEADO
+      // envia) — sem isto, a posição/buracos visuais de uma fila nunca
+      // se atualizavam a partir daqui (só um refresh completo da ligação
+      // WS é que os corrigia por acidente).
       if (Array.isArray(payload["filas"])) {
         next.filas = payload["filas"] as FilaDTO[];
       }
       break;
     }
-    case "FILA_ESPERA_LIMPA": {
+    case "FILA_ESPERA_LIMPA":
+    case "FILA_LIMPA": {
       if (Array.isArray(payload["karts"])) {
         for (const kart of payload["karts"] as KartDTO[]) {
           next.karts[kart.id] = kart;
@@ -456,8 +465,6 @@ export type AdicionarAFilaResultado =
   { status: "ok" } | { status: "precisa_confirmacao"; localizacaoAtual: string };
 
 export function useKartFeedActions() {
-  const limparFilaEspera = useCallback(() => postJson("/staff/fila_espera/limpar", {}), []);
-  
   const triarKart = useCallback(
     (kartId: string, filaId: string) =>
       postJson("/staff/triar", { kart_id: kartId, fila_id: filaId }),
@@ -521,6 +528,13 @@ export function useKartFeedActions() {
 
   const retirarDaFila = useCallback(
     (kartId: string) => postJson("/staff/retirar_da_fila", { kart_id: kartId }),
+    [],
+  );
+
+  const limparFilaEspera = useCallback(() => postJson("/staff/fila_espera/limpar", {}), []);
+
+  const limparFila = useCallback(
+    (filaId: string) => postJson(`/staff/filas/${encodeURIComponent(filaId)}/limpar`, {}),
     [],
   );
 
@@ -588,6 +602,8 @@ export function useKartFeedActions() {
     definirRatingManual,
     removerKart,
     retirarDaFila,
+    limparFilaEspera,
+    limparFila,
     adicionarAFilaManual,
     moverKart,
     registarParagemManual,

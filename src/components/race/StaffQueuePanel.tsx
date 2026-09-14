@@ -401,6 +401,8 @@ function StaffQueueContent({
     definirRatingManual,
     removerKart,
     retirarDaFila,
+    limparFilaEspera,
+    limparFila,
     adicionarAFilaManual,
     moverKart,
     registarParagemManual,
@@ -569,6 +571,28 @@ function StaffQueueContent({
       toast.success(`Kart ${kartId} reintegrado na Fila de Espera`);
     } catch (e) {
       toast.error("Não foi possível reintegrar", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleLimparFilaEspera() {
+    try {
+      await limparFilaEspera();
+      toast.success("Fila de Espera / Triagem limpa");
+    } catch (e) {
+      toast.error("Não foi possível limpar a Fila de Espera", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  async function handleLimparFila(filaId: string, filaNome: string) {
+    try {
+      await limparFila(filaId);
+      toast.success(`Fila ${filaNome} limpa`);
+    } catch (e) {
+      toast.error(`Não foi possível limpar a fila ${filaNome}`, {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -783,11 +807,37 @@ function StaffQueueContent({
 
         <TabsContent value="fila" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Fila de Espera / Triagem</CardTitle>
-              <CardDescription>
-                Karts que acabaram de entrar em PITIN. Classifica cada um numa fila.
-              </CardDescription>
+            <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
+              <div>
+                <CardTitle>Fila de Espera / Triagem</CardTitle>
+                <CardDescription>
+                  Karts que acabaram de entrar em PITIN. Classifica cada um numa fila.
+                </CardDescription>
+              </div>
+              {kartsEspera.length > 0 ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <Trash2 className="size-3.5" /> Limpar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Limpar a Fila de Espera / Triagem?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Remove os {kartsEspera.length} kart(s) desta lista. Quem ainda não tinha
+                        voltado à pista fica de novo EM_PISTA (turno reiniciado); quem já tinha
+                        saído entretanto (PITOUT antes de ser triado) só desaparece daqui, sem
+                        mexer no que já está correto.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleLimparFilaEspera}>Limpar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : null}
             </CardHeader>
             <CardContent className="space-y-2">
               {kartsEspera.length === 0 ? (
@@ -863,6 +913,7 @@ function StaffQueueContent({
                 onRetirarDaFila={handleRetirarDaFila}
                 onAdicionarManual={handleAdicionarManual}
                 onDefinirCapacidade={handleDefinirCapacidade}
+                onLimparFila={() => handleLimparFila(fila.fila_id, fila.nome)}
                 dragInfo={dragInfo}
                 dropTarget={dropTarget}
                 onPointerDownOnHandle={handlePointerDownOnHandle}
@@ -2436,6 +2487,7 @@ function QueueCard({
   onRetirarDaFila,
   onAdicionarManual,
   onDefinirCapacidade,
+  onLimparFila,
   dragInfo,
   dropTarget,
   onPointerDownOnHandle,
@@ -2449,6 +2501,7 @@ function QueueCard({
   onRetirarDaFila: (kartId: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
   onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
+  onLimparFila: () => void;
   dragInfo: { kartId: string; filaOrigemId: string; x: number; y: number } | null;
   dropTarget: { filaId: string; index: number } | null;
   onPointerDownOnHandle: (e: ReactPointerEvent, kartId: string, filaOrigemId: string) => void;
@@ -2773,7 +2826,7 @@ function QueueCard({
           <ChevronUp className="size-3" /> Entrada
         </div>
 
-        <div className="pt-1">
+        <div className="space-y-1 pt-1">
           <Button
             size="sm"
             variant="outline"
@@ -2782,6 +2835,31 @@ function QueueCard({
           >
             <Plus className="size-3.5" /> Adicionar kart
           </Button>
+
+          {fila.kart_ids.length > 0 ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 w-full text-destructive">
+                  <Trash2 className="size-3.5" /> Limpar fila
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar a fila {fila.nome}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Remove os {fila.kart_ids.length} kart(s) desta fila. Quem ainda não tinha
+                    voltado à pista fica de novo EM_PISTA (turno reiniciado); quem já tinha saído
+                    entretanto (PITOUT antes de ser retirado manualmente) só desaparece do cartão,
+                    sem mexer no que já está correto.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={onLimparFila}>Limpar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
         </div>
       </div>
 
@@ -2812,15 +2890,4 @@ function QueueCard({
       </Dialog>
     </div>
   );
-}
-
-async function handleLimparFilaEspera() {
-  try {
-    await limparFilaEspera();
-    toast.success("Fila de Espera / Triagem limpa");
-  } catch (e) {
-    toast.error("Não foi possível limpar a Fila de Espera", {
-      description: e instanceof Error ? e.message : undefined,
-    });
-  }
 }
