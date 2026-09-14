@@ -326,8 +326,22 @@ function applyIncrementalEvent(
         next.fila_espera = payload["fila_espera"] as string[];
       }
 
-      if (payload["fila_atualizada"]) {
-        substituirFila(payload["fila_atualizada"] as FilaDTO);
+      if (Array.isArray(payload["filas"])) {
+        next.filas = payload["filas"] as FilaDTO[];
+      }
+      break;
+    }
+    case "FILA_ESPERA_LIMPA": {
+      if (Array.isArray(payload["karts"])) {
+        for (const kart of payload["karts"] as KartDTO[]) {
+          next.karts[kart.id] = kart;
+        }
+      }
+      if (Array.isArray(payload["fila_espera"])) {
+        next.fila_espera = payload["fila_espera"] as string[];
+      }
+      if (Array.isArray(payload["filas"])) {
+        next.filas = payload["filas"] as FilaDTO[];
       }
       break;
     }
@@ -442,6 +456,8 @@ export type AdicionarAFilaResultado =
   { status: "ok" } | { status: "precisa_confirmacao"; localizacaoAtual: string };
 
 export function useKartFeedActions() {
+  const limparFilaEspera = useCallback(() => postJson("/staff/fila_espera/limpar", {}), []);
+  
   const triarKart = useCallback(
     (kartId: string, filaId: string) =>
       postJson("/staff/triar", { kart_id: kartId, fila_id: filaId }),

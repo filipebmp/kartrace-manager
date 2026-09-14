@@ -2813,3 +2813,14 @@ function QueueCard({
     </div>
   );
 }
+
+async function handleLimparFilaEspera() {
+  try {
+    await limparFilaEspera();
+    toast.success("Fila de Espera / Triagem limpa");
+  } catch (e) {
+    toast.error("Não foi possível limpar a Fila de Espera", {
+      description: e instanceof Error ? e.message : undefined,
+    });
+  }
+}
