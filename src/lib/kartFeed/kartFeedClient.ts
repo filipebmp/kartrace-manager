@@ -527,7 +527,11 @@ export function useKartFeedActions() {
   );
 
   const retirarDaFila = useCallback(
-    (kartId: string) => postJson("/staff/retirar_da_fila", { kart_id: kartId }),
+    (kartId: string, atribuirAEquipa?: string) =>
+      postJson("/staff/retirar_da_fila", {
+        kart_id: kartId,
+        atribuir_a_equipa: atribuirAEquipa || null,
+      }),
     [],
   );
 

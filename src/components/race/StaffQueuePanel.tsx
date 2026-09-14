@@ -626,10 +626,14 @@ function StaffQueueContent({
     }
   }
 
-  async function handleRetirarDaFila(kartId: string) {
+  async function handleRetirarDaFila(kartId: string, atribuirAEquipa?: string) {
     try {
-      await retirarDaFila(kartId);
-      toast.success(`Kart ${kartId} retirado da fila`);
+      await retirarDaFila(kartId, atribuirAEquipa);
+      toast.success(
+        atribuirAEquipa
+          ? `Kart ${kartId} retirado da fila e rating atribuído à equipa ${atribuirAEquipa}`
+          : `Kart ${kartId} retirado da fila`,
+      );
     } catch (e) {
       toast.error("Não foi possível retirar da fila", {
         description: e instanceof Error ? e.message : undefined,
@@ -2498,7 +2502,7 @@ function QueueCard({
   ratings: Record<string, KartRatingDTO> | null;
   onRemover: () => void;
   onEditarKart: (kartId: string) => void;
-  onRetirarDaFila: (kartId: string) => void;
+  onRetirarDaFila: (kartId: string, atribuirAEquipa?: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
   onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
   onLimparFila: () => void;
@@ -2508,6 +2512,15 @@ function QueueCard({
 }) {
   const [novoKartId, setNovoKartId] = useState("");
   const [mostrarAdicionar, setMostrarAdicionar] = useState(false);
+  // Pedido do utilizador (2026-09-14): em Palmela os karts físicos trocam
+  // de equipa em todos os turnos — um kart com rating manual (fisicamente
+  // bom) perderia essa informação ao ser entregue a outra equipa. Ao
+  // retirar da fila, se o kart tiver rating manual, o staff pode indicar
+  // aqui para que equipa ele vai, e o rating "viaja" com ele (ver
+  // `retirar_kart_da_fila`/`atribuir_a_equipa` no backend). Um valor por
+  // kart_id, porque várias filas podem estar a mostrar cartões ao mesmo
+  // tempo.
+  const [atribuirEquipaInput, setAtribuirEquipaInput] = useState<Record<string, string>>({});
 
   // Pré-visualização em tempo real: enquanto se arrasta um kart PARA
   // dentro desta fila, mostra logo "o espaço a abrir-se" na posição onde
@@ -2782,12 +2795,38 @@ function QueueCard({
                             O kart {karts[id]?.label ?? id} volta a EM_PISTA (não vai para a Fila de
                             Espera) — o Live Timing continua a controlá-lo na realidade.
                           </AlertDialogDescription>
+                          {karts[id]?.rating_manual != null ? (
+                            <AlertDialogDescription className="text-foreground">
+                              Este kart tem Rating Manual ({karts[id]?.rating_manual}/5). Se vai
+                              ser entregue a outra equipa, coloca o número dela aqui — o rating
+                              viaja com o kart até à próxima box, independentemente dos tempos do
+                              piloto seguinte.
+                            </AlertDialogDescription>
+                          ) : null}
                         </AlertDialogHeader>
+                        {karts[id]?.rating_manual != null ? (
+                          <Input
+                            value={atribuirEquipaInput[id] ?? ""}
+                            onChange={(e) =>
+                              setAtribuirEquipaInput((prev) => ({ ...prev, [id]: e.target.value }))
+                            }
+                            placeholder="Nº da equipa (opcional)"
+                          />
+                        ) : null}
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             ref={(el) => el?.focus()}
-                            onClick={() => onRetirarDaFila(id)}
+                            onClick={() => {
+                              const destino = atribuirEquipaInput[id]?.trim() || undefined;
+                              onRetirarDaFila(id, destino);
+                              if (destino) {
+                                setAtribuirEquipaInput((prev) => {
+                                  const { [id]: _removido, ...resto } = prev;
+                                  return resto;
+                                });
+                              }
+                            }}
                           >
                             Retirar da Fila
                           </AlertDialogAction>
