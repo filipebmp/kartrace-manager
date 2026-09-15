@@ -2766,7 +2766,7 @@ function QueueCard({
                     <span className="text-xs text-muted-foreground">{posicaoReal + 1}º</span>
                     <GradeBadge
                       grade={ratingBox?.grade}
-                      manual={karts[id]?.rating_manual != null}
+                      manual={ratingBox?.confianca === "manual"}
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
