@@ -6,6 +6,7 @@ import {
   ChevronUp,
   Clock,
   GripVertical,
+  Info,
   Link2,
   Minus,
   Pencil,
@@ -57,6 +58,7 @@ import {
   useKartRatings,
   useKartForecast,
   useKartTurnoAtual,
+  useKartTurnoBox,
   type HistoricoTurnoKartDTO,
   useLiveTimingStatus,
   useSetLiveTimingTarget,
@@ -496,6 +498,7 @@ function StaffQueueContent({
   const [motivoAvaria] = useState<Record<string, string>>({});
   const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
   const [kartDetalheId, setKartDetalheId] = useState<string | null>(null);
+  const [kartInfoBoxId, setKartInfoBoxId] = useState<string | null>(null);
     const [novaFilaNome, setNovaFilaNome] = useState("");
   const [novaFilaCor, setNovaFilaCor] = useState<string>(CORES_SUGERIDAS[0] ?? "#dc2626");
 
@@ -914,6 +917,7 @@ function StaffQueueContent({
                 ratings={ratings}
                 onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
                 onEditarKart={(kartId) => setKartEmEdicao(kartId)}
+                onVerInfo={(kartId) => setKartInfoBoxId(kartId)}
                 onRetirarDaFila={handleRetirarDaFila}
                 onAdicionarManual={handleAdicionarManual}
                 onDefinirCapacidade={handleDefinirCapacidade}
@@ -1024,6 +1028,8 @@ function StaffQueueContent({
         onDefinirRatingManual={definirRatingManual}
         onMarcarForaDeServico={marcarForaDeServico}
       />
+
+      <KartInfoBoxDialog kartId={kartInfoBoxId} onClose={() => setKartInfoBoxId(null)} />
 
       <AlertDialog
         open={pendingRelocacao !== null}
@@ -1257,6 +1263,117 @@ function KartDetailDialog({
                   </AlertDialogContent>
                 </AlertDialog>
               ) : null}
+              <Button variant="outline" className="w-full" onClick={onClose}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <p className="p-4 text-sm text-muted-foreground">A carregar...</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function KartInfoBoxDialog({ kartId, onClose }: { kartId: string | null; onClose: () => void }) {
+  // Pedido do utilizador (2026-09-15): botão "Info" no cartão da fila —
+  // mostra o turno que ACABOU antes de entrar na box (fotografia fixa,
+  // ver `historico_turno_box` no backend), não o turno ao vivo, que já
+  // pode ter reiniciado (PITOUT sem o staff ainda ter retirado o cartão).
+  // Só leitura — para editar o rating usa-se o botão "Editar" (lápis).
+  const { data: info, error } = useKartTurnoBox(kartId);
+
+  return (
+    <Dialog open={kartId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        {error ? (
+          <p className="p-4 text-sm text-muted-foreground">
+            Este kart ainda não entrou na box — sem turno anterior registado.
+          </p>
+        ) : info ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>{info.label}</DialogTitle>
+              <DialogDescription>
+                {info.ultima_equipa_id ? `Equipa ${info.ultima_equipa_id}` : "Equipa desconhecida"}{" "}
+                · último turno antes de entrar na box
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border border-border p-2 text-center">
+                <div className="text-xs uppercase text-muted-foreground">
+                  Ø Top {info.amostras_usadas || "—"}
+                </div>
+                <div className="font-mono text-lg font-bold">
+                  {formatLapTime(info.media_melhores_voltas_seconds)}
+                </div>
+              </div>
+              <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-2 text-center">
+                <div className="text-xs uppercase text-emerald-500">Melhor volta</div>
+                <div className="font-mono text-lg font-bold text-emerald-500">
+                  {formatLapTime(info.melhor_tempo_seconds)}
+                </div>
+              </div>
+              <div className="col-span-2 rounded-md border border-border p-2 text-center">
+                <div className="text-xs uppercase text-muted-foreground">Voltas registadas</div>
+                <div className="text-lg font-bold">{info.total_voltas_turno}</div>
+              </div>
+            </div>
+
+            {info.grade !== null ? (
+              <div className="space-y-1">
+                <div className="relative h-2 w-full rounded-full bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-green-500 to-purple-500">
+                  <div
+                    className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground"
+                    style={{ left: `${((info.grade - 1) / 4) * 100}%` }}
+                  />
+                </div>
+                <p className="text-center text-xs text-muted-foreground">
+                  {info.grade >= 4
+                    ? "kart excelente"
+                    : info.grade === 3
+                      ? "kart razoável"
+                      : "kart fraco"}
+                  {info.grade_manual !== null ? " (manual)" : ""}
+                </p>
+              </div>
+            ) : null}
+
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Histórico de voltas do último turno
+              </p>
+              <div className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+                {info.voltas.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Sem voltas registadas nesse turno.
+                  </p>
+                ) : (
+                  [...info.voltas].reverse().map((v) => (
+                    <div
+                      key={v.numero}
+                      className={`flex items-center justify-between rounded px-2 py-1 font-mono text-sm ${
+                        v.out_lap
+                          ? "bg-red-500/10 text-red-400"
+                          : (GRADE_ROW_CLASS[v.grade ?? 0] ?? "bg-muted/30 text-muted-foreground")
+                      }`}
+                    >
+                      <span>{v.out_lap ? `${v.numero} OUT` : v.numero}</span>
+                      <span className="flex items-center gap-1.5">
+                        {formatLapTime(v.tempo_seconds)}
+                        {!v.out_lap && v.tempo_seconds === info.melhor_tempo_seconds ? (
+                          <span className="text-xs text-emerald-400">↓ melhor</span>
+                        ) : null}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
               <Button variant="outline" className="w-full" onClick={onClose}>
                 Fechar
               </Button>
@@ -2488,6 +2605,7 @@ function QueueCard({
   ratings,
   onRemover,
   onEditarKart,
+  onVerInfo,
   onRetirarDaFila,
   onAdicionarManual,
   onDefinirCapacidade,
@@ -2502,6 +2620,7 @@ function QueueCard({
   ratings: Record<string, KartRatingDTO> | null;
   onRemover: () => void;
   onEditarKart: (kartId: string) => void;
+  onVerInfo: (kartId: string) => void;
   onRetirarDaFila: (kartId: string, atribuirAEquipa?: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
   onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
@@ -2770,6 +2889,14 @@ function QueueCard({
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onVerInfo(id)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label={`Ver informação do último turno de ${karts[id]?.label ?? id}`}
+                    >
+                      <Info className="size-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => onEditarKart(id)}

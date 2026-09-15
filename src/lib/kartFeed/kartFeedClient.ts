@@ -700,6 +700,18 @@ export function useKartTurnoAtual(kartId: string | null) {
   );
 }
 
+/** Fotografia do ÚLTIMO turno completo antes de entrar na box (botão
+ * "Info" do cartão da fila) — ao contrário de `useKartTurnoAtual`, não
+ * muda enquanto o kart está pousado, mesmo que já tenha havido um PITOUT
+ * sem o staff retirar o cartão. 404 se o kart nunca entrou na box. */
+export function useKartTurnoBox(kartId: string | null) {
+  return usePolledEndpoint<HistoricoTurnoKartDTO>(
+    kartId ? `/karts/${encodeURIComponent(kartId)}/turno_box` : "",
+    3000,
+    kartId !== null,
+  );
+}
+
 export function useKartForecast(enabled = true) {
   return usePolledEndpoint<PrevisaoEntryDTO[]>("/karts/previsao", 5000, enabled);
 }
