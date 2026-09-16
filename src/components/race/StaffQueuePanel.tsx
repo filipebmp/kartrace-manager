@@ -2000,6 +2000,7 @@ function MapeamentoColunasPanel() {
 
 function DemoPanel() {
   const { data: status } = useDemoStatus();
+  const { data: liveStatus } = useLiveTimingStatus();
   const startDemo = useStartDemo();
   const stopDemo = useStopDemo();
 
@@ -2011,6 +2012,12 @@ function DemoPanel() {
   const [manual, setManual] = useState(false);
 
   const running = status?.running ?? false;
+  // Pedido do utilizador (2026-09-16): correr a Demo na mesma conta que
+  // está ligada a um Live Timing real já causou dados fictícios a
+  // aparecer misturados em registos que deviam ser só de karts a sério
+  // (ex.: /admin/karts_rapidos). O backend já bloqueia isto em
+  // /demo/start, mas a UI avisa antes de sequer tentar.
+  const ligadoAoVivo = liveStatus?.connected ?? false;
 
   async function handleIniciar() {
     try {
@@ -2061,6 +2068,14 @@ function DemoPanel() {
         {running ? (
           <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-500">
             <Radio className="size-3.5 animate-pulse" /> Demo em curso
+          </div>
+        ) : null}
+
+        {!running && ligadoAoVivo ? (
+          <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-500">
+            <AlertTriangle className="size-3.5" /> Esta conta está ligada a um Live Timing real (
+            {liveStatus?.event_url}) — desliga primeiro para poderes correr a Demo, para não
+            misturar dados fictícios com karts a sério.
           </div>
         ) : null}
 
@@ -2128,7 +2143,7 @@ function DemoPanel() {
             <Square className="size-3.5" /> Parar demo
           </Button>
         ) : (
-          <Button onClick={handleIniciar}>
+          <Button onClick={handleIniciar} disabled={ligadoAoVivo}>
             <Play className="size-3.5" /> Iniciar demo
           </Button>
         )}
