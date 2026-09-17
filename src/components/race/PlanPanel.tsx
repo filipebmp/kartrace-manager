@@ -104,7 +104,7 @@ function PlanStintCard({
   return (
     <div
       id={`plan-stint-${c.id}`}
-      className={`panel p-3 ${
+      className={`panel border-2 p-3 ${
         status === "current"
           ? "border-warning/70 ring-2 ring-warning/80"
           : status === "done"
