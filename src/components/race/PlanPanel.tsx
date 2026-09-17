@@ -111,7 +111,7 @@ function PlanStintCard({
             ? "border-success/60 bg-success/25"
             : c.isPit
               ? "border-warning/40 bg-warning/15"
-              : "border-destructive/50 bg-destructive/15"
+              : "border-destructive/50 bg-destructive/20"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
