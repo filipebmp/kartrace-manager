@@ -46,7 +46,7 @@ interface PendingEdit {
 interface CardProps {
   c: ComputedStint;
   displayNumber: string;
-  isCurrent: boolean;
+  status: "done" | "current" | "future";
   drivers: Driver[];
   onSave: (edit: PendingEdit) => void;
   onDelete: (id: string) => void;
@@ -67,7 +67,7 @@ const KART_RATINGS: Stint["kartRating"][] = [
 function PlanStintCard({
   c,
   displayNumber,
-  isCurrent,
+  status,
   drivers,
   onSave,
   onDelete,
@@ -104,9 +104,13 @@ function PlanStintCard({
   return (
     <div
       id={`plan-stint-${c.id}`}
-      className={`panel p-3 ${isCurrent ? "ring-2 ring-primary" : ""} ${
-        c.isPit ? "border-warning/30 bg-warning/10" : ""
-      }`}
+      className={`panel p-3 ${
+        status === "current"
+          ? "border-warning/70 ring-2 ring-warning/80"
+          : status === "done"
+            ? "border-success/60 bg-success/5"
+            : "border-destructive/50"
+      } ${c.isPit ? "bg-warning/10" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -544,12 +548,14 @@ export function PlanPanel() {
       ) : null}
 
       <div className="space-y-2">
-        {visibleComputed.map((c, visiblePos) => (
+        {visibleComputed.map((c) => (
           <PlanStintCard
             key={c.id}
             c={c}
             displayNumber={c.isPit ? "Box" : String(driveStintNumber(computed, c.index))}
-            isCurrent={idx === c.index}
+            status={
+              idx >= 0 && c.index < idx ? "done" : idx === c.index ? "current" : "future"
+            }
             drivers={state.drivers}
             onSave={setPendingEdit}
             onDelete={setConfirmDelete}
