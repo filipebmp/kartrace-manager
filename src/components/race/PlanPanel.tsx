@@ -101,19 +101,6 @@ function PlanStintCard({
     onSave({ id: c.id, patch });
   };
 
-  // O fundo tem de ir por cima do gradiente do `panel` (inline), senão fica invisível.
-  const tint = (color: string, pct: number) =>
-    `linear-gradient(0deg, color-mix(in oklab, var(--${color}) ${pct}%, transparent), color-mix(in oklab, var(--${color}) ${pct}%, transparent)), var(--gradient-track)`;
-
-  const statusBackground =
-    status === "current"
-      ? tint("warning", 38)
-      : status === "done"
-        ? tint("success", 30)
-        : c.isPit
-          ? tint("warning", 18)
-          : tint("destructive", 26);
-
   return (
     <div
       id={`plan-stint-${c.id}`}
@@ -126,7 +113,6 @@ function PlanStintCard({
               ? "border-warning/40"
               : "border-destructive/50"
       }`}
-      style={{ background: statusBackground }}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
