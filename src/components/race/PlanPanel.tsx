@@ -106,11 +106,13 @@ function PlanStintCard({
       id={`plan-stint-${c.id}`}
       className={`panel p-3 ${
         status === "current"
-          ? "border-warning/70 ring-2 ring-warning/80"
+          ? "border-warning/70 ring-2 ring-warning/80 bg-warning/20"
           : status === "done"
-            ? "border-success/60 bg-success/5"
-            : "border-destructive/50"
-      } ${c.isPit ? "bg-warning/10" : ""}`}
+            ? "border-success/60 bg-success/15"
+            : c.isPit
+              ? "border-warning/40 bg-warning/10"
+              : "border-destructive/50 bg-destructive/10"
+      }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
