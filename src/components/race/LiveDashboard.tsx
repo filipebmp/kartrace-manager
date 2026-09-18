@@ -291,16 +291,20 @@ export function LiveDashboard() {
   const remainingStops = Math.max(0, summary.requiredStops - completedStops);
   const pitCloseAt = startTs + closeOffset * MIN;
   const minPit = state.config.minPitDuration;
-  // Tempo de condução disponível até ao fecho, descontando as boxes que faltam.
+  // Tempo de condução disponível até ao fim da prova, descontando as boxes que
+  // faltam — o último turno (depois da última paragem) pode ir até às 25:00,
+  // mesmo com o pitlane fechado. As paragens continuam a ter de caber antes do
+  // fecho, o que é garantido pelo aviso de margem (feasibility) abaixo.
   // (Boxes bloqueadas manualmente futuras usam a sua duração definida.)
+  const raceEndAt = startTs + state.config.raceDuration * MIN;
   const futurePitMinutes = running
     ? computed
         .filter((c) => c.isPit && c.endOffset <= closeOffset && (c.endAt > now || c.index === idx))
         .reduce((sum, c) => sum + (c.durationLocked ? c.duration : minPit), 0)
     : summary.stops * minPit;
   const drivingAvailableMin = running
-    ? Math.max(0, (pitCloseAt - now) / MIN - futurePitMinutes)
-    : Math.max(0, closeOffset - futurePitMinutes);
+    ? Math.max(0, (raceEndAt - now) / MIN - futurePitMinutes)
+    : Math.max(0, state.config.raceDuration - futurePitMinutes);
   const burnable = burnableStints(state.config, remainingStops, drivingAvailableMin);
 
   // Margem para cumprir as paragens obrigatórias antes do fecho do pitlane:
