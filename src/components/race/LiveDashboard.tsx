@@ -8,12 +8,15 @@ import {
   ChevronUp,
   Flag,
   Info,
+  Pencil,
   Square,
   Timer,
   Weight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -200,10 +203,12 @@ function actionTooltipContent(
 }
 
 export function LiveDashboard() {
-  const { state, start, stop, boxNow, endBoxNow, setBallast } = useRace();
+  const { state, start, stop, setStartedAt, boxNow, endBoxNow, setBallast } = useRace();
   const now = useNow(200);
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmBox, setConfirmBox] = useState(false);
+  const [editStart, setEditStart] = useState(false);
+  const [startTimeDraft, setStartTimeDraft] = useState("");
   const [timelineOpen, setTimelineOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     const saved = window.localStorage.getItem("kart24h-hide-timeline");
@@ -422,6 +427,21 @@ export function LiveDashboard() {
               )}
               <Button variant="destructive" size="sm" onClick={() => setConfirmStop(true)}>
                 <Square className="size-4" /> Parar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label="Editar hora da partida"
+                title="Editar hora da partida"
+                onClick={() => {
+                  const d = new Date(state.startedAt ?? Date.now());
+                  setStartTimeDraft(
+                    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+                  );
+                  setEditStart(true);
+                }}
+              >
+                <Pencil className="size-4" />
               </Button>
             </div>
           ) : (
@@ -872,6 +892,56 @@ export function LiveDashboard() {
               }}
             >
               Terminar corrida
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={editStart} onOpenChange={setEditStart}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar hora da partida</AlertDialogTitle>
+            <AlertDialogDescription>
+              Corrige a hora em que a corrida começou. Os horários do plano e da timeline passam a
+              contar a partir desta hora.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Label
+              htmlFor="start-time"
+              className="text-[10px] uppercase tracking-wide text-muted-foreground"
+            >
+              Hora da partida
+            </Label>
+            <Input
+              id="start-time"
+              type="time"
+              className="h-9"
+              value={startTimeDraft}
+              onChange={(e) => setStartTimeDraft(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const m = /^(\d{1,2}):(\d{2})/.exec(startTimeDraft);
+                if (m && state.startedAt !== null) {
+                  const d = new Date(state.startedAt);
+                  d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+                  let ts = d.getTime();
+                  // Provas de 24h atravessam a meia-noite: se a hora ficar no
+                  // futuro, pertence ao dia anterior.
+                  if (ts > Date.now()) ts -= 24 * 60 * 60 * 1000;
+                  setStartedAt(ts);
+                  toast.success(
+                    `Hora da partida corrigida para ${m[1]!.padStart(2, "0")}:${m[2]}`,
+                  );
+                }
+                setEditStart(false);
+              }}
+            >
+              Guardar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

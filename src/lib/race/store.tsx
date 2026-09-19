@@ -57,6 +57,8 @@ interface Ctx {
   moveStint: (id: string, dir: -1 | 1) => void;
   start: () => void;
   stop: () => void;
+  /** Corrige a hora da partida com a corrida em andamento */
+  setStartedAt: (ts: number) => void;
   /** Termina o turno atual agora (piloto entra nas boxes mais cedo que o planeado) */
   boxNow: () => void;
   /** Termina a paragem atual nas boxes agora (saída mais cedo que o planeado) */
@@ -402,6 +404,7 @@ export function RaceProvider({ children }: { children: ReactNode }) {
           stints: s.planSnapshot ?? s.stints,
           planSnapshot: null,
         })),
+      setStartedAt: (ts) => patch((s) => (s.startedAt === null ? s : { ...s, startedAt: ts })),
       endBoxNow: () =>
         patch((s) => {
           if (s.startedAt === null) return s;
