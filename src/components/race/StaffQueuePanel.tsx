@@ -1131,7 +1131,7 @@ function KartDetailDialog({
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-md border border-border p-2 text-center">
                 <div className="text-xs uppercase text-muted-foreground">
-                  Ø Top {info.amostras_usadas || "—"}
+                  Ø Últimas {info.amostras_usadas || "—"}
                 </div>
                 <div className="font-mono text-lg font-bold">
                   {formatLapTime(info.media_melhores_voltas_seconds)}
@@ -1304,7 +1304,7 @@ function KartInfoBoxDialog({ kartId, onClose }: { kartId: string | null; onClose
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-md border border-border p-2 text-center">
                 <div className="text-xs uppercase text-muted-foreground">
-                  Ø Top {info.amostras_usadas || "—"}
+                  Ø Últimas {info.amostras_usadas || "—"}
                 </div>
                 <div className="font-mono text-lg font-bold">
                   {formatLapTime(info.media_melhores_voltas_seconds)}
@@ -1852,10 +1852,10 @@ function ConfiguracoesPanel({
 
           <div className="border-t border-border pt-4">
             <label className="text-xs uppercase text-muted-foreground">
-              Média das X melhores voltas do turno atual
+              Média das últimas X voltas do turno atual
             </label>
             <p className="mb-2 text-xs text-muted-foreground">
-              Ignora voltas de dobragem/tráfego — usa só as X mais rápidas do turno em curso.
+              Usa as X voltas mais recentes do turno em curso (a out-lap não conta). É a base do rating.
             </p>
             <div className="flex gap-2">
               <Input
@@ -2338,7 +2338,7 @@ function DashboardPanel({
       <CardHeader>
         <CardTitle>Dashboard ao vivo</CardTitle>
         <CardDescription>
-          Classificação pela média das melhores voltas do turno atual. "Em Pista" e "Pits" já são
+          Classificação pela média das últimas voltas do turno atual. "Em Pista" e "Pits" já são
           calculados por nós.
         </CardDescription>
 
@@ -2434,7 +2434,7 @@ function DashboardPanel({
                     onSort={handleSort}
                   />
                   <SortHead
-                    label="Média Melhores X Voltas"
+                    label="Média Últimas X Voltas"
                     coluna="media"
                     sortColuna={sortColuna}
                     sortAsc={sortAsc}
