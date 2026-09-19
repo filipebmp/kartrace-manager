@@ -8,12 +8,15 @@ import {
   ChevronUp,
   Flag,
   Info,
+  Pencil,
   Square,
   Timer,
   Weight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -200,10 +203,12 @@ function actionTooltipContent(
 }
 
 export function LiveDashboard() {
-  const { state, start, stop, boxNow, endBoxNow, setBallast } = useRace();
+  const { state, start, stop, setStartedAt, boxNow, endBoxNow, setBallast } = useRace();
   const now = useNow(200);
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmBox, setConfirmBox] = useState(false);
+  const [editStart, setEditStart] = useState(false);
+  const [startTimeDraft, setStartTimeDraft] = useState("");
   const [timelineOpen, setTimelineOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     const saved = window.localStorage.getItem("kart24h-hide-timeline");
