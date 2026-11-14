@@ -510,6 +510,7 @@ function StaffQueueContent({
   const [cartaoInfoId, setCartaoInfoId] = useState<string | null>(null);
   const [novaFilaNome, setNovaFilaNome] = useState("");
   const [novaFilaCor, setNovaFilaCor] = useState<string>(CORES_SUGERIDAS[0] ?? "#dc2626");
+  const [mostrarNovaFila, setMostrarNovaFila] = useState(false);
 
   // Notifica o staff a cada novo kart que entra na Fila de Espera/Triagem
   // (PITIN), esteja o staff a ver ou não esse separador — pedido para não
@@ -875,7 +876,7 @@ function StaffQueueContent({
         </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start">
+          <div className="grid gap-4 lg:grid-cols-[minmax(340px,4fr)_minmax(0,7fr)] lg:items-start">
             <TriagemPanel
               snapshot={snapshot}
               cartoesEspera={cartoesEspera}
@@ -889,53 +890,77 @@ function StaffQueueContent({
               onLimpar={handleLimparFilaEspera}
             />
 
-            <div className="flex flex-wrap justify-center gap-3">
-              {snapshot.filas.map((fila) => (
-                <QueueCard
-                  key={fila.fila_id}
-                  fila={fila}
-                  snapshot={snapshot}
-                  onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
-                  onEditarKart={(kartId) => setKartEmEdicao(kartId)}
-                  onVerInfo={(cartaoId) => setCartaoInfoId(cartaoId)}
-                  onRetirarDaFila={handleRetirarDaFila}
-                  onAdicionarDesconhecido={() => handleAdicionarDesconhecido(fila.fila_id)}
-                  onAdicionarManual={handleAdicionarManual}
-                  onDefinirCapacidade={handleDefinirCapacidade}
-                  onLimparFila={() => handleLimparFila(fila.fila_id, fila.nome)}
-                  dragInfo={dragInfo}
-                  dropTarget={dropTarget}
-                  onPointerDownOnHandle={handlePointerDownOnHandle}
-                />
-              ))}
+            <div className="space-y-3">
+              {/* Todas as filas lado a lado (até 3; com mais, 2 por linha). */}
+              <div
+                className="grid items-start gap-3"
+                style={{
+                  gridTemplateColumns: `repeat(${snapshot.filas.length <= 3 ? Math.max(snapshot.filas.length, 1) : 2}, minmax(0, 1fr))`,
+                }}
+              >
+                {snapshot.filas.map((fila) => (
+                  <QueueCard
+                    key={fila.fila_id}
+                    fila={fila}
+                    snapshot={snapshot}
+                    onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
+                    onEditarKart={(kartId) => setKartEmEdicao(kartId)}
+                    onVerInfo={(cartaoId) => setCartaoInfoId(cartaoId)}
+                    onRetirarDaFila={handleRetirarDaFila}
+                    onAdicionarDesconhecido={() => handleAdicionarDesconhecido(fila.fila_id)}
+                    onAdicionarManual={handleAdicionarManual}
+                    onDefinirCapacidade={handleDefinirCapacidade}
+                    onLimparFila={() => handleLimparFila(fila.fila_id, fila.nome)}
+                    dragInfo={dragInfo}
+                    dropTarget={dropTarget}
+                    onPointerDownOnHandle={handlePointerDownOnHandle}
+                  />
+                ))}
+              </div>
 
-              <div className="min-w-[220px] rounded-lg border border-dashed border-border p-3">
-                <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-                  <Plus className="size-4" /> Nova fila
-                </div>
-                <Input
-                  value={novaFilaNome}
-                  onChange={(e) => setNovaFilaNome(e.target.value)}
-                  placeholder="Nome (ex: Verde)"
-                  className="mb-2"
-                />
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {CORES_SUGERIDAS.map((cor) => (
-                    <button
-                      key={cor}
-                      type="button"
-                      onClick={() => setNovaFilaCor(cor)}
-                      className={`size-6 rounded-full border-2 ${
-                        novaFilaCor === cor ? "border-foreground" : "border-transparent"
-                      }`}
-                      style={{ backgroundColor: cor }}
-                      aria-label={`Cor ${cor}`}
-                    />
-                  ))}
-                </div>
-                <Button size="sm" className="w-full" onClick={handleCriarFila}>
-                  Criar fila
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMostrarNovaFila((v) => !v)}
+                  aria-expanded={mostrarNovaFila}
+                >
+                  <Plus className="size-3.5" /> Nova fila
                 </Button>
+                {mostrarNovaFila ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border p-2">
+                    <Input
+                      value={novaFilaNome}
+                      onChange={(e) => setNovaFilaNome(e.target.value)}
+                      placeholder="Nome (ex: Verde)"
+                      className="h-9 w-40"
+                    />
+                    <div className="flex flex-wrap gap-1.5">
+                      {CORES_SUGERIDAS.map((cor) => (
+                        <button
+                          key={cor}
+                          type="button"
+                          onClick={() => setNovaFilaCor(cor)}
+                          className={`size-6 rounded-full border-2 ${
+                            novaFilaCor === cor ? "border-foreground" : "border-transparent"
+                          }`}
+                          style={{ backgroundColor: cor }}
+                          aria-label={`Cor ${cor}`}
+                        />
+                      ))}
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        const tinhaNome = novaFilaNome.trim().length > 0;
+                        await handleCriarFila();
+                        if (tinhaNome) setMostrarNovaFila(false);
+                      }}
+                    >
+                      Criar fila
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -2918,7 +2943,7 @@ function TriagemPanel({
           {cartoesEspera.length === 0 ? (
             <p className="py-2 text-sm text-muted-foreground">Nenhum kart em espera.</p>
           ) : (
-            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
+            <div className="grid max-h-[212px] grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-5 xl:grid-cols-6">
               {cartoesEspera.map((c) => {
                 const cor = estiloDoRating(c.rating_box?.grade);
                 const selecionado = atual?.id === c.id;
@@ -3169,7 +3194,7 @@ function QueueCard({
   );
 
   return (
-    <div className="flex min-w-[150px] max-w-[260px] flex-1 flex-col overflow-hidden rounded-lg border border-border sm:min-w-[220px]">
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border">
       <div
         className="flex items-center justify-between px-3 py-2"
         style={{ backgroundColor: fila.cor }}
