@@ -88,7 +88,28 @@ export interface KartRatingDTO {
   media_melhores_voltas_seconds: number | null;
   amostras_usadas: number;
   total_voltas_turno: number;
-  rating_box: Omit<KartRatingDTO, "rating_box"> | null;
+}
+
+/** Fotografia do rating no momento em que um cartão entrou na box. */
+export type RatingBoxDTO = Omit<KartRatingDTO, never>;
+
+/**
+ * Um cartão na box (Fila de Espera ou fila de sorteio) — uma ENTRADA na
+ * box, não um kart (2026-11-14). Quando uma equipa entra duas vezes na
+ * box há dois cartões do mesmo kart, retirados à vez. `fila_espera` e
+ * `FilaDTO.kart_ids`/`slots_visuais` guardam ids de CARTÕES.
+ * `desconhecido`: cartão "Desconhecido N" — sem kart, equipa nem rating.
+ */
+export interface CartaoDTO {
+  id: string;
+  seq: number; // ordem de criação: maior = entrada mais recente
+  kart_id: string | null;
+  label: string;
+  equipa_id: string | null;
+  criado_at: string;
+  rating_box: RatingBoxDTO | null;
+  desconhecido: boolean;
+  tem_historico: boolean;
 }
 
 export interface PrevisaoEntryDTO {
@@ -120,6 +141,7 @@ export interface LiveTimingStatusDTO {
 export interface KartFeedSnapshot {
   karts: Record<string, KartDTO>;
   equipas: Record<string, EquipaDTO>;
+  cartoes: Record<string, CartaoDTO>;
   fila_espera: string[];
   filas: FilaDTO[];
   thresholds: { bom_max_seconds: number; medio_max_seconds: number };
@@ -266,6 +288,7 @@ function applyIncrementalEvent(
     ...prev,
     karts: { ...prev.karts },
     equipas: { ...prev.equipas },
+    cartoes: { ...(prev.cartoes ?? {}) },
     fila_espera: [...prev.fila_espera],
     filas: prev.filas.map((f) => ({ ...f, kart_ids: [...f.kart_ids] })),
     last_event_seq: frame.seq,
@@ -277,6 +300,22 @@ function applyIncrementalEvent(
     const idx = next.filas.findIndex((f) => f.fila_id === fila.fila_id);
     if (idx >= 0) next.filas[idx] = fila;
     else next.filas.push(fila);
+  }
+
+  // Estado das filas: cartões + listas. A maioria dos eventos que mexem
+  // na box manda tudo isto completo e o frontend substitui de uma vez
+  // (`fila_espera` e `filas[].kart_ids/slots_visuais` são ids de CARTÕES).
+  function aplicarEstadoFilas() {
+    const cartoes = payload["cartoes"];
+    if (cartoes && typeof cartoes === "object" && !Array.isArray(cartoes)) {
+      next.cartoes = cartoes as Record<string, CartaoDTO>;
+    }
+    if (Array.isArray(payload["fila_espera"])) {
+      next.fila_espera = payload["fila_espera"] as string[];
+    }
+    if (Array.isArray(payload["filas"])) {
+      next.filas = payload["filas"] as FilaDTO[];
+    }
   }
 
   switch (frame.type) {
@@ -317,26 +356,21 @@ function applyIncrementalEvent(
     case "KART_MOVIDO":
     case "PARAGEM_MANUAL_REGISTADA":
     case "KART_ADICIONADO_MANUALMENTE":
+    case "CARTAO_ADICIONADO":
+    case "CARTAO_ATUALIZADO":
     case "KART_RETIRADO_DA_FILA": {
+      // (`kart` vem a null quando o cartão é um "Desconhecido")
       if (payload["kart"]) {
         const kart = payload["kart"] as KartDTO;
         next.karts[kart.id] = kart;
       }
-      if (Array.isArray(payload["fila_espera"])) {
-        next.fila_espera = payload["fila_espera"] as string[];
-      }
-
       if (payload["fila_atualizada"]) {
         substituirFila(payload["fila_atualizada"] as FilaDTO);
       }
       // Corrigido 2026-09-13: a maioria destes eventos manda o array
       // `filas` completo (não `fila_atualizada`, que só o KART_SORTEADO
-      // envia) — sem isto, a posição/buracos visuais de uma fila nunca
-      // se atualizavam a partir daqui (só um refresh completo da ligação
-      // WS é que os corrigia por acidente).
-      if (Array.isArray(payload["filas"])) {
-        next.filas = payload["filas"] as FilaDTO[];
-      }
+      // envia). Desde 2026-11-14 manda também `cartoes`.
+      aplicarEstadoFilas();
       break;
     }
     case "FILA_ESPERA_LIMPA":
@@ -346,22 +380,15 @@ function applyIncrementalEvent(
           next.karts[kart.id] = kart;
         }
       }
-      if (Array.isArray(payload["fila_espera"])) {
-        next.fila_espera = payload["fila_espera"] as string[];
-      }
-      if (Array.isArray(payload["filas"])) {
-        next.filas = payload["filas"] as FilaDTO[];
-      }
+      aplicarEstadoFilas();
       break;
     }
     case "KART_REMOVIDO": {
       const kartId = payload["kart_id"] as string;
       delete next.karts[kartId];
-      next.fila_espera = next.fila_espera.filter((id) => id !== kartId);
-      next.filas = next.filas.map((f) => ({
-        ...f,
-        kart_ids: f.kart_ids.filter((id) => id !== kartId),
-      }));
+      // Os cartões deste kart também desaparecem — o backend manda o novo
+      // estado completo das filas.
+      aplicarEstadoFilas();
       break;
     }
     case "KART_RATING_MANUAL_DEFINIDO": {
@@ -392,9 +419,7 @@ function applyIncrementalEvent(
       break;
     }
     case "FILAS_RECRIADAS": {
-      if (Array.isArray(payload["filas"])) {
-        next.filas = payload["filas"] as FilaDTO[];
-      }
+      aplicarEstadoFilas();
       break;
     }
     case "DADOS_SESSAO_RESET": {
@@ -410,7 +435,9 @@ function applyIncrementalEvent(
         if (!id.startsWith(prefixo)) novosKarts[id] = k;
       }
       next.karts = novosKarts;
-      next.fila_espera = next.fila_espera.filter((id) => !id.startsWith(prefixo));
+      // `fila_espera`/filas são ids de cartões (não de karts): o backend
+      // manda o estado novo já sem os cartões desses karts.
+      aplicarEstadoFilas();
       break;
     }
     default:
@@ -465,9 +492,10 @@ export type AdicionarAFilaResultado =
   { status: "ok" } | { status: "precisa_confirmacao"; localizacaoAtual: string };
 
 export function useKartFeedActions() {
+  // `cartaoId`: id de UM cartão (uma entrada na box) — ver CartaoDTO.
   const triarKart = useCallback(
-    (kartId: string, filaId: string) =>
-      postJson("/staff/triar", { kart_id: kartId, fila_id: filaId }),
+    (cartaoId: string, filaId: string) =>
+      postJson("/staff/triar", { cartao_id: cartaoId, fila_id: filaId }),
     [],
   );
 
@@ -526,12 +554,26 @@ export function useKartFeedActions() {
     [],
   );
 
+  // Retira UM cartão (o do X em que se carregou).
   const retirarDaFila = useCallback(
-    (kartId: string, atribuirAEquipa?: string) =>
+    (cartaoId: string, atribuirAEquipa?: string) =>
       postJson("/staff/retirar_da_fila", {
-        kart_id: kartId,
+        cartao_id: cartaoId,
         atribuir_a_equipa: atribuirAEquipa || null,
       }),
+    [],
+  );
+
+  // Para quem só conhece o kart (diálogo de editar kart): o backend retira
+  // o cartão MAIS ANTIGO desse kart (a ordem de chegada).
+  const retirarKartDaFila = useCallback(
+    (kartId: string) => postJson("/staff/retirar_da_fila", { kart_id: kartId }),
+    [],
+  );
+
+  // Cartão "Desconhecido N" — `filaId: null` = Fila de Espera/Triagem.
+  const adicionarDesconhecido = useCallback(
+    (filaId: string | null) => postJson("/staff/desconhecido", { fila_id: filaId }),
     [],
   );
 
@@ -570,9 +612,9 @@ export function useKartFeedActions() {
   );
 
   const moverKart = useCallback(
-    (kartId: string, filaDestinoId: string, novaPosicao?: number) =>
+    (cartaoId: string, filaDestinoId: string, novaPosicao?: number) =>
       postJson("/staff/mover_kart", {
-        kart_id: kartId,
+        cartao_id: cartaoId,
         fila_destino_id: filaDestinoId,
         nova_posicao: novaPosicao ?? null,
       }),
@@ -606,6 +648,8 @@ export function useKartFeedActions() {
     definirRatingManual,
     removerKart,
     retirarDaFila,
+    retirarKartDaFila,
+    adicionarDesconhecido,
     limparFilaEspera,
     limparFila,
     adicionarAFilaManual,
@@ -700,15 +744,16 @@ export function useKartTurnoAtual(kartId: string | null) {
   );
 }
 
-/** Fotografia do ÚLTIMO turno completo antes de entrar na box (botão
- * "Info" do cartão da fila) — ao contrário de `useKartTurnoAtual`, não
- * muda enquanto o kart está pousado, mesmo que já tenha havido um PITOUT
- * sem o staff retirar o cartão. 404 se o kart nunca entrou na box. */
-export function useKartTurnoBox(kartId: string | null) {
+/** Fotografia do turno que ACABOU antes de um cartão entrar na box (botão
+ * "Info" do cartão) — uma por cartão (por entrada na box), por isso a 2.ª
+ * entrada do mesmo kart não apaga a da 1.ª. Não muda enquanto o cartão
+ * está pousado, mesmo que a equipa já tenha voltado à pista. 404 num
+ * "Desconhecido". Passa `cartaoId: null` para desligar. */
+export function useKartTurnoBox(cartaoId: string | null) {
   return usePolledEndpoint<HistoricoTurnoKartDTO>(
-    kartId ? `/karts/${encodeURIComponent(kartId)}/turno_box` : "",
+    cartaoId ? `/cartoes/${encodeURIComponent(cartaoId)}/turno_box` : "",
     3000,
-    kartId !== null,
+    cartaoId !== null,
   );
 }
 

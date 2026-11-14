@@ -77,6 +77,7 @@ import {
   useSetMapeamentoColunas,
   type KartDTO,
   type KartRatingDTO,
+  type CartaoDTO,
   type EquipaDTO,
   type KartFeedStatus,
   type KartFeedSnapshot,
@@ -403,6 +404,8 @@ function StaffQueueContent({
     definirRatingManual,
     removerKart,
     retirarDaFila,
+    retirarKartDaFila,
+    adicionarDesconhecido,
     limparFilaEspera,
     limparFila,
     adicionarAFilaManual,
@@ -416,16 +419,16 @@ function StaffQueueContent({
   // ler os valores mais recentes dentro dos listeners (evita o problema
   // clássico de "closure antigo" com o React).
   const [dragInfo, setDragInfo] = useState<{
-    kartId: string;
+    cartaoId: string;
     filaOrigemId: string;
     x: number;
     y: number;
   } | null>(null);
   const [dropTarget, setDropTarget] = useState<{ filaId: string; index: number } | null>(null);
   const dropTargetRef = useRef<{ filaId: string; index: number } | null>(null);
-  const dragInfoRef = useRef<{ kartId: string; filaOrigemId: string } | null>(null);
+  const dragInfoRef = useRef<{ cartaoId: string; filaOrigemId: string } | null>(null);
 
-  function handlePointerDownOnHandle(e: ReactPointerEvent, kartId: string, filaOrigemId: string) {
+  function handlePointerDownOnHandle(e: ReactPointerEvent, cartaoId: string, filaOrigemId: string) {
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
@@ -437,10 +440,10 @@ function StaffQueueContent({
       if (!comecouArrastar) {
         if (Math.hypot(dx, dy) < 6) return; // limiar — evita confundir um toque com arrasto
         comecouArrastar = true;
-        dragInfoRef.current = { kartId, filaOrigemId };
-        setDragInfo({ kartId, filaOrigemId, x: ev.clientX, y: ev.clientY });
+        dragInfoRef.current = { cartaoId, filaOrigemId };
+        setDragInfo({ cartaoId, filaOrigemId, x: ev.clientX, y: ev.clientY });
       } else {
-        setDragInfo({ kartId, filaOrigemId, x: ev.clientX, y: ev.clientY });
+        setDragInfo({ cartaoId, filaOrigemId, x: ev.clientX, y: ev.clientY });
       }
 
       const elemento = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -456,7 +459,7 @@ function StaffQueueContent({
       // certo, não para "uma posição a mais".
       if (novoAlvo && novoAlvo.filaId === filaOrigemId) {
         const filaAtual = snapshot?.filas.find((f) => f.fila_id === filaOrigemId);
-        const indiceAtual = filaAtual?.slots_visuais.indexOf(kartId) ?? -1;
+        const indiceAtual = filaAtual?.slots_visuais.indexOf(cartaoId) ?? -1;
         if (indiceAtual !== -1 && novoAlvo.index > indiceAtual) {
           novoAlvo = { ...novoAlvo, index: novoAlvo.index - 1 };
         }
@@ -473,7 +476,7 @@ function StaffQueueContent({
 
       if (dragInfoRef.current && dropTargetRef.current) {
         handleMoverKart(
-          dragInfoRef.current.kartId,
+          dragInfoRef.current.cartaoId,
           dropTargetRef.current.filaId,
           dropTargetRef.current.index,
         );
@@ -498,7 +501,7 @@ function StaffQueueContent({
   const [motivoAvaria] = useState<Record<string, string>>({});
   const [kartEmEdicao, setKartEmEdicao] = useState<string | null>(null);
   const [kartDetalheId, setKartDetalheId] = useState<string | null>(null);
-  const [kartInfoBoxId, setKartInfoBoxId] = useState<string | null>(null);
+  const [cartaoInfoId, setCartaoInfoId] = useState<string | null>(null);
     const [novaFilaNome, setNovaFilaNome] = useState("");
   const [novaFilaCor, setNovaFilaCor] = useState<string>(CORES_SUGERIDAS[0] ?? "#dc2626");
 
@@ -513,10 +516,14 @@ function StaffQueueContent({
     const atuais = new Set(snapshot.fila_espera);
     const anteriores = filaEsperaConhecidaRef.current;
     if (anteriores !== null) {
-      for (const kartId of snapshot.fila_espera) {
-        if (!anteriores.has(kartId)) {
-          const kart = snapshot.karts[kartId];
-          toast.info(`Kart ${kart?.label ?? kartId} entrou na box`, {
+      // `fila_espera` guarda ids de CARTÕES (uma entrada na box cada) —
+      // por isso a 2.ª entrada do mesmo kart também avisa. Os
+      // "Desconhecido" são adicionados à mão pelo staff, não avisam.
+      for (const cartaoId of snapshot.fila_espera) {
+        if (!anteriores.has(cartaoId)) {
+          const cartao = snapshot.cartoes?.[cartaoId];
+          if (cartao?.desconhecido) continue;
+          toast.info(`Kart ${cartao?.label ?? cartaoId} entrou na box`, {
             description: `${atuais.size} na Fila de Espera/Triagem`,
           });
         }
@@ -544,11 +551,15 @@ function StaffQueueContent({
   }
 
   const gradeOf = (kartId: string): number | null | undefined => ratings?.[kartId]?.grade;
-  const kartsEspera = snapshot.fila_espera.map((id) => snapshot.karts[id]);
+  // A Fila de Espera guarda ids de CARTÕES (uma entrada na box cada — o
+  // mesmo kart pode lá estar mais do que uma vez).
+  const cartoesEspera = snapshot.fila_espera
+    .map((id) => snapshot.cartoes?.[id])
+    .filter((c): c is CartaoDTO => c !== undefined);
 
-  async function handleTriar(kartId: string, filaId: string) {
+  async function handleTriar(cartaoId: string, filaId: string) {
     try {
-      await triarKart(kartId, filaId);
+      await triarKart(cartaoId, filaId);
     } catch (e) {
       toast.error("Não foi possível triar o kart", {
         description: e instanceof Error ? e.message : undefined,
@@ -629,16 +640,44 @@ function StaffQueueContent({
     }
   }
 
-  async function handleRetirarDaFila(kartId: string, atribuirAEquipa?: string) {
+  // Retira UM cartão (o do X em que se carregou). Os outros cartões do
+  // mesmo kart, de outras entradas na box, ficam onde estão.
+  async function handleRetirarDaFila(cartaoId: string, atribuirAEquipa?: string) {
+    const nome = snapshot?.cartoes?.[cartaoId]?.label ?? cartaoId;
     try {
-      await retirarDaFila(kartId, atribuirAEquipa);
+      await retirarDaFila(cartaoId, atribuirAEquipa);
       toast.success(
         atribuirAEquipa
-          ? `Kart ${kartId} retirado da fila e rating atribuído à equipa ${atribuirAEquipa}`
-          : `Kart ${kartId} retirado da fila`,
+          ? `Kart ${nome} retirado da fila e rating atribuído à equipa ${atribuirAEquipa}`
+          : `Kart ${nome} retirado da fila`,
       );
     } catch (e) {
       toast.error("Não foi possível retirar da fila", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  // Diálogo de editar kart: só conhece o kart — retira o cartão MAIS
+  // ANTIGO dele (a ordem de chegada).
+  async function handleRetirarKartDaFila(kartId: string) {
+    try {
+      await retirarKartDaFila(kartId);
+      toast.success(`Kart ${kartId} retirado da fila`);
+    } catch (e) {
+      toast.error("Não foi possível retirar da fila", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  // Cartão "Desconhecido N": para quando se vê um kart na box mas não se
+  // sabe qual é. `filaId: null` = Fila de Espera/Triagem.
+  async function handleAdicionarDesconhecido(filaId: string | null) {
+    try {
+      await adicionarDesconhecido(filaId);
+    } catch (e) {
+      toast.error("Não foi possível adicionar o desconhecido", {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -691,9 +730,9 @@ function StaffQueueContent({
     }
   }
 
-  async function handleMoverKart(kartId: string, filaDestinoId: string, novaPosicao?: number) {
+  async function handleMoverKart(cartaoId: string, filaDestinoId: string, novaPosicao?: number) {
     try {
-      await moverKart(kartId, filaDestinoId, novaPosicao);
+      await moverKart(cartaoId, filaDestinoId, novaPosicao);
     } catch (e) {
       toast.error("Não foi possível mover o kart", {
         description: e instanceof Error ? e.message : undefined,
@@ -818,62 +857,100 @@ function StaffQueueContent({
               <div>
                 <CardTitle>Fila de Espera / Triagem</CardTitle>
                 <CardDescription>
-                  Karts que acabaram de entrar em PITIN. Classifica cada um numa fila.
+                  Cada entrada na box é um cartão. Classifica cada um numa fila.
                 </CardDescription>
               </div>
-              {kartsEspera.length > 0 ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      <Trash2 className="size-3.5" /> Limpar
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Limpar a Fila de Espera / Triagem?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Remove os {kartsEspera.length} kart(s) desta lista. Quem ainda não tinha
-                        voltado à pista fica de novo EM_PISTA (turno reiniciado); quem já tinha
-                        saído entretanto (PITOUT antes de ser triado) só desaparece daqui, sem
-                        mexer no que já está correto.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleLimparFilaEspera}>Limpar</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : null}
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAdicionarDesconhecido(null)}
+                  title="Para quando vês um kart na box mas não sabes qual é"
+                >
+                  <Plus className="size-3.5" /> Desconhecido
+                </Button>
+                {cartoesEspera.length > 0 ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Trash2 className="size-3.5" /> Limpar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Limpar a Fila de Espera / Triagem?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Remove os {cartoesEspera.length} cartão(ões) desta lista. Quem ainda não
+                          tinha voltado à pista fica de novo EM_PISTA (turno reiniciado); quem já
+                          tinha saído entretanto (PITOUT antes de ser triado) só desaparece daqui,
+                          sem mexer no que já está correto.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleLimparFilaEspera}>Limpar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {kartsEspera.length === 0 ? (
+              {cartoesEspera.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem karts à espera de triagem.</p>
               ) : (
-                kartsEspera.map(
-                  (kart) =>
-                    kart && (
-                      <div
-                        key={kart.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
-                      >
-                        <KartChip
-                          kart={kart}
-                          grade={gradeOf(kart.id)}
-                          onEditar={() => setKartEmEdicao(kart.id)}
+                cartoesEspera.map((cartao) => {
+                  const kartDoCartao = cartao.kart_id ? snapshot.karts[cartao.kart_id] : undefined;
+                  return (
+                    <div
+                      key={cartao.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
+                        <span className="font-mono text-sm font-semibold">{cartao.label}</span>
+                        <GradeBadge
+                          grade={cartao.rating_box?.grade}
+                          manual={cartao.rating_box?.confianca === "manual"}
                         />
-                        <div className="flex flex-wrap gap-2">
-                          {snapshot.filas.map((fila) => (
-                            <Button
-                              key={fila.fila_id}
-                              size="sm"
-                              style={{ backgroundColor: fila.cor }}
-                              className="text-white hover:opacity-90"
-                              onClick={() => handleTriar(kart.id, fila.fila_id)}
-                            >
-                              {fila.nome}
-                            </Button>
-                          ))}
+                        {kartDoCartao?.notas ? (
+                          <span className="text-xs text-muted-foreground" title={kartDoCartao.notas}>
+                            <AlertTriangle className="size-3.5" />
+                          </span>
+                        ) : null}
+                        {cartao.tem_historico ? (
+                          <button
+                            type="button"
+                            onClick={() => setCartaoInfoId(cartao.id)}
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label={`Ver informação do último turno de ${cartao.label}`}
+                          >
+                            <Info className="size-3.5" />
+                          </button>
+                        ) : null}
+                        {cartao.kart_id ? (
+                          <button
+                            type="button"
+                            onClick={() => setKartEmEdicao(cartao.kart_id)}
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label={`Editar kart ${cartao.label}`}
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {snapshot.filas.map((fila) => (
+                          <Button
+                            key={fila.fila_id}
+                            size="sm"
+                            style={{ backgroundColor: fila.cor }}
+                            className="text-white hover:opacity-90"
+                            onClick={() => handleTriar(cartao.id, fila.fila_id)}
+                          >
+                            {fila.nome}
+                          </Button>
+                        ))}
+                        {cartao.kart_id ? (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button size="sm" variant="outline">
@@ -883,26 +960,34 @@ function StaffQueueContent({
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  Marcar kart {kart.label} como avariado?
+                                  Marcar kart {cartao.label} como avariado?
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Vai para a oficina, fora de serviço — não entra em nenhuma fila
                                   nem pode ser atribuído a nenhuma equipa até seres tu a
-                                  reintegrá-lo.
+                                  reintegrá-lo. Todos os cartões deste kart saem das filas.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleForaDeServico(kart.id)}>
+                                <AlertDialogAction
+                                  onClick={() => cartao.kart_id && handleForaDeServico(cartao.kart_id)}
+                                >
                                   Marcar avariado
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        </div>
+                        ) : null}
+                        <RetirarCartaoButton
+                          cartao={cartao}
+                          pedeAtribuicao={cartaoPedeAtribuicao(cartao, snapshot)}
+                          onRetirar={handleRetirarDaFila}
+                        />
                       </div>
-                    ),
-                )
+                    </div>
+                  );
+                })
               )}
             </CardContent>
           </Card>
@@ -912,13 +997,12 @@ function StaffQueueContent({
               <QueueCard
                 key={fila.fila_id}
                 fila={fila}
-                karts={snapshot.karts}
-                equipas={snapshot.equipas}
-                ratings={ratings}
+                snapshot={snapshot}
                 onRemover={() => handleRemoverFila(fila.fila_id, fila.nome)}
                 onEditarKart={(kartId) => setKartEmEdicao(kartId)}
-                onVerInfo={(kartId) => setKartInfoBoxId(kartId)}
+                onVerInfo={(cartaoId) => setCartaoInfoId(cartaoId)}
                 onRetirarDaFila={handleRetirarDaFila}
+                onAdicionarDesconhecido={() => handleAdicionarDesconhecido(fila.fila_id)}
                 onAdicionarManual={handleAdicionarManual}
                 onDefinirCapacidade={handleDefinirCapacidade}
                 onLimparFila={() => handleLimparFila(fila.fila_id, fila.nome)}
@@ -1014,12 +1098,13 @@ function StaffQueueContent({
       <KartEditDialog
         kart={kartEditando}
         filas={snapshot.filas}
+        cartoes={snapshot.cartoes ?? {}}
         onClose={() => setKartEmEdicao(null)}
         onRenomear={renomearKart}
         onDefinirRatingManual={definirRatingManual}
         onRemover={removerKart}
         onMarcarForaDeServico={marcarForaDeServico}
-        onRetirarDaFila={handleRetirarDaFila}
+        onRetirarDaFila={handleRetirarKartDaFila}
       />
 
       <KartDetailDialog
@@ -1029,7 +1114,7 @@ function StaffQueueContent({
         onMarcarForaDeServico={marcarForaDeServico}
       />
 
-      <KartInfoBoxDialog kartId={kartInfoBoxId} onClose={() => setKartInfoBoxId(null)} />
+      <KartInfoBoxDialog cartaoId={cartaoInfoId} onClose={() => setCartaoInfoId(null)} />
 
       <AlertDialog
         open={pendingRelocacao !== null}
@@ -1055,7 +1140,7 @@ function StaffQueueContent({
           className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-md border border-primary bg-background px-2.5 py-1.5 font-mono text-sm font-semibold shadow-lg"
           style={{ left: dragInfo.x, top: dragInfo.y }}
         >
-          {snapshot.karts[dragInfo.kartId]?.label ?? dragInfo.kartId}
+          {snapshot.cartoes?.[dragInfo.cartaoId]?.label ?? dragInfo.cartaoId}
         </div>
       ) : null}
     </div>
@@ -1276,20 +1361,26 @@ function KartDetailDialog({
   );
 }
 
-function KartInfoBoxDialog({ kartId, onClose }: { kartId: string | null; onClose: () => void }) {
+function KartInfoBoxDialog({
+  cartaoId,
+  onClose,
+}: {
+  cartaoId: string | null;
+  onClose: () => void;
+}) {
   // Pedido do utilizador (2026-09-15): botão "Info" no cartão da fila —
   // mostra o turno que ACABOU antes de entrar na box (fotografia fixa,
   // ver `historico_turno_box` no backend), não o turno ao vivo, que já
   // pode ter reiniciado (PITOUT sem o staff ainda ter retirado o cartão).
   // Só leitura — para editar o rating usa-se o botão "Editar" (lápis).
-  const { data: info, error } = useKartTurnoBox(kartId);
+  const { data: info, error } = useKartTurnoBox(cartaoId);
 
   return (
-    <Dialog open={kartId !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={cartaoId !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         {error ? (
           <p className="p-4 text-sm text-muted-foreground">
-            Este kart ainda não entrou na box — sem turno anterior registado.
+            Este cartão não tem turno anterior registado (ou já saiu da box).
           </p>
         ) : info ? (
           <>
@@ -1390,6 +1481,7 @@ function KartInfoBoxDialog({ kartId, onClose }: { kartId: string | null; onClose
 function KartEditDialog({
   kart,
   filas,
+  cartoes,
   onClose,
   onRenomear,
   onDefinirRatingManual,
@@ -1399,6 +1491,7 @@ function KartEditDialog({
 }: {
   kart: KartDTO | null;
   filas: FilaDTO[];
+  cartoes: Record<string, CartaoDTO>;
   onClose: () => void;
   onRenomear: (kartId: string, label: string) => Promise<void>;
   onDefinirRatingManual: (kartId: string, grade: number | null) => Promise<void>;
@@ -1407,7 +1500,11 @@ function KartEditDialog({
   onRetirarDaFila: (kartId: string) => Promise<void>;
 }) {
   const [novoLabel, setNovoLabel] = useState("");
-  const estaNumaFila = kart ? filas.some((f) => f.kart_ids.includes(kart.id)) : false;
+  // As filas guardam ids de cartões: o kart "está numa fila" se algum dos
+  // seus cartões lá estiver. Retirar daqui tira o cartão MAIS ANTIGO dele.
+  const estaNumaFila = kart
+    ? filas.some((f) => f.kart_ids.some((cid) => cartoes[cid]?.kart_id === kart.id))
+    : false;
 
   async function handleGuardarNome() {
     if (!kart) return;
@@ -2613,11 +2710,83 @@ function ForecastPanel() {
   );
 }
 
+/** O cartão é o MAIS RECENTE do seu kart e o kart tem rating manual? Só
+ * então o X pergunta a que equipa vai o kart (o rating manual só viaja
+ * com o cartão mais recente — os antigos são entradas passadas). */
+function cartaoPedeAtribuicao(cartao: CartaoDTO, snapshot: KartFeedSnapshot): boolean {
+  if (!cartao.kart_id) return false;
+  if (snapshot.karts[cartao.kart_id]?.rating_manual == null) return false;
+  return !Object.values(snapshot.cartoes ?? {}).some(
+    (c) => c.kart_id === cartao.kart_id && c.seq > cartao.seq,
+  );
+}
+
+/** Botão X + confirmação para retirar UM cartão da box (Fila de Espera ou
+ * fila de sorteio). Partilhado pelas duas listas. */
+function RetirarCartaoButton({
+  cartao,
+  pedeAtribuicao,
+  onRetirar,
+}: {
+  cartao: CartaoDTO;
+  pedeAtribuicao: boolean;
+  onRetirar: (cartaoId: string, atribuirAEquipa?: string) => void;
+}) {
+  const [destino, setDestino] = useState("");
+  return (
+    <AlertDialog onOpenChange={(aberto) => !aberto && setDestino("")}>
+      <AlertDialogTrigger asChild>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-destructive"
+          aria-label={`Retirar ${cartao.label} da fila`}
+        >
+          <X className="size-3.5" />
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
+          {pedeAtribuicao ? (
+            <AlertDialogDescription>
+              Kart com rating manual, se pretende atribuir a uma equipa preencha o campo abaixo — se
+              não atribuir volta para o rating automático.
+            </AlertDialogDescription>
+          ) : cartao.desconhecido ? (
+            <AlertDialogDescription>Retira o cartão {cartao.label}.</AlertDialogDescription>
+          ) : (
+            <AlertDialogDescription>
+              Retira só este cartão do kart {cartao.label}; se tiver outros cartões (outras entradas
+              na box), ficam onde estão. Se o kart ainda não tinha voltado à pista, volta a EM_PISTA
+              (não vai para a Fila de Espera) — o Live Timing continua a controlá-lo na realidade.
+            </AlertDialogDescription>
+          )}
+        </AlertDialogHeader>
+        {pedeAtribuicao ? (
+          <Input
+            autoFocus
+            value={destino}
+            onChange={(e) => setDestino(e.target.value)}
+            placeholder="Nº da equipa (opcional)"
+          />
+        ) : null}
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            ref={pedeAtribuicao ? undefined : (el) => el?.focus()}
+            onClick={() => onRetirar(cartao.id, destino.trim() || undefined)}
+          >
+            Retirar da Fila
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function QueueCard({
   fila,
-  karts,
-  equipas,
-  ratings,
+  snapshot,
   onRemover,
   onEditarKart,
   onVerInfo,
@@ -2625,36 +2794,31 @@ function QueueCard({
   onAdicionarManual,
   onDefinirCapacidade,
   onLimparFila,
+  onAdicionarDesconhecido,
   dragInfo,
   dropTarget,
   onPointerDownOnHandle,
 }: {
   fila: FilaDTO;
-  karts: Record<string, KartDTO>;
-  equipas: Record<string, EquipaDTO>;
-  ratings: Record<string, KartRatingDTO> | null;
+  snapshot: KartFeedSnapshot;
   onRemover: () => void;
   onEditarKart: (kartId: string) => void;
-  onVerInfo: (kartId: string) => void;
-  onRetirarDaFila: (kartId: string, atribuirAEquipa?: string) => void;
+  onVerInfo: (cartaoId: string) => void;
+  onRetirarDaFila: (cartaoId: string, atribuirAEquipa?: string) => void;
   onAdicionarManual: (kartId: string, filaId: string) => void;
   onDefinirCapacidade: (filaId: string, capacidade: number | null) => void;
   onLimparFila: () => void;
-  dragInfo: { kartId: string; filaOrigemId: string; x: number; y: number } | null;
+  onAdicionarDesconhecido: () => void;
+  dragInfo: { cartaoId: string; filaOrigemId: string; x: number; y: number } | null;
   dropTarget: { filaId: string; index: number } | null;
-  onPointerDownOnHandle: (e: ReactPointerEvent, kartId: string, filaOrigemId: string) => void;
+  onPointerDownOnHandle: (e: ReactPointerEvent, cartaoId: string, filaOrigemId: string) => void;
 }) {
+  // `fila.kart_ids`/`slots_visuais` são ids de CARTÕES (uma entrada na box
+  // cada) — o número, a equipa e o rating mostrados vêm do cartão.
+  const { karts, equipas } = snapshot;
+  const cartoes = snapshot.cartoes ?? {};
   const [novoKartId, setNovoKartId] = useState("");
   const [mostrarAdicionar, setMostrarAdicionar] = useState(false);
-  // Pedido do utilizador (2026-09-14): em Palmela os karts físicos trocam
-  // de equipa em todos os turnos — um kart com rating manual (fisicamente
-  // bom) perderia essa informação ao ser entregue a outra equipa. Ao
-  // retirar da fila, se o kart tiver rating manual, o staff pode indicar
-  // aqui para que equipa ele vai, e o rating "viaja" com ele (ver
-  // `retirar_kart_da_fila`/`atribuir_a_equipa` no backend). Um valor por
-  // kart_id, porque várias filas podem estar a mostrar cartões ao mesmo
-  // tempo.
-  const [atribuirEquipaInput, setAtribuirEquipaInput] = useState<Record<string, string>>({});
 
   // Pré-visualização em tempo real: enquanto se arrasta um kart PARA
   // dentro desta fila, mostra logo "o espaço a abrir-se" na posição onde
@@ -2666,11 +2830,11 @@ function QueueCard({
   const slotsParaMostrar: (string | null)[] =
     dragInfo && dropTarget?.filaId === fila.fila_id
       ? (() => {
-          const semArrastado = fila.slots_visuais.filter((id) => id !== dragInfo.kartId);
+          const semArrastado = fila.slots_visuais.filter((id) => id !== dragInfo.cartaoId);
           const posicao = Math.min(dropTarget.index, semArrastado.length);
           return [
             ...semArrastado.slice(0, posicao),
-            dragInfo.kartId,
+            dragInfo.cartaoId,
             ...semArrastado.slice(posicao),
           ];
         })()
@@ -2843,7 +3007,7 @@ function QueueCard({
             }
 
             const posicaoReal = posicoesReais[i]!;
-            const ehFantasma = dragInfo?.kartId === id && dropTarget?.filaId === fila.fila_id;
+            const ehFantasma = dragInfo?.cartaoId === id && dropTarget?.filaId === fila.fila_id;
 
             if (ehFantasma) {
               // O kart está a ser arrastado — a linha "verdadeira" dele
@@ -2857,12 +3021,16 @@ function QueueCard({
                   data-drop-index={i}
                   className="flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/10 p-2 py-4"
                 >
-                  <span className="text-xs text-primary">{karts[id]?.label ?? id}</span>
+                  <span className="text-xs text-primary">{cartoes[id]?.label ?? id}</span>
                 </div>
               );
             }
 
-            const ratingBox = ratings?.[id]?.rating_box;
+            // Tudo o que o cartão mostra vem do PRÓPRIO cartão (fotografia da
+            // entrada na box) — o rating, o tempo e a equipa de uma entrada
+            // anterior nunca são substituídos pelos da seguinte.
+            const cartao = cartoes[id];
+            const ratingBox = cartao?.rating_box ?? null;
             const grade = ratingBox?.grade;
             const corGrade = grade ? GRADE_COLORS[grade]?.hex : undefined;
 
@@ -2893,7 +3061,7 @@ function QueueCard({
                       onPointerDown={(e) => onPointerDownOnHandle(e, id, fila.fila_id)}
                       className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
                       style={{ touchAction: "none" }}
-                      aria-label={`Arrastar kart ${karts[id]?.label ?? id}`}
+                      aria-label={`Arrastar kart ${cartao?.label ?? id}`}
                     >
                       <GripVertical className="size-4" />
                     </button>
@@ -2904,89 +3072,43 @@ function QueueCard({
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => onVerInfo(id)}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label={`Ver informação do último turno de ${karts[id]?.label ?? id}`}
-                    >
-                      <Info className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onEditarKart(id)}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label={`Editar kart ${karts[id]?.label ?? id}`}
-                    >
-                      <Pencil className="size-3.5" />
-                    </button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-destructive"
-                          aria-label={`Retirar kart ${karts[id]?.label ?? id} da fila`}
-                        >
-                          <X className="size-3.5" />
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Retirar da fila?</AlertDialogTitle>
-                          {karts[id]?.rating_manual != null ? (
-                            <AlertDialogDescription>
-                              Kart com rating manual, se pretende atribuir a uma equipa preencha o
-                              campo abaixo — se não atribuir volta para o rating automático.
-                            </AlertDialogDescription>
-                          ) : (
-                            <AlertDialogDescription>
-                              O kart {karts[id]?.label ?? id} volta a EM_PISTA (não vai para a Fila
-                              de Espera) — o Live Timing continua a controlá-lo na realidade.
-                            </AlertDialogDescription>
-                          )}
-                        </AlertDialogHeader>
-                        {karts[id]?.rating_manual != null ? (
-                          <Input
-                            autoFocus
-                            value={atribuirEquipaInput[id] ?? ""}
-                            onChange={(e) =>
-                              setAtribuirEquipaInput((prev) => ({ ...prev, [id]: e.target.value }))
-                            }
-                            placeholder="Nº da equipa (opcional)"
-                          />
-                        ) : null}
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            ref={
-                              karts[id]?.rating_manual == null ? (el) => el?.focus() : undefined
-                            }
-                            onClick={() => {
-                              const destino = atribuirEquipaInput[id]?.trim() || undefined;
-                              onRetirarDaFila(id, destino);
-                              if (destino) {
-                                setAtribuirEquipaInput((prev) => {
-                                  const { [id]: _removido, ...resto } = prev;
-                                  return resto;
-                                });
-                              }
-                            }}
-                          >
-                            Retirar da Fila
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {cartao?.tem_historico ? (
+                      <button
+                        type="button"
+                        onClick={() => onVerInfo(id)}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label={`Ver informação do último turno de ${cartao.label}`}
+                      >
+                        <Info className="size-3.5" />
+                      </button>
+                    ) : null}
+                    {cartao?.kart_id ? (
+                      <button
+                        type="button"
+                        onClick={() => cartao.kart_id && onEditarKart(cartao.kart_id)}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label={`Editar kart ${cartao.label}`}
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                    ) : null}
+                    {cartao ? (
+                      <RetirarCartaoButton
+                        cartao={cartao}
+                        pedeAtribuicao={cartaoPedeAtribuicao(cartao, snapshot)}
+                        onRetirar={onRetirarDaFila}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
                 <div className="py-1 text-center">
                   <div className="font-mono text-2xl font-extrabold leading-tight">
-                    {karts[id]?.label ?? id}
+                    {cartao?.label ?? id}
                   </div>
                   <div className="truncate text-sm font-semibold" style={{ color: fila.cor }}>
                     {(() => {
-                      const equipaId = karts[id]?.ultima_equipa_id;
+                      const equipaId = cartao?.equipa_id;
                       const equipa = equipaId ? equipas[equipaId] : undefined;
                       if (!equipa) return "—";
                       return equipa.nome
@@ -3019,6 +3141,16 @@ function QueueCard({
             <Plus className="size-3.5" /> Adicionar kart
           </Button>
 
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-full"
+            onClick={onAdicionarDesconhecido}
+            title="Para quando vês um kart nesta fila mas não sabes qual é"
+          >
+            <Plus className="size-3.5" /> Desconhecido
+          </Button>
+
           {fila.kart_ids.length > 0 ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -3030,7 +3162,7 @@ function QueueCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Limpar a fila {fila.nome}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Remove os {fila.kart_ids.length} kart(s) desta fila. Quem ainda não tinha
+                    Remove os {fila.kart_ids.length} cartão(ões) desta fila. Quem ainda não tinha
                     voltado à pista fica de novo EM_PISTA (turno reiniciado); quem já tinha saído
                     entretanto (PITOUT antes de ser retirado manualmente) só desaparece do cartão,
                     sem mexer no que já está correto.
